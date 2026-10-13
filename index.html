@@ -1416,8 +1416,16 @@ function renderInd(){
 }
 
 /* ---------- leave record ---------- */
+/* Rows are keyed by the lowercase name. Older entries used capitals, so look
+   both ways rather than silently showing "not set". */
+function rid(n){ return String(n == null ? "" : n).toLowerCase(); }
+function recOf(coll, n){
+  var d = DATA[coll] || {};
+  return d[rid(n)] || d[String(n).toUpperCase()] || null;
+}
+
 function leaveYear(n){
-  var j = DATA.joining[n] && DATA.joining[n].date;
+  var r = recOf("joining", n), j = r && r.date;
   if (!j) return null;
   var jm = msOf(j), jd = new Date(jm), now = msOf(todayKey());
   var y = new Date(now).getUTCFullYear();
@@ -1429,7 +1437,7 @@ function leaveYear(n){
 }
 function leaveTaken(n, ly){
   if (!ly) return {taken:0, ahead:0, covered:0};
-  var op = DATA.opening[n];
+  var op = recOf("opening", n);
   var taken = (op && op.days>0) ? Math.round(op.days) : 0;
   var fromMs = (op && op.asOf) ? msOf(op.asOf) : null;
   if (fromMs!==null && fromMs<ly.start) fromMs = ly.start;
@@ -1474,7 +1482,8 @@ function renderCounter(){
     var g = groupLabel(n); if (g) th.appendChild(el("span","yr",g));
     tr.appendChild(th);
     var ly = leaveYear(n), tk = leaveTaken(n, ly);
-    tr.appendChild(el("td",null, DATA.joining[n] && DATA.joining[n].date ? fmt(msOf(DATA.joining[n].date)) : "not set"));
+    var jr = recOf("joining", n);
+    tr.appendChild(el("td",null, jr && jr.date ? fmt(msOf(jr.date)) : "not set"));
     var tot = el("td","num");
     tot.appendChild(document.createTextNode(ly? String(tk.taken) : "-"));
     if (ly && tk.ahead){
@@ -1587,8 +1596,8 @@ function renderSetup(){
 
   /* ---- joining dates and leave already taken ---- */
   var jLines = roster().map(function(n){
-    var j = (DATA.joining[n] && DATA.joining[n].date) || "";
-    var o = (DATA.opening[n] && DATA.opening[n].days != null) ? DATA.opening[n].days : "";
+    var jr0 = recOf("joining", n), j = (jr0 && jr0.date) || "";
+    var or0 = recOf("opening", n), o = (or0 && or0.days != null) ? or0.days : "";
     return title(n) + " = " + j + (o===""? "" : " , " + o);
   }).join("\n");
   var fJoin = box("Joining date, and leave already taken before this roster started",
@@ -1666,28 +1675,56 @@ function renderSetup(){
     fJoin.input.value.split(/\n+/).forEach(function(ln){
       var m = ln.split("=");
       if (m.length<2) return;
-      var nm = m[0].trim().toUpperCase();
+      var nm = m[0].trim().toUpperCase(), id = rid(nm);
       var rest = m.slice(1).join("=").split(",");
       var dt = rest[0].trim(), dys = (rest[1]||"").trim();
-      if (nm && /^\d{4}-\d{2}-\d{2}$/.test(dt)) joinOut[nm] = {resident:nm, date:dt};
+      if (nm && /^\d{4}-\d{2}-\d{2}$/.test(dt)) joinOut[id] = {resident:nm, date:dt};
       if (nm && dys !== ""){
         var v = parseInt(dys,10);
         if (!isNaN(v) && v>=0){
-          var prev = DATA.opening[nm];
-          openOut[nm] = {resident:nm, days:v, asOf:(prev&&prev.asOf)||todayKey()};
+          var prev = recOf("opening", nm);
+          openOut[id] = {resident:nm, days:v, asOf:(prev&&prev.asOf)||todayKey()};
         }
       }
     });
     CFG = next;
-    DATA.joining = joinOut;
-    DATA.opening = openOut;
-    STORE.save().then(function(){
+
+    /* These rows live in the Sheet like any other record, so send the ones
+       that changed and remove the ones that are gone. Before, they were only
+       held in the browser and vanished on the next device. */
+    var jobs = [];
+    ["joining","opening"].forEach(function(coll){
+      var want = coll==="joining" ? joinOut : openOut;
+      var have = DATA[coll] || {};
+      Object.keys(have).forEach(function(k){
+        if (!want.hasOwnProperty(rid(k))) jobs.push(function(){ return STORE.drop(coll, k); });
+      });
+      var items = [];
+      Object.keys(want).forEach(function(k){
+        var old = have[k];
+        if (!old || JSON.stringify(old) !== JSON.stringify(want[k])) items.push({id:k, body:want[k]});
+      });
+      if (items.length) jobs.push(function(){ return STORE.putMany(coll, items); });
+    });
+    jobs.push(function(){ return STORE.save(); });
+
+    runSeq(jobs).then(function(r){
       renderAll(); renderSetup();
       var m2 = document.getElementById("setupMsg");
-      if (m2){ m2.className = "status"; m2.textContent = "Saved."; }
-    }).catch(function(){
-      msg.className = "status bad";
-      msg.textContent = "Could not save on this device.";
+      if (!m2) return;
+      if (r.refused){
+        m2.className = "status bad";
+        m2.textContent = "Not saved \u2014 the department passphrase is missing or wrong.";
+      } else if (r.failed){
+        m2.className = "status bad";
+        m2.textContent = "Could not save. Please try again.";
+      } else if (r.offline){
+        m2.className = "status bad";
+        m2.textContent = "Saved on this phone. It will reach the department when the connection is back.";
+      } else {
+        m2.className = "status";
+        m2.textContent = "Saved.";
+      }
     });
   };
 }
