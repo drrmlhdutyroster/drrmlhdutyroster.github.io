@@ -274,6 +274,14 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
   .chip>*{margin-right:4px}
   .daycard>header>*{margin-right:8px}
 }
+
+/* the passphrase lives on its own, away from the roster settings */
+.lockbox{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--panel2)}
+.hint{color:var(--muted);font-size:13px;margin:8px 0 0;max-width:70ch}
+/* nothing that changes the roster is offered until the passphrase is in */
+body.locked .addbtn,
+body.locked #setupToggle{display:none}
+body.unlocked #lockBtn{color:var(--green-ink)}
 @media print{
   .mrow{page-break-inside:avoid}
 }
@@ -314,9 +322,22 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
     <div style="flex:1 1 100%"><label>Roster</label>
       <button class="primary" id="pAll">Download PDF</button>
       <button class="ghost" id="pPrint">Print</button>
+      <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
       <button class="ghost" id="setupToggle" aria-expanded="false" aria-controls="setupBox">Setup</button>
       <span class="status" id="dlStat"></span>
     </div>
+  </div>
+  <div id="lockBox" class="lockbox" hidden>
+    <label for="lockKey">Department passphrase</label>
+    <div class="inline" style="align-items:flex-start">
+      <input id="lockKey" type="password" autocomplete="off"
+             style="flex:1 1 220px" aria-describedby="lockHelp">
+      <button class="primary" id="lockSave">Unlock</button>
+      <button class="ghost" id="lockForget" hidden>Lock again</button>
+    </div>
+    <p class="hint" id="lockHelp">Needed once on this device before you can record leave,
+      log an exchange, or change the roster. Ask whoever set the roster up.</p>
+    <p class="status" id="lockMsg"></p>
   </div>
 </div>
 
@@ -861,6 +882,13 @@ var STORE = (function(){
           return {offline:true};
         });
     },
+    /* A write that writes nothing: it proves the passphrase without changing
+       a single row. Rejects with "key" when the passphrase is wrong. */
+    check: function(k){
+      if (!ENDPOINT) return Promise.resolve(false);
+      return call({action:"putmany", key:(k==null?PASSKEY:k), coll:"leaves", body:"[]"})
+        .then(function(){ return true; });
+    },
     pending: function(){ return readQ().length; },
     setKey: function(k){
       PASSKEY = k || "";
@@ -901,6 +929,76 @@ function runSeq(fns){
     });
   });
   return p.then(function(){ return out; });
+}
+
+/* ---------- who may change things ----------
+   Looking at the roster needs nothing. Changing it needs the department
+   passphrase, entered once on this device, on its own and not buried in the
+   roster settings. */
+var UNLOCKED = false;
+function applyLock(){
+  /* With no Sheet behind it there is no passphrase to ask for: the page is
+     this one person's own copy, so editing is simply open. */
+  if (!ENDPOINT){
+    UNLOCKED = true;
+    var lb = document.getElementById("lockBtn"), lx = document.getElementById("lockBox");
+    if (lb) lb.hidden = true;
+    if (lx) lx.hidden = true;
+  }
+  var b = document.body;
+  b.className = (b.className.replace(/\b(un)?locked\b/g,"").trim() + " " + (UNLOCKED?"unlocked":"locked")).trim();
+  var btn = document.getElementById("lockBtn");
+  if (btn) btn.textContent = UNLOCKED ? "Editing unlocked" : "Unlock editing";
+  var forget = document.getElementById("lockForget");
+  if (forget) forget.hidden = !UNLOCKED;
+  if (!UNLOCKED){
+    var sbx = document.getElementById("setupBox");
+    if (sbx && !sbx.hidden){
+      sbx.hidden = true;
+      var st = document.getElementById("setupToggle");
+      if (st){ st.textContent = "Setup"; st.className = "ghost"; st.setAttribute("aria-expanded","false"); }
+    }
+    closeEditor();
+  }
+}
+function wireLock(){
+  var btn = document.getElementById("lockBtn"),
+      box = document.getElementById("lockBox"),
+      inp = document.getElementById("lockKey"),
+      save = document.getElementById("lockSave"),
+      forget = document.getElementById("lockForget"),
+      msg = document.getElementById("lockMsg");
+  if (!btn || !box) return;
+  btn.onclick = function(){
+    var open = box.hidden;
+    box.hidden = !open;
+    btn.setAttribute("aria-expanded", open?"true":"false");
+    if (open && inp) inp.focus();
+  };
+  if (save) save.onclick = function(){
+    var k = inp ? inp.value.trim() : "";
+    if (!k){ msg.className="status bad"; msg.textContent="Type the passphrase first."; return; }
+    msg.className="status"; msg.textContent="Checking\u2026";
+    STORE.check(k).then(function(){
+      STORE.setKey(k);
+      UNLOCKED = true;
+      applyLock(); renderAll(); idleStatus();
+      if (inp) inp.value = "";
+      msg.className="status"; msg.textContent="Unlocked on this device. You can record leave and exchanges now.";
+    }, function(e){
+      if (e && String(e.message||e)==="key"){
+        msg.className="status bad"; msg.textContent="That passphrase is not right.";
+      } else {
+        msg.className="status bad"; msg.textContent="Could not check it \u2014 no connection just now.";
+      }
+    });
+  };
+  if (forget) forget.onclick = function(){
+    STORE.setKey("");
+    UNLOCKED = false;
+    applyLock(); renderAll(); idleStatus();
+    msg.className="status"; msg.textContent="Locked. This device can look but not change anything.";
+  };
 }
 
 function setStatus(msg, bad){
@@ -1538,20 +1636,9 @@ function renderSetup(){
 
   if (ENDPOINT){
     var kw = el("div","inline");
-    var fKey = line("Department passphrase", PASSKEY,
-      "Needed once on each device before you can save anything. Ask whoever set the roster up.");
-    var kb = el("button","ghost","Save passphrase");
-    kb.style.marginTop = "22px";
-    kb.onclick = function(){
-      STORE.setKey(fKey.input.value.trim());
-      STORE.refresh().then(function(){
-        renderAll();
-        var m = document.getElementById("setupMsg");
-        if (m){ m.className = STORE.online? "status":"status bad";
-                m.textContent = STORE.online? "Passphrase accepted." : "That passphrase was refused."; }
-      });
-    };
-    kw.appendChild(fKey); kw.appendChild(kb);
+    kw.appendChild(el("p","hint",
+      "The department passphrase is entered above, next to Download PDF. "
+      + "Anything changed here changes it for everyone."));
     host.appendChild(kw);
   }
 
@@ -1943,8 +2030,26 @@ function wire(){
 
 STORE.load().then(function(){
   wire();
+  wireLock();
+  applyLock();
   renderAll();
   idleStatus();
+  /* A device that was unlocked before stays unlocked, but only if the
+     passphrase still works — it may have been changed since. */
+  if (PASSKEY){
+    STORE.check().then(function(){
+      UNLOCKED = true; applyLock(); renderAll();
+    }, function(e){
+      if (e && String(e.message||e)==="key"){
+        STORE.setKey("");
+        UNLOCKED = false; applyLock(); renderAll();
+        var m = document.getElementById("lockMsg");
+        if (m){ m.className="status bad"; m.textContent="The department passphrase has changed. Enter the new one."; }
+      }
+      /* no connection: leave it as it was and let the queue handle saves */
+      else { UNLOCKED = true; applyLock(); renderAll(); }
+    });
+  }
 });
 
 </script>
