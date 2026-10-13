@@ -1603,6 +1603,8 @@ function renderCounter(){
 /* ---------- setup ----------
    Text-driven on purpose: a few boxes anyone can read and edit beat a
    dozen fiddly widgets, and it is the same shape as the data underneath. */
+/* While Setup is open, groups being added or removed live here until Save. */
+var PENDING_GROUPS = null;
 function renderSetup(){
   var host = document.getElementById("setupForm");
   if (!host) return;
@@ -1652,10 +1654,33 @@ function renderSetup(){
   [fHosp,fDept,fTitle,fLeave,fStart].forEach(function(x){ wrapEl.appendChild(x); });
   host.appendChild(wrapEl);
 
+  /* Reading the group boxes back, so a half-finished edit is not lost when
+     a group is added or removed and the panel redraws. */
+  function collectGroups(boxes){
+    return boxes.map(function(b){
+      var G = JSON.parse(JSON.stringify(b.g));
+      G.label = b.label.input.value.trim() || G.label;
+      var bd = parseInt(b.blockDays.input.value,10);
+      if (!isNaN(bd) && bd>=1) G.blockDays = bd;
+      var blocks = b.blocks.input.value.split(/[,\n]+/).map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
+      if (blocks.length) G.blocks = blocks;
+      var members = b.members.input.value.split(/[,\n]+/).map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
+      var from = b.from.input.value.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(from) && members.length){
+        var revs = (G.revisions||[]).filter(function(r){ return r.from !== from; });
+        revs.push({from:from, members:members});
+        revs.sort(function(x,y){ return msOf(x.from) - msOf(y.from); });
+        G.revisions = revs;
+      }
+      return G;
+    });
+  }
+
   /* ---- groups ---- */
   var gWrap = el("div");
   var gBoxes = [];
-  CFG.groups.forEach(function(g, gi){
+  var DRAFT = PENDING_GROUPS || CFG.groups;
+  DRAFT.forEach(function(g, gi){
     var card = el("div","card"); card.style.marginBottom="14px";
     var h = el("div");
     h.style.cssText="font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px";
@@ -1676,10 +1701,51 @@ function renderSetup(){
     var fFrom = line("Apply this people list from", todayKey(),
       "Leave as today to change it now, or set a future date (a new batch, say).");
     card.appendChild(fBlocks); card.appendChild(fMem); card.appendChild(fFrom);
+    var gAct = el("div"); gAct.style.marginTop = "8px";
+    var rm = el("button","ghost","Remove this group");
+    rm.onclick = function(){
+      if (CFG.groups.length < 2){
+        var m0 = document.getElementById("setupMsg");
+        if (m0){ m0.className="status bad"; m0.textContent="A roster needs at least one group."; }
+        return;
+      }
+      if (rm.getAttribute("data-sure") !== "1"){
+        rm.setAttribute("data-sure","1");
+        rm.textContent = "Remove " + g.label + " - tap again to confirm";
+        rm.className = "ghost bad";
+        return;
+      }
+      PENDING_GROUPS = collectGroups(gBoxes);
+      PENDING_GROUPS = PENDING_GROUPS.filter(function(x,i){ return i !== gi; });
+      renderSetup();
+    };
+    gAct.appendChild(rm);
+    card.appendChild(gAct);
     gBoxes.push({g:g, label:fLabel, blockDays:fBlock, blocks:fBlocks, members:fMem, from:fFrom});
     gWrap.appendChild(card);
   });
   host.appendChild(gWrap);
+
+  var addG = el("button","ghost","Add a group");
+  addG.style.marginBottom = "14px";
+  addG.onclick = function(){
+    var gs = collectGroups(gBoxes);
+    gs.push({
+      id: "G" + (Date.now() % 100000),
+      label: "New group",
+      blockDays: 2,
+      phase: 0,
+      blocks: ["N","OFF","ER","MR"],
+      revisions: [{from: todayKey(), members: []}]
+    });
+    PENDING_GROUPS = gs;
+    renderSetup();
+  };
+  host.appendChild(addG);
+  host.appendChild(el("p","hint",
+    "A group is a set of people who run the same cycle - PG1, PG2, Senior Residents. "
+    + "List what the group does as one block per person: four blocks means four people, "
+    + "each one block behind the next, so every block is covered every day."));
 
   /* ---- joining dates and leave already taken ---- */
   var jLines = roster().map(function(n){
@@ -1708,7 +1774,7 @@ function renderSetup(){
   act.appendChild(save); act.appendChild(reset);
   host.appendChild(act);
 
-  reset.onclick = function(){ renderSetup(); };
+  reset.onclick = function(){ PENDING_GROUPS = null; renderSetup(); };
   save.onclick = function(){
     msg.className = "status";
     var next = JSON.parse(JSON.stringify(CFG));
@@ -1719,6 +1785,7 @@ function renderSetup(){
     var md = parseInt(fStart.input.value,10); if (!isNaN(md)&&md>=1&&md<=28) next.monthStartDay = md;
 
     var problems = [];
+    next.groups = JSON.parse(JSON.stringify(DRAFT));
     gBoxes.forEach(function(b, gi){
       var G = next.groups[gi];
       G.label = b.label.input.value.trim() || G.label;
@@ -1728,7 +1795,9 @@ function renderSetup(){
       var members = b.members.input.value.split(/[,\n]+/).map(function(s){return s.trim().toUpperCase();}).filter(Boolean);
       var bad = blocks.filter(function(k){ return !CFG.slots.some(function(s){return s.k===k;}); });
       if (bad.length) problems.push(G.label + ": unknown duty code " + bad.join(", "));
-      if (blocks.length !== members.length)
+      if (!members.length)
+        problems.push(G.label + ": no people listed yet");
+      else if (blocks.length !== members.length)
         problems.push(G.label + ": " + members.length + " people but " + blocks.length + " blocks - they must match");
       var dup = {}, d2 = [];
       members.forEach(function(m){ if(dup[m]) d2.push(m); dup[m]=1; });
@@ -1796,6 +1865,7 @@ function renderSetup(){
     jobs.push(function(){ return STORE.save(); });
 
     runSeq(jobs).then(function(r){
+      PENDING_GROUPS = null;
       renderAll(); renderSetup();
       var m2 = document.getElementById("setupMsg");
       if (!m2) return;
