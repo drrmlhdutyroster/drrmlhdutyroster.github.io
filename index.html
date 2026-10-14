@@ -275,6 +275,11 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
   .daycard>header>*{margin-right:8px}
 }
 
+.chip .formbtn{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;padding:0 5px;min-width:0;min-height:0;
+  border:1px solid currentColor;border-radius:2px;background:transparent;margin-left:4px}
+@media print{.chip .formbtn{display:none}}
+
 /* the passphrase lives on its own, away from the roster settings */
 .lockbox{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--panel2)}
 .hint{color:var(--muted);font-size:13px;margin:8px 0 0;max-width:70ch}
@@ -284,6 +289,27 @@ body.locked #setupToggle{display:none}
 body.unlocked #lockBtn{color:var(--green-ink)}
 @media print{
   .mrow{page-break-inside:avoid}
+
+  /* Each table is meant to be read whole. Give the glance table its own
+     sheet and keep every row with its heading rather than letting the month
+     be split down the middle. */
+  #indSec{page-break-before:always;break-before:page}
+  #indSec,#rosterSec,#counterSec{page-break-inside:avoid;break-inside:avoid}
+  #ind,#roster,#counter{page-break-inside:avoid;break-inside:avoid}
+  #ind tr,#roster tr,#counter tr{page-break-inside:avoid;break-inside:avoid}
+  #ind thead,#roster thead{display:table-header-group}
+  /* 31 columns across an A4 sheet. Fixed layout makes the day columns share
+     what is left after the name column, so the month cannot run off the page
+     and onto a second sheet. */
+  #ind{font-size:7.5px;width:100%;table-layout:fixed}
+  #ind th,#ind td{padding:2px 0;overflow:hidden}
+  /* with table-layout:fixed the first row sets the column widths, so the name
+     column has to be sized on the header cell */
+  #ind thead th:first-child{width:96px}
+  #ind th[scope=row]{font-size:8.5px;white-space:nowrap;padding-left:4px;overflow:visible}
+  #ind .yr{display:none}
+  .scroller{width:100%}
+  #indSec h2,#counterSec h2{page-break-after:avoid;break-after:avoid}
 }
 </style>
 </head>
@@ -320,6 +346,7 @@ body.unlocked #lockBtn{color:var(--green-ink)}
   </div>
   <div class="inline" style="margin-top:12px">
     <div style="flex:1 1 100%"><label>Roster</label>
+      <select id="pdfMonth" aria-label="Which roster month to download"></select>
       <button class="primary" id="pAll">Download PDF</button>
       <button class="ghost" id="pPrint">Print</button>
       <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
@@ -901,7 +928,7 @@ var STORE = (function(){
 /* One place that decides what the user is told after a save. */
 function finishSave(r, st){
   if (r.refused){
-    st.textContent = "Not saved — the department passphrase is missing or wrong. Open Setup and enter it.";
+    st.textContent = "Not saved — tap Unlock editing and enter the department passphrase.";
     st.className = "status bad";
     return;
   }
@@ -1237,6 +1264,18 @@ function chipFor(kind, it){
     ? title(it.v.resident) + (it.v.reason? " · "+it.v.reason : "")
       + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
     : title(it.v.a) + " ↔ " + title(it.v.b)));
+  if (kind === "leave"){
+    /* the department's leave form, already filled in from this entry */
+    var fb = el("button",null,"form");
+    fb.className = "formbtn";
+    fb.title = "Leave application form for Dr " + title(it.v.resident);
+    fb.setAttribute("aria-label", "Leave application form for Dr " + title(it.v.resident));
+    fb.onclick = function(ev){
+      ev.stopPropagation();
+      downloadLeaveForm(it.v.resident, msOf(it.v.date));
+    };
+    ch.appendChild(fb);
+  }
   var b = el("button",null,"×");
   b.setAttribute("aria-label", kind==="leave"
     ? "Remove leave for Dr " + title(it.v.resident)
@@ -1245,7 +1284,7 @@ function chipFor(kind, it){
     runSeq([function(){ return STORE.drop(kind==="leave"?"leaves":"swaps", it.id); }])
       .then(function(r){
         renderAll();
-        if (r.refused) setStatus("Not removed — the department passphrase is missing or wrong. Open Setup and enter it.", true);
+        if (r.refused) setStatus("Not removed — tap Unlock editing and enter the department passphrase.", true);
         else if (r.offline) setStatus("Removed on this phone. It will reach the department when the connection is back.", true);
       });
   };
@@ -1907,8 +1946,8 @@ function pdfStamp(doc){
           ("0"+n.getHours()).slice(-2) + ":" + ("0"+n.getMinutes()).slice(-2);
   doc.text(doc.w-30-textWidth(t,7,false), doc.h-14, 7, false, t, GREY);
 }
-function pdfFull(){
-  var days = blockDays(monthBlock());
+function pdfFull(startMs){
+  var days = blockDays(startMs == null ? monthBlock() : startMs);
   var doc = new PDFDoc(842, 595);
   pdfHeader(doc, CFG.dept.title, fmt(days[0]) + " to " + fmt(days[days.length-1]));
   var usable = 842 - 52, dateW = 54;
@@ -1944,14 +1983,220 @@ function pdfFull(){
   return doc.build();
 }
 /* An ordinary website download - no platform in the way, works for everyone. */
+/* ---------- leave application ----------
+   The department's own form, filled in from what the roster already knows:
+   who, which dates, how many days, and the duties that fall in the period.
+   Signatures, leave type and contact number stay blank to be written in. */
+function leaveRunFor(n, ms){
+  /* the whole stretch of leave that the chosen day belongs to */
+  var first = ms, last = ms;
+  while (DATA.leaves[safeId(n.toLowerCase(), iso(first - DAY))]) first -= DAY;
+  while (DATA.leaves[safeId(n.toLowerCase(), iso(last + DAY))])  last += DAY;
+  var span = Math.round((last-first)/DAY)+1, covered = 0;
+  for (var t=first; t<=last; t+=DAY){
+    var r = DATA.leaves[safeId(n.toLowerCase(), iso(t))];
+    if (r && r.coveredBy) covered++;
+  }
+  /* A covered day is an exchange, not leave - the counter does not charge it,
+     so the application must not claim it either. */
+  return {from:first, to:last, span:span, covered:covered, days:span-covered};
+}
+function pdfLeaveApplication(n, run){
+  var doc = new PDFDoc(595, 842);           /* A4 portrait */
+  var L = 42, R = 595-42, y = 0;
+
+  doc.text(L, 52, 10, true, pdfAscii(CFG.dept.hospital.toUpperCase()), INK);
+  doc.text(L, 66, 9, false, CFG.dept.department, GREY);
+  doc.line(L, 74, R, 74, INK, 1.2);
+  var t = "APPLICATION FOR LEAVE";
+  doc.text((595 - textWidth(t, 13, true))/2, 100, 13, true, t, INK);
+
+  y = 132;
+  doc.text(L, y, 9.5, false, "To,", INK);
+  doc.text(R - 150, y, 9.5, false, "Date:", INK);
+  doc.line(R - 118, y+2, R, y+2, LINE);
+  doc.text(R - 114, y, 9.5, false, fmt(msOf(todayKey())), INK);
+  y += 15; doc.text(L, y, 9.5, false, "The Head of the Department", INK);
+  y += 14; doc.text(L, y, 9.5, false, CFG.dept.department, INK);
+  y += 26; doc.text(L, y, 9.5, false, "Sir,", INK);
+
+  function field(label, value, x, w, yy){
+    doc.text(x, yy, 9, false, label, GREY);
+    var lx = x + textWidth(label, 9, false) + 6;
+    doc.line(lx, yy+2, x+w, yy+2, LINE);
+    if (value) doc.text(lx+3, yy, 9.5, false, value, INK);
+  }
+  y += 30;
+  field("Name:", "Dr " + title(n), L, 250, y);
+  var g = groupOf(n, run.from);
+  field("Designation / Year:", g ? g.label : "", L+265, R-L-265, y);
+
+  y += 28;
+  field("Leave required from:", fmt(run.from), L, 215, y);
+  field("to:", fmt(run.to), L+225, 150, y);
+  field("Total days:", String(run.days), L+385, R-L-385, y);
+  if (run.covered){
+    doc.text(L, y+13, 7.5, false,
+      run.span + " calendar days, of which " + run.covered
+      + " " + (run.covered===1?"is":"are") + " covered by a colleague and counted as an exchange, not leave.",
+      GREY);
+  }
+
+  y += 28;
+  doc.text(L, y, 9, false, "Type of leave:", GREY);
+  var tx = L + 70;
+  ["Casual","Earned","Sick","Exam / academic","Other"].forEach(function(k){
+    doc.line(tx, y-7, tx+9, y-7, INK, 0.7);
+    doc.line(tx, y+2, tx+9, y+2, INK, 0.7);
+    doc.line(tx, y-7, tx, y+2, INK, 0.7);
+    doc.line(tx+9, y-7, tx+9, y+2, INK, 0.7);
+    doc.text(tx+14, y, 9, false, k, INK);
+    tx += 14 + textWidth(k, 9, false) + 16;
+  });
+
+  y += 30; field("Reason:", "", L, R-L, y);
+  y += 24; doc.line(L, y+2, R, y+2, LINE);
+  y += 26; field("Contact number during leave:", "", L, R-L, y);
+
+  /* duties that fall inside the period */
+  y += 34;
+  doc.text(L, y, 9, true, "DUTIES FALLING IN THIS PERIOD", INK);
+  y += 8; doc.line(L, y, R, y, INK, 0.9); y += 16;
+  var cols = [L, L+110, L+210, L+320];
+  doc.text(cols[0], y, 8, true, "DATE", GREY);
+  doc.text(cols[1], y, 8, true, "ZONE", GREY);
+  doc.text(cols[2], y, 8, true, "SHIFT", GREY);
+  doc.text(cols[3], y, 8, true, "TIMING", GREY);
+  y += 5; doc.line(L, y, R, y, LINE); y += 15;
+
+  var rows = 0;
+  for (var ms = run.from; ms <= run.to; ms += DAY){
+    var slot = baseDuty(n, ms);
+    var meta = slot ? slotMeta(slot) : null;
+    var d = new Date(ms);
+    if (rows % 2) doc.rect(L, y-9, R-L, 13, SHADE);
+    doc.text(cols[0], y, 9, false, d.getUTCDate() + " " + MON[d.getUTCMonth()] + " (" + DOW[d.getUTCDay()] + ")", INK);
+    if (!meta || slot === "OFF"){
+      doc.text(cols[1], y, 9, false, "-", GREY);
+      doc.text(cols[2], y, 9, false, slot === "OFF" ? "Night off" : "-", GREY);
+      doc.text(cols[3], y, 9, false, slot === "OFF" ? "post-duty rest" : "-", GREY);
+    } else {
+      doc.text(cols[1], y, 9, false, meta.zone === "red" ? "Red" : meta.zone === "green" ? "Green" : "-", INK);
+      doc.text(cols[2], y, 9, false, meta.label.replace(/ (Red|Green)$/, ""), INK);
+      doc.text(cols[3], y, 9, false, meta.time, INK);
+    }
+    var cov = DATA.leaves[safeId(n.toLowerCase(), iso(ms))];
+    if (cov && cov.coveredBy)
+      doc.text(cols[3] + 110, y, 8, false, "covered by Dr " + title(cov.coveredBy), GREY);
+    y += 15; rows++;
+    if (y > 700) break;
+  }
+  doc.line(L, y-9, R, y-9, LINE);
+
+  y += 24;
+  doc.text(L, y, 9.5, false, "I request you to kindly grant me leave for the above period.", INK);
+  y += 46;
+  doc.line(R-180, y, R, y, GREY, 0.7);
+  doc.text(R-180, y+12, 8.5, false, "Signature of applicant", GREY);
+  doc.text(R-180, y+25, 8.5, false, "Dr " + title(n), GREY);
+
+  y += 56;
+  doc.line(L, y, R, y, LINE);
+  y += 18; doc.text(L, y, 9, true, "FOR OFFICE USE", GREY);
+  y += 22;
+  [["Approved", L],["Not approved", L+110]].forEach(function(pair){
+    doc.line(pair[1], y-7, pair[1]+9, y-7, INK, 0.7);
+    doc.line(pair[1], y+2, pair[1]+9, y+2, INK, 0.7);
+    doc.line(pair[1], y-7, pair[1], y+2, INK, 0.7);
+    doc.line(pair[1]+9, y-7, pair[1]+9, y+2, INK, 0.7);
+    doc.text(pair[1]+14, y, 9, false, pair[0], INK);
+  });
+  field("Days granted:", "", L+260, R-L-260, y);
+  y += 28; field("Remarks:", "", L, R-L, y);
+  y += 22; doc.line(L, y+2, R, y+2, LINE);
+
+  y += 54;
+  doc.line(R-200, y, R, y, GREY, 0.7);
+  doc.text(R-200, y+12, 8.5, false, "Signature and seal", GREY);
+  doc.text(R-200, y+25, 8.5, false, "Head of the Department", GREY);
+  doc.text(R-200, y+38, 8.5, false, CFG.dept.department, GREY);
+  return doc.build();
+}
+function downloadLeaveForm(n, ms){
+  var st = document.getElementById("dlStat");
+  function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
+  var bytes, name;
+  try {
+    var run = leaveRunFor(n, ms);
+    bytes = pdfLeaveApplication(n, run);
+    name = "Leave-application-" + title(n) + "-" + iso(run.from) + ".pdf";
+  } catch(e){ say("Could not build the form.", true); return; }
+  try {
+    var blob = new Blob([bytes], {type:"application/pdf"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
+    say("Downloaded " + name);
+  } catch(e){ say("Your browser blocked the download.", true); }
+}
+
+/* Which month to print. Sir is sent the month that is starting, which until
+   the 16th is not the month today falls in - so this is chosen, not guessed. */
+function monthBlocksList(){
+  var out = [], b = blockStartFor(msOf(todayKey()));
+  var back = b, i;
+  for (i = 0; i < 3; i++){
+    var prev = blockStartFor(back - DAY);
+    if (prev < epochMs()) break;
+    out.unshift(prev); back = prev;
+  }
+  out.push(b);
+  var fwd = b;
+  for (i = 0; i < 3; i++){
+    var days = blockDays(fwd);
+    fwd = days[days.length-1] + DAY;
+    out.push(fwd);
+  }
+  return out;
+}
+function renderPdfMonths(){
+  var sel = document.getElementById("pdfMonth");
+  if (!sel) return;
+  var keep = sel.value;
+  sel.innerHTML = "";
+  var list = monthBlocksList(), today = msOf(todayKey());
+  var thisBlock = blockStartFor(today);
+  var defaultMs = null;
+  list.forEach(function(ms){
+    var days = blockDays(ms);
+    var o = document.createElement("option");
+    o.value = String(ms);
+    o.textContent = fmt(ms) + " - " + fmt(days[days.length-1]);
+    if (ms === thisBlock) o.textContent += "  (current)";
+    sel.appendChild(o);
+  });
+  /* In the last week of a block the month people need is the next one. */
+  var curDays = blockDays(thisBlock);
+  var endsIn = Math.round((curDays[curDays.length-1] - today) / DAY);
+  defaultMs = (endsIn <= 7)
+    ? curDays[curDays.length-1] + DAY
+    : thisBlock;
+  sel.value = keep && list.indexOf(parseInt(keep,10)) >= 0 ? keep : String(defaultMs);
+}
+
 function downloadPdf(){
   var st = document.getElementById("dlStat");
   function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
   var bytes, name;
   try {
-    bytes = pdfFull();
-    var days = blockDays(monthBlock());
-    name = CFG.dept.title.replace(/[^A-Za-z0-9]+/g,"-") + "-" + iso(days[0]).slice(0,7) + ".pdf";
+    var sel = document.getElementById("pdfMonth");
+    var startMs = sel && sel.value ? parseInt(sel.value,10) : monthBlock();
+    var days = blockDays(startMs);
+    bytes = pdfFull(startMs);
+    name = CFG.dept.title.replace(/[^A-Za-z0-9]+/g,"-")
+         + "-" + iso(days[0]) + "-to-" + iso(days[days.length-1]) + ".pdf";
   } catch(e){ say("Could not build the PDF.", true); return; }
   try {
     var blob = new Blob([bytes], {type:"application/pdf"});
@@ -2006,7 +2251,7 @@ function renderSpec(){
     + "which is why the staffing above is simply the list of blocks.";
 }
 function renderAll(){
-  renderHeader(); renderToday(); renderMine(); renderViews();
+  renderHeader(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
   renderInd(); renderCounter(); renderSpec();
 }
 
