@@ -287,6 +287,21 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 #ind thead th.todaycol .mon{color:var(--accent-ink)}
 @media print{#ind .todaycol{box-shadow:inset 0 0 0 0.8px #000}}
 
+/* the permanent attribution */
+.credit{margin:14px 0 2px}
+.creditlead,.creditrole{font-family:"Barlow Condensed",sans-serif;font-size:11px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0}
+.creditname{font-family:"Barlow Condensed",sans-serif;font-size:21px;font-weight:700;
+  letter-spacing:.01em;color:var(--ink);margin:1px 0;line-height:1.15}
+.creditby{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.maintline{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+@media (max-width:780px){ .creditname{font-size:19px} }
+
+.unlockhint{-webkit-appearance:none;appearance:none;background:none;border:0;padding:2px 0;
+  color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.unlockhint:hover{color:var(--ink)}
+@media print{.unlockhint{display:none}}
+
 .adminbar{margin-top:28px;padding-top:14px;border-top:1px dashed var(--rule);opacity:.65}
 .adminbar:hover,.adminbar:focus-within{opacity:1}
 .adminbar .adminnote{font-size:12px;color:var(--muted);margin-left:8px}
@@ -338,6 +353,17 @@ body.unlocked #lockBtn{color:var(--green-ink)}
 <header class="pagehead">
   <p class="eyebrow" id="hHospital"></p>
   <h1 id="hTitle"></h1>
+
+  <!-- PERMANENT. Written into the page itself on purpose: no Setup field and
+       no record in the Sheet can reach it, so no future edit can quietly drop
+       it. Changing it means editing this file. -->
+  <div class="credit">
+    <p class="creditlead">Under the guidance of</p>
+    <p class="creditname">Prof. (Dr.) Amlendu Yadav</p>
+    <p class="creditrole">Head of the Department</p>
+    <p class="creditby">Developed by Dr Vivek, Post Graduate, 2026</p>
+  </div>
+
   <p class="sub" id="hSub"></p>
   <div class="hrule"></div>
 </header>
@@ -433,6 +459,7 @@ body.unlocked #lockBtn{color:var(--green-ink)}
 <div class="spec" id="specBox"></div>
 
 <p class="note footnote" id="footNote"></p>
+<p class="maintline" id="maintBy"></p>
 
 <div class="adminbar noprint">
   <button class="ghost" id="pPrint">Print this page</button>
@@ -459,8 +486,6 @@ body.unlocked #lockBtn{color:var(--green-ink)}
     <p class="status" id="lockMsg"></p>
   </div>
 </div>
-<p class="note noprint" style="margin-top:-12px;font-size:12px">Build <b id="buildTag">site-0.1</b>
-&middot; this is the standalone version: it runs with no account and no sign-in.</p>
 </div>
 
 <script>
@@ -1060,6 +1085,16 @@ function applyLock(){
     closeEditor();
   }
 }
+function openLock(){
+  var box = document.getElementById("lockBox"),
+      btn = document.getElementById("lockBtn"),
+      inp = document.getElementById("lockKey");
+  if (!box) return;
+  box.hidden = false;
+  if (btn) btn.setAttribute("aria-expanded","true");
+  box.scrollIntoView({block:"center"});
+  if (inp) inp.focus();
+}
 function wireLock(){
   var btn = document.getElementById("lockBtn"),
       box = document.getElementById("lockBox"),
@@ -1109,6 +1144,7 @@ function idleStatus(){
   var who = ME ? "Showing Dr " + title(ME) + "’s duties below."
                : "Choose your name and your own duties appear below.";
   var waiting = STORE.pending ? STORE.pending() : 0;
+  if (ENDPOINT && !UNLOCKED) who += "  This device can look but not change - unlock editing at the foot of the page.";
   if (!ENDPOINT) setStatus(who + "  Entries are saved on this device only.");
   else if (STORE.online && !waiting) setStatus(who + "  Shared with the department.");
   else if (STORE.online) setStatus(who + "  Shared with the department — " + waiting + " entr" + (waiting===1?"y":"ies") + " still going up.", true);
@@ -1533,6 +1569,15 @@ function editorFor(key){
        : swapEditor(key);
 }
 function addBtn(key, kind){
+  if (!UNLOCKED){
+    /* Hiding the buttons without a word looks like something is broken.
+       Say once, quietly, what is needed - and only on the leave row, so the
+       day is not cluttered with the same sentence three times. */
+    if (kind !== "leave") return document.createTextNode("");
+    var h = el("button","unlockhint","Unlock editing to record leave or an exchange");
+    h.onclick = function(){ openLock(); };
+    return h;
+  }
   var b = el("button","addbtn",
     kind==="leave" ? "+ leave" : kind==="move" ? "+ move" : "+ exchange");
   b.onclick = function(){ editing = {date:key, kind:kind}; renderViews(); };
@@ -1952,7 +1997,10 @@ function renderSetup(){
   var fLeave = line("Leave days per year", String(CFG.annualLeave));
   var fStart = line("Month block starts on day", String(monthStartDay()),
                     "16 means the roster month runs 16th to 15th");
-  [fHosp,fDept,fTitle,fLeave,fStart].forEach(function(x){ wrapEl.appendChild(x); });
+  var fMaint = line("Maintained by", CFG.maintainedBy || "",
+                    "Whoever keeps the roster now - shown at the foot of the page. "
+                    + "The attribution at the top of the page is fixed and cannot be changed here.");
+  [fHosp,fDept,fTitle,fLeave,fStart,fMaint].forEach(function(x){ wrapEl.appendChild(x); });
   host.appendChild(wrapEl);
 
   /* Reading the group boxes back, so a half-finished edit is not lost when
@@ -2091,6 +2139,7 @@ function renderSetup(){
   save.onclick = function(){
     msg.className = "status";
     var next = JSON.parse(JSON.stringify(CFG));
+    next.maintainedBy = fMaint.input.value.trim();
     next.dept.hospital = fHosp.input.value.trim();
     next.dept.department = fDept.input.value.trim();
     next.dept.title = fTitle.input.value.trim();
@@ -2578,12 +2627,15 @@ function renderHeader(){
       c = document.getElementById("hSub");
   if (a) a.textContent = CFG.dept.hospital + " · " + CFG.dept.department;
   if (b) b.textContent = CFG.dept.title;
-  if (c) c.textContent = "Duties are worked out from the cycle, so this page is always current. "
-    + "Mark a leave or log an exchange on any day.";
+  if (c) c.textContent = "";
   var n = document.getElementById("counterNote");
   if (n) n.textContent = "Entitlement is a single pool of " + CFG.annualLeave
     + " days per year, counted from each resident's own joining date. A day somebody else was named to cover "
     + "is an exchange, not leave, so it is not counted.";
+  var mb = document.getElementById("maintBy");
+  if (mb) mb.textContent = CFG.maintainedBy
+    ? "Maintained by " + CFG.maintainedBy
+    : "";
   document.title = CFG.dept.title;
 }
 function renderSpec(){
@@ -2609,9 +2661,7 @@ function renderSpec(){
     host.appendChild(d);
   });
   var f = document.getElementById("footNote");
-  if (f) f.textContent = "Each group runs on blocks of " + CFG.groups[0].blockDays
-    + " days. Members follow one another round the cycle, so every block is filled exactly once each day - "
-    + "which is why the staffing above is simply the list of blocks.";
+  if (f) f.textContent = "";
 }
 function renderAll(){
   renderHeader(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
@@ -2704,7 +2754,6 @@ function wire(){
     var now = todayKey();
     if (now !== seen){ seen = now; renderAll(); }
   }, 60000);
-  document.getElementById("buildTag").textContent = BUILD;
 }
 
 STORE.load().then(function(){
