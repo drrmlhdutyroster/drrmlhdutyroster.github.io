@@ -99,6 +99,7 @@ tr.today th[scope=row]{box-shadow:inset 3px 0 0 var(--accent)}
 td.z-red{background:var(--red-bg)}
 td.z-green{background:var(--green-bg)}
 td.z-off{background:var(--off-bg)}
+td.z-other{background:var(--panel2)}
 td.z-act{background:var(--panel)}
 .dnum{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
 .dmon{font-size:10.5px;color:var(--muted);margin-left:3px;text-transform:uppercase;letter-spacing:.06em}
@@ -110,6 +111,8 @@ td.z-act{background:var(--panel)}
 .z-red .nm{color:var(--red-ink)}
 .z-green .nm{color:var(--green-ink)}
 .z-off .nm{color:var(--muted)}
+.z-other .nm{color:var(--ink)}
+.drow.other .lbl b{color:var(--ink)}
 .nm.changed{box-shadow:inset 0 -2px 0 var(--accent)}
 .covmark{font-family:"Barlow Condensed",sans-serif;font-size:9.5px;font-weight:700;
   letter-spacing:.09em;text-transform:uppercase;vertical-align:2px;margin-left:3px;
@@ -275,6 +278,23 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
   .daycard>header>*{margin-right:8px}
 }
 
+/* Everything that changes the roster lives down here, away from the day-to-day
+   buttons, so nobody reaches it by accident. */
+#ind .todaycol{box-shadow:inset 0 0 0 1px var(--accent)}
+#ind thead th.todaycol{background:var(--accent);color:var(--accent-ink)}
+#ind .mon{display:block;font-size:8px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);line-height:1}
+#ind thead th.todaycol .mon{color:var(--accent-ink)}
+@media print{#ind .todaycol{box-shadow:inset 0 0 0 0.8px #000}}
+
+.adminbar{margin-top:28px;padding-top:14px;border-top:1px dashed var(--rule);opacity:.65}
+.adminbar:hover,.adminbar:focus-within{opacity:1}
+.adminbar .adminnote{font-size:12px;color:var(--muted);margin-left:8px}
+.adminbar .lockbox{max-width:520px}
+#counterSec .lockbox{margin:0 0 12px}
+body.locked .adminbar #setupToggle{display:none}
+@media print{.adminbar{display:none!important}}
+
 .chip .formbtn{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:600;
   letter-spacing:.09em;text-transform:uppercase;padding:0 5px;min-width:0;min-height:0;
   border:1px solid currentColor;border-radius:2px;background:transparent;margin-left:4px}
@@ -344,27 +364,15 @@ body.unlocked #lockBtn{color:var(--green-ink)}
     <div><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
     <div style="flex:2 1 280px" class="status" id="dbstatus"></div>
   </div>
-  <div class="inline" style="margin-top:12px">
-    <div style="flex:1 1 100%"><label>Roster</label>
-      <select id="pdfMonth" aria-label="Which roster month to download"></select>
+  <div class="inline" style="margin-top:12px;align-items:flex-end">
+    <div style="flex:0 0 auto"><label for="pdfFrom">Roster from</label>
+      <input type="date" id="pdfFrom"></div>
+    <div style="flex:0 0 auto"><label for="pdfTo">to</label>
+      <input type="date" id="pdfTo"></div>
+    <div style="flex:1 1 auto">
       <button class="primary" id="pAll">Download PDF</button>
-      <button class="ghost" id="pPrint">Print</button>
-      <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
-      <button class="ghost" id="setupToggle" aria-expanded="false" aria-controls="setupBox">Setup</button>
       <span class="status" id="dlStat"></span>
     </div>
-  </div>
-  <div id="lockBox" class="lockbox" hidden>
-    <label for="lockKey">Department passphrase</label>
-    <div class="inline" style="align-items:flex-start">
-      <input id="lockKey" type="password" autocomplete="off"
-             style="flex:1 1 220px" aria-describedby="lockHelp">
-      <button class="primary" id="lockSave">Unlock</button>
-      <button class="ghost" id="lockForget" hidden>Lock again</button>
-    </div>
-    <p class="hint" id="lockHelp">Needed once on this device before you can record leave,
-      log an exchange, or change the roster. Ask whoever set the roster up.</p>
-    <p class="status" id="lockMsg"></p>
   </div>
 </div>
 
@@ -393,31 +401,64 @@ body.unlocked #lockBtn{color:var(--green-ink)}
 <section id="indSec">
   <h2>Everyone at a glance</h2>
   <div class="scroller"><table id="ind"></table></div>
-  <p class="note noprint" style="margin-top:10px">Each resident&rsquo;s whole month on one row.</p>
+  <p class="note noprint" style="margin-top:10px">Each resident&rsquo;s next month on one row, starting today.</p>
 </section>
 
 <section id="counterSec">
   <div class="bar" style="margin-bottom:10px">
     <h2 style="margin:0;border:0;padding:0">Leave record</h2>
     <span class="grow"></span>
+    <button class="ghost noprint" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox">Leave application</button>
     <button class="ghost noprint" id="cAll" aria-pressed="false">Show everyone</button>
   </div>
+  <div id="leaveFormBox" class="lockbox" hidden>
+    <div class="inline" style="align-items:flex-end">
+      <div style="flex:1 1 180px"><label for="lfWho">Application for</label>
+        <select id="lfWho" style="width:100%"></select></div>
+      <div style="flex:0 0 auto"><label for="lfFrom">From</label>
+        <input type="date" id="lfFrom"></div>
+      <div style="flex:0 0 auto"><label for="lfTo">To</label>
+        <input type="date" id="lfTo"></div>
+      <div style="flex:0 0 auto"><button class="primary" id="lfGo">Download form</button></div>
+    </div>
+    <p class="hint" id="lfHint"></p>
+    <p class="status" id="lfMsg"></p>
+  </div>
+
   <div id="cPick" class="pickme noprint" hidden></div>
   <div class="scroller" id="cWrap"><table id="counter"></table></div>
   <p class="note" style="margin-top:10px" id="counterNote"></p>
 </section>
 
-<section id="setupSec" class="noprint">
-  <div class="card" id="setupBox" hidden>
-    <h2 style="margin-top:0">Setup</h2>
-    <p class="note" id="setupIntro"></p>
-    <div id="setupForm"></div>
-  </div>
-</section>
-
 <div class="spec" id="specBox"></div>
 
 <p class="note footnote" id="footNote"></p>
+
+<div class="adminbar noprint">
+  <button class="ghost" id="pPrint">Print this page</button>
+  <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
+  <button class="ghost" id="setupToggle" aria-expanded="false" aria-controls="setupBox">Setup</button>
+  <span class="adminnote">For whoever keeps the roster. Everyone else can ignore this.</span>
+  <section id="setupSec">
+    <div class="card" id="setupBox" hidden>
+      <h2 style="margin-top:0">Setup</h2>
+      <p class="note" id="setupIntro"></p>
+      <div id="setupForm"></div>
+    </div>
+  </section>
+  <div id="lockBox" class="lockbox" hidden>
+    <label for="lockKey">Department passphrase</label>
+    <div class="inline" style="align-items:flex-start">
+      <input id="lockKey" type="password" autocomplete="off"
+             style="flex:1 1 220px" aria-describedby="lockHelp">
+      <button class="primary" id="lockSave">Unlock</button>
+      <button class="ghost" id="lockForget" hidden>Lock again</button>
+    </div>
+    <p class="hint" id="lockHelp">Needed once on this device before you can record leave,
+      log an exchange, or change the roster. Ask whoever set the roster up.</p>
+    <p class="status" id="lockMsg"></p>
+  </div>
+</div>
 <p class="note noprint" style="margin-top:-12px;font-size:12px">Build <b id="buildTag">site-0.1</b>
 &middot; this is the standalone version: it runs with no account and no sign-in.</p>
 </div>
@@ -645,11 +686,21 @@ function leavesOn(key){
   for(var k in DATA.leaves) if(DATA.leaves[k].date===key) out.push({id:k,v:DATA.leaves[k]});
   return out;
 }
-function swapsOn(key){
+/* Two kinds of change to a day live in the same collection: an exchange, where
+   two people trade duties, and a move, where one person is taken off their own
+   duty and put on another. A row with a slot is a move. */
+function isMove(v){ return !!(v && v.slot); }
+function changesOn(key){
   var out=[];
   for(var k in DATA.swaps) if(DATA.swaps[k].date===key) out.push({id:k,v:DATA.swaps[k]});
   out.sort(function(a,b){return (a.v.createdAt||0)-(b.v.createdAt||0);});
   return out;
+}
+function swapsOn(key){
+  return changesOn(key).filter(function(x){ return !isMove(x.v); });
+}
+function movesOn(key){
+  return changesOn(key).filter(function(x){ return isMove(x.v); });
 }
 function effective(ms){
   var key=iso(ms), duty={}, changed={}, extra={}, i;
@@ -676,6 +727,17 @@ function effective(ms){
       if(extra[cb].indexOf(vacated)<0) extra[cb].push(vacated);
     }
   }
+  /* Moves last: the whole point is usually to fill a slot a leave just
+     emptied. The person leaves their own duty behind - nobody is doing two. */
+  var mv=movesOn(key);
+  for(i=0;i<mv.length;i++){
+    var who=mv[i].v.resident, slot=mv[i].v.slot;
+    if(!duty[who]||duty[who]==="LEAVE") continue;
+    if(!slotExists(slot)) continue;
+    duty[who]=slot;
+    changed[who]=true;
+    if(extra[who]) delete extra[who];
+  }
   return {duty:duty, changed:changed, extra:extra, people:all};
 }
 function inSlot(eff, slot){
@@ -693,6 +755,16 @@ function freeThatDay(ms, groupId, exclude){
   for(i=0;i<CFG.groups.length;i++) if(CFG.groups[i].id===groupId) m=membersOn(CFG.groups[i],ms);
   for(i=0;i<m.length;i++) if(m[i]!==exclude && eff.duty[m[i]]==="OFF") out.push(m[i]);
   return out;
+}
+/* The department may add zones later - a peripheral posting, another unit.
+   Anything beyond the three the page has colours for is drawn neutrally
+   rather than refused. */
+function slotExists(k){
+  for(var i=0;i<CFG.slots.length;i++) if(CFG.slots[i].k===k) return true;
+  return false;
+}
+function zoneClass(z){
+  return (z==="red"||z==="green"||z==="off") ? z : "other";
 }
 function slotMeta(k){
   for(var i=0;i<CFG.slots.length;i++) if(CFG.slots[i].k===k) return CFG.slots[i];
@@ -1223,7 +1295,7 @@ function renderRoster(){
     tr.appendChild(th);
 
     CFG.slots.forEach(function(s){
-      var td = el("td","z-"+s.zone), who = inSlot(eff,s.k);
+      var td = el("td","z-"+zoneClass(s.zone)), who = inSlot(eff,s.k);
       who.forEach(function(n){ td.appendChild(nameChip(n, ms, eff, s.k, false)); });
       if (s.k==="OFF" && !who.length) td.appendChild(el("span","nm","—"));
       tr.appendChild(td);
@@ -1236,14 +1308,16 @@ function renderRoster(){
 
     var tdE = el("td","z-act");
     swapsOn(key).forEach(function(it){ tdE.appendChild(chipFor("swap", it)); });
+    movesOn(key).forEach(function(it){ tdE.appendChild(chipFor("move", it)); });
     tdE.appendChild(addBtn(key,"swap"));
+    tdE.appendChild(addBtn(key,"move"));
     tr.appendChild(tdE);
 
     tb.appendChild(tr);
     if (editing && editing.date===key && !isCardView()){
       var er = el("tr","editor noprint"), td = el("td");
       td.colSpan = CFG.slots.length + 3;
-      td.appendChild(editing.kind==="leave" ? leaveEditor(key) : swapEditor(key));
+      td.appendChild(editorFor(key));
       er.appendChild(td); tb.appendChild(er);
     }
   });
@@ -1263,11 +1337,24 @@ function chipFor(kind, it){
   ch.appendChild(document.createTextNode(kind==="leave"
     ? title(it.v.resident) + (it.v.reason? " · "+it.v.reason : "")
       + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
-    : title(it.v.a) + " ↔ " + title(it.v.b)));
+    : kind==="move"
+      ? title(it.v.resident) + " → " + slotMeta(it.v.slot).label
+      : title(it.v.a) + " ↔ " + title(it.v.b)));
   if (kind === "leave"){
+    /* Who is covering this one day. A multi-day leave can be covered by a
+       different person each day, so it is set per day, not once for the run. */
+    var cb = el("button",null, it.v.coveredBy ? "cover: Dr " + title(it.v.coveredBy) : "+ cover");
+    cb.className = "formbtn covbtn";
+    cb.title = "Who covers Dr " + title(it.v.resident) + "'s duty on " + fmt(msOf(it.v.date));
+    cb.onclick = function(ev){
+      ev.stopPropagation();
+      editing = {date:it.v.date, kind:"cover", id:it.id};
+      renderViews();
+    };
+    ch.appendChild(cb);
     /* the department's leave form, already filled in from this entry */
     var fb = el("button",null,"form");
-    fb.className = "formbtn";
+    fb.className = "formbtn appbtn";
     fb.title = "Leave application form for Dr " + title(it.v.resident);
     fb.setAttribute("aria-label", "Leave application form for Dr " + title(it.v.resident));
     fb.onclick = function(ev){
@@ -1279,7 +1366,9 @@ function chipFor(kind, it){
   var b = el("button",null,"×");
   b.setAttribute("aria-label", kind==="leave"
     ? "Remove leave for Dr " + title(it.v.resident)
-    : "Undo exchange between Dr " + title(it.v.a) + " and Dr " + title(it.v.b));
+    : kind==="move"
+      ? "Undo move of Dr " + title(it.v.resident)
+      : "Undo exchange between Dr " + title(it.v.a) + " and Dr " + title(it.v.b));
   b.onclick = function(){
     runSeq([function(){ return STORE.drop(kind==="leave"?"leaves":"swaps", it.id); }])
       .then(function(r){
@@ -1291,8 +1380,161 @@ function chipFor(kind, it){
   ch.appendChild(b);
   return ch;
 }
+/* Naming who covers a duty left empty by one day of leave. The cover does
+   their own duty and this one as well, which is what the roster then shows. */
+function coverEditor(key, id){
+  var rec = DATA.leaves[id];
+  var box = el("div");
+  if (!rec){ box.appendChild(el("div","status","That leave is no longer there.")); return box; }
+  var ms = msOf(rec.date), n = rec.resident;
+  var head = el("div");
+  head.style.cssText = "font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px";
+  var vacated = baseDuty(n, ms);
+  head.textContent = "Cover for Dr " + title(n) + " on " + fmt(ms)
+    + (vacated && vacated !== "OFF" ? "  -  " + slotName(vacated) : "");
+  box.appendChild(head);
+
+  if (!vacated || vacated === "OFF"){
+    box.appendChild(el("div","status","Dr " + title(n) + " has no duty to cover that day."));
+    var only = el("div"); only.style.marginTop="12px";
+    var c0 = el("button","ghost","Close"); c0.onclick = closeEditor;
+    only.appendChild(c0); box.appendChild(only);
+    return box;
+  }
+
+  var sel = document.createElement("select"); sel.id = "cvWho"; sel.style.width = "100%";
+  sel.appendChild(opt("", "Nobody - leave the duty empty"));
+  var g = groupOf(n, ms);
+  var free = g ? freeThatDay(ms, g.id, n) : [];
+  var eff = effective(ms);
+  everyone(ms).forEach(function(m){
+    if (m === n) return;
+    if (eff.duty[m] === "LEAVE") return;
+    var their = baseDuty(m, ms);
+    var isFree = free.indexOf(m) >= 0 || their === "OFF";
+    sel.appendChild(opt(m, "Dr " + title(m)
+      + (isFree ? "  - off that day" : "  - on " + slotName(their) + ", would do both")));
+  });
+  sel.value = rec.coveredBy || "";
+  var row = el("div","inline");
+  row.appendChild(field("Covered by", sel));
+  box.appendChild(row);
+
+  var note = el("div","status"); note.style.marginTop="8px";
+  function say(){
+    if (!sel.value){ note.textContent = "The duty stays empty."; return; }
+    var their = baseDuty(sel.value, ms);
+    note.textContent = their === "OFF"
+      ? "Dr " + title(sel.value) + " is off that day and would take " + slotName(vacated) + "."
+      : "Dr " + title(sel.value) + " would do " + slotName(their) + " and " + slotName(vacated)
+        + " - the name appears in both.";
+  }
+  sel.onchange = say; say();
+  box.appendChild(note);
+
+  var actions = el("div"); actions.style.marginTop="12px";
+  var save = el("button","primary","Save cover"), cancel = el("button","ghost","Cancel");
+  var st = el("span","status"); st.style.marginLeft="10px";
+  cancel.onclick = closeEditor;
+  save.onclick = function(){
+    var body = {};
+    for (var k in rec) if (rec.hasOwnProperty(k)) body[k] = rec[k];
+    if (sel.value) body.coveredBy = sel.value; else delete body.coveredBy;
+    st.className = "status"; st.textContent = "Saving\u2026";
+    runSeq([function(){ return STORE.putMany("leaves", [{id:id, body:body}]); }])
+      .then(function(r){ finishSave(r, st); });
+  };
+  actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
+  box.appendChild(actions);
+  return box;
+}
+/* Moving one person off their own duty and onto another for a single day.
+   Unlike a cover, they do not keep the duty they came from - it is left
+   empty - and the person whose slot they fill still has the day as leave. */
+function moveEditor(key){
+  var ms = msOf(key), box = el("div");
+  var head = el("div");
+  head.style.cssText = "font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px";
+  head.textContent = "Move someone to another duty on " + fmt(ms);
+  box.appendChild(head);
+
+  var eff = effective(ms);
+  var row = el("div","inline");
+  var who = document.createElement("select"); who.id="mvWho"; who.style.width="100%";
+  who.appendChild(opt("","— choose the person —"));
+  everyone(ms).forEach(function(n){
+    var d = eff.duty[n];
+    if (!d || d === "LEAVE") return;
+    who.appendChild(opt(n, "Dr " + title(n) + "  — on " + slotName(d)));
+  });
+  var to = document.createElement("select"); to.id="mvTo"; to.style.width="100%";
+  row.appendChild(field("Who moves", who));
+  row.appendChild(field("Moves to", to));
+  box.appendChild(row);
+
+  var note = el("div","status"); note.style.marginTop="8px"; box.appendChild(note);
+
+  function fillTo(){
+    to.innerHTML = "";
+    to.appendChild(opt("","— choose the duty —"));
+    var from = who.value ? eff.duty[who.value] : null;
+    CFG.slots.forEach(function(sl){
+      if (sl.k === from) return;
+      var on = inSlot(eff, sl.k);
+      var how = on.length
+        ? on.map(function(x){return "Dr "+title(x);}).join(", ")
+        : "nobody on it";
+      to.appendChild(opt(sl.k, sl.label + "  — " + how));
+    });
+    say();
+  }
+  function say(){
+    if (!who.value){ note.textContent = ""; return; }
+    var from = eff.duty[who.value];
+    if (!to.value){
+      note.textContent = "Dr " + title(who.value) + " is on " + slotName(from) + ".";
+      return;
+    }
+    var left = inSlot(eff, from).filter(function(x){ return x !== who.value; });
+    note.textContent = "Dr " + title(who.value) + " comes off " + slotName(from)
+      + " and goes on " + slotName(to.value) + ". "
+      + (from === "OFF" ? "" :
+         (left.length ? slotMeta(from).label + " is then left with "
+                        + left.map(function(x){return "Dr "+title(x);}).join(", ") + "."
+                      : slotMeta(from).label + " is then empty."));
+  }
+  who.onchange = fillTo; to.onchange = say;
+  fillTo();
+
+  var actions = el("div"); actions.style.marginTop="12px";
+  var save = el("button","primary","Save move"), cancel = el("button","ghost","Cancel");
+  var st = el("span","status"); st.style.marginLeft="10px";
+  cancel.onclick = closeEditor;
+  save.onclick = function(){
+    st.className = "status";
+    if (!who.value){ st.textContent = "Choose who moves."; return; }
+    if (!to.value){ st.textContent = "Choose the duty they move to."; return; }
+    st.textContent = "Saving\u2026";
+    runSeq([function(){
+      return STORE.putMany("swaps", [{
+        id: safeId("mv", key, who.value.toLowerCase()),
+        body: {date:key, resident:who.value, slot:to.value, by:ME||"", createdAt:Date.now()}
+      }]);
+    }]).then(function(r){ finishSave(r, st); });
+  };
+  actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
+  box.appendChild(actions);
+  return box;
+}
+function editorFor(key){
+  return editing.kind === "leave" ? leaveEditor(key)
+       : editing.kind === "cover" ? coverEditor(key, editing.id)
+       : editing.kind === "move"  ? moveEditor(key)
+       : swapEditor(key);
+}
 function addBtn(key, kind){
-  var b = el("button","addbtn", kind==="leave"?"+ leave":"+ exchange");
+  var b = el("button","addbtn",
+    kind==="leave" ? "+ leave" : kind==="move" ? "+ move" : "+ exchange");
   b.onclick = function(){ editing = {date:key, kind:kind}; renderViews(); };
   return b;
 }
@@ -1330,14 +1572,16 @@ function renderCards(){
     card.appendChild(la);
 
     var ea = el("div","dact noprint");
-    ea.appendChild(el("span","k","Exchange"));
+    ea.appendChild(el("span","k","Change"));
     swapsOn(key).forEach(function(it){ ea.appendChild(chipFor("swap",it)); });
+    movesOn(key).forEach(function(it){ ea.appendChild(chipFor("move",it)); });
     ea.appendChild(addBtn(key,"swap"));
+    ea.appendChild(addBtn(key,"move"));
     card.appendChild(ea);
 
     if (editing && editing.date===key && isCardView()){
       var ed = el("div","dedit noprint");
-      ed.appendChild(editing.kind==="leave" ? leaveEditor(key) : swapEditor(key));
+      ed.appendChild(editorFor(key));
       card.appendChild(ed);
     }
     host.appendChild(card);
@@ -1517,13 +1761,30 @@ function renderMine(){
 }
 
 /* ---------- everyone at a glance ---------- */
+/* The glance table runs from today forward, so the first column is always the
+   day you are standing on rather than the 16th of a month already half gone. */
+function glanceDays(){
+  var start = msOf(todayKey());
+  if (start < epochMs()) start = epochMs();
+  var out = [];
+  for (var i = 0; i < 31; i++) out.push(start + i*DAY);
+  return out;
+}
 function renderInd(){
-  var days = blockDays(monthBlock()), t = document.getElementById("ind");
+  var days = glanceDays(), t = document.getElementById("ind");
   if (!t) return;
   t.innerHTML = "";
   var thead = el("thead"), hr = el("tr");
   hr.appendChild(el("th","plain","Resident"));
-  days.forEach(function(ms){ hr.appendChild(el("th",null,String(new Date(ms).getUTCDate()))); });
+  days.forEach(function(ms, i){
+    var d = new Date(ms), th = el("th");
+    th.appendChild(document.createTextNode(String(d.getUTCDate())));
+    /* a month label on the first column and wherever the month turns over */
+    if (i === 0 || d.getUTCDate() === 1)
+      th.appendChild(el("span","mon", MON[d.getUTCMonth()]));
+    if (iso(ms) === todayKey()) th.className = "todaycol";
+    hr.appendChild(th);
+  });
   thead.appendChild(hr); t.appendChild(thead);
   var tb = el("tbody");
   var people = everyone(days[0]).concat([]);
@@ -1539,10 +1800,11 @@ function renderInd(){
       var eff = effective(ms), s = eff.duty[n];
       if (s == null){ tr.appendChild(el("td","z-off","—")); return; }
       var ex = eff.extra[n] || [];
-      var z = s==="LEAVE" ? "off" : slotMeta(s).zone;
+      var z = s==="LEAVE" ? "off" : zoneClass(slotMeta(s).zone);
       var txt = s==="LEAVE" ? "LV" : slotMeta(s).short;
-      if (ex.length){ txt += "+" + ex.map(function(k){return slotMeta(k).short;}).join("+"); z = "red"; }
+      if (ex.length){ txt += "+" + ex.map(function(k){return slotMeta(k).short;}).join("+"); z = zoneClass(slotMeta(ex[0]).zone); }
       var td = el("td","z-"+z, txt);
+      if (iso(ms) === todayKey()) td.className += " todaycol";
       if (ex.length) td.title = "Dr "+title(n)+" also covering "+ex.map(slotName).join(", ");
       if (s==="LEAVE") td.style.color = "var(--warn-ink)";
       tr.appendChild(td);
@@ -1715,6 +1977,17 @@ function renderSetup(){
     });
   }
 
+  /* ---- duty slots ---- */
+  var slotLines = CFG.slots.map(function(x){
+    return x.k + " = " + x.label + " | " + x.short + " | " + x.zone + " | " + x.time;
+  }).join("\n");
+  var fSlots = box("Duty slots - what a person can be put on", slotLines,
+    Math.max(5, CFG.slots.length),
+    "One per line:  CODE = Name | short | zone | timing. "
+    + "Zone can be red, green, off, or any other word for a new posting. "
+    + "Add a line here first, then use its CODE in a group's blocks below.");
+  host.appendChild(fSlots);
+
   /* ---- groups ---- */
   var gWrap = el("div");
   var gBoxes = [];
@@ -1733,7 +2006,8 @@ function renderSetup(){
     var cur = membersOn(g, msOf(todayKey()));
     var fBlocks = box("What the group does, one block per person",
       g.blocks.join(", "), 2,
-      "Codes: " + CFG.slots.map(function(s){return s.k;}).join(", ") + ". "
+      "Codes: " + CFG.slots.map(function(s){return s.k;}).join(", ")
+      + " (add more in the duty slots box above). "
       + g.blocks.length + " blocks now, so this group needs " + g.blocks.length + " people.");
     var fMem = box("People, in cycle order", cur.join(", "), 2,
       cur.length + " people now. Add a name to grow the group - add a block above to match.");
@@ -1824,6 +2098,28 @@ function renderSetup(){
     var md = parseInt(fStart.input.value,10); if (!isNaN(md)&&md>=1&&md<=28) next.monthStartDay = md;
 
     var problems = [];
+    var slotsOut = [], seenK = {};
+    fSlots.input.value.split(/\n+/).forEach(function(ln){
+      if (!ln.trim()) return;
+      var eq = ln.indexOf("=");
+      if (eq < 0){ problems.push("Duty slots: '" + ln.trim() + "' needs an = sign"); return; }
+      var k = ln.slice(0, eq).trim().toUpperCase();
+      var bits = ln.slice(eq+1).split("|");
+      if (!/^[A-Z0-9]{1,6}$/.test(k)){ problems.push("Duty slots: '" + k + "' must be 1-6 letters or digits"); return; }
+      if (k === "LEAVE"){ problems.push("Duty slots: LEAVE is used by the roster itself"); return; }
+      if (seenK[k]){ problems.push("Duty slots: " + k + " listed twice"); return; }
+      seenK[k] = 1;
+      slotsOut.push({
+        k: k,
+        label: (bits[0]||k).trim() || k,
+        short: (bits[1]||k).trim() || k,
+        zone:  ((bits[2]||"other").trim() || "other").toLowerCase(),
+        time:  (bits[3]||"").trim()
+      });
+    });
+    if (!slotsOut.length) problems.push("Duty slots: at least one is needed");
+    if (slotsOut.length) next.slots = slotsOut;
+
     next.groups = JSON.parse(JSON.stringify(DRAFT));
     gBoxes.forEach(function(b, gi){
       var G = next.groups[gi];
@@ -1832,7 +2128,7 @@ function renderSetup(){
       if (!isNaN(bd) && bd>=1) G.blockDays = bd;
       var blocks = b.blocks.input.value.split(/[,\n]+/).map(function(s){return s.trim().toUpperCase();}).filter(Boolean);
       var members = b.members.input.value.split(/[,\n]+/).map(function(s){return s.trim().toUpperCase();}).filter(Boolean);
-      var bad = blocks.filter(function(k){ return !CFG.slots.some(function(s){return s.k===k;}); });
+      var bad = blocks.filter(function(k){ return !next.slots.some(function(s){return s.k===k;}); });
       if (bad.length) problems.push(G.label + ": unknown duty code " + bad.join(", "));
       if (!members.length)
         problems.push(G.label + ": no people listed yet");
@@ -1946,8 +2242,13 @@ function pdfStamp(doc){
           ("0"+n.getHours()).slice(-2) + ":" + ("0"+n.getMinutes()).slice(-2);
   doc.text(doc.w-30-textWidth(t,7,false), doc.h-14, 7, false, t, GREY);
 }
-function pdfFull(startMs){
-  var days = blockDays(startMs == null ? monthBlock() : startMs);
+function daysBetween(a, b){
+  var out = [];
+  for (var t = a; t <= b; t += DAY) out.push(t);
+  return out;
+}
+function pdfFull(fromMs, toMs){
+  var days = (fromMs == null) ? blockDays(monthBlock()) : daysBetween(fromMs, toMs);
   var doc = new PDFDoc(842, 595);
   pdfHeader(doc, CFG.dept.title, fmt(days[0]) + " to " + fmt(days[days.length-1]));
   var usable = 842 - 52, dateW = 54;
@@ -2122,12 +2423,87 @@ function pdfLeaveApplication(n, run){
   doc.text(R-200, y+38, 8.5, false, CFG.dept.department, GREY);
   return doc.build();
 }
-function downloadLeaveForm(n, ms){
-  var st = document.getElementById("dlStat");
+/* The application form on its own control, so it can be produced for any
+   resident and any dates without hunting for the day on the roster. */
+function wireLeaveForm(){
+  var btn = document.getElementById("leaveFormBtn"),
+      box = document.getElementById("leaveFormBox"),
+      who = document.getElementById("lfWho"),
+      fa  = document.getElementById("lfFrom"),
+      fb  = document.getElementById("lfTo"),
+      go  = document.getElementById("lfGo"),
+      hint= document.getElementById("lfHint"),
+      msg = document.getElementById("lfMsg");
+  if (!btn || !box) return;
+  function fill(){
+    if (!who) return;
+    var keep = who.value;
+    who.innerHTML = "";
+    who.appendChild(opt("", "— choose —"));
+    roster().forEach(function(n){
+      var g = groupLabel(n);
+      who.appendChild(opt(n, "Dr " + title(n) + (g? " ("+g+")" : "")));
+    });
+    who.value = keep || ME || "";
+    preset();
+  }
+  function latestLeave(n){
+    /* the most recent stretch of recorded leave, which is usually the one
+       the form is being written for */
+    var best = null;
+    Object.keys(DATA.leaves).forEach(function(k){
+      var v = DATA.leaves[k];
+      if (!v || rid(v.resident) !== rid(n)) return;
+      if (!best || v.date > best) best = v.date;
+    });
+    return best;
+  }
+  function preset(){
+    if (!who.value){ if (hint) hint.textContent = ""; return; }
+    var last = latestLeave(who.value);
+    if (last){
+      var run = leaveRunFor(who.value, msOf(last));
+      fa.value = iso(run.from); fb.value = iso(run.to);
+      if (hint) hint.textContent = "Filled in from the leave already recorded for Dr "
+        + title(who.value) + ". Change the dates if this form is for a different period.";
+    } else {
+      fa.value = todayKey(); fb.value = todayKey();
+      if (hint) hint.textContent = "No leave recorded for Dr " + title(who.value)
+        + " yet, so pick the dates the application is for.";
+    }
+    if (msg){ msg.textContent = ""; msg.className = "status"; }
+  }
+  btn.onclick = function(){
+    var open = box.hidden;
+    box.hidden = !open;
+    btn.setAttribute("aria-expanded", open?"true":"false");
+    if (open) fill();
+  };
+  if (who) who.onchange = preset;
+  if (go) go.onclick = function(){
+    if (!who.value){ msg.className="status bad"; msg.textContent="Choose whose application this is."; return; }
+    if (!fa.value || !fb.value){ msg.className="status bad"; msg.textContent="Pick both dates."; return; }
+    if (msOf(fb.value) < msOf(fa.value)){ msg.className="status bad"; msg.textContent="The last day is before the first day."; return; }
+    var run = runBetween(who.value, msOf(fa.value), msOf(fb.value));
+    downloadLeaveForm(who.value, null, run);
+    msg.className="status"; msg.textContent="Form downloaded.";
+  };
+}
+/* the same shape leaveRunFor returns, but for dates typed by hand */
+function runBetween(n, from, to){
+  var span = Math.round((to-from)/DAY)+1, covered = 0;
+  for (var t=from; t<=to; t+=DAY){
+    var r = DATA.leaves[safeId(rid(n), iso(t))];
+    if (r && r.coveredBy) covered++;
+  }
+  return {from:from, to:to, span:span, covered:covered, days:span-covered};
+}
+function downloadLeaveForm(n, ms, givenRun){
+  var st = document.getElementById("lfMsg") || document.getElementById("dlStat");
   function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
   var bytes, name;
   try {
-    var run = leaveRunFor(n, ms);
+    var run = givenRun || leaveRunFor(n, ms);
     bytes = pdfLeaveApplication(n, run);
     name = "Leave-application-" + title(n) + "-" + iso(run.from) + ".pdf";
   } catch(e){ say("Could not build the form.", true); return; }
@@ -2142,61 +2518,48 @@ function downloadLeaveForm(n, ms){
   } catch(e){ say("Your browser blocked the download.", true); }
 }
 
-/* Which month to print. Sir is sent the month that is starting, which until
-   the 16th is not the month today falls in - so this is chosen, not guessed. */
-function monthBlocksList(){
-  var out = [], b = blockStartFor(msOf(todayKey()));
-  var back = b, i;
-  for (i = 0; i < 3; i++){
-    var prev = blockStartFor(back - DAY);
-    if (prev < epochMs()) break;
-    out.unshift(prev); back = prev;
-  }
-  out.push(b);
-  var fwd = b;
-  for (i = 0; i < 3; i++){
-    var days = blockDays(fwd);
-    fwd = days[days.length-1] + DAY;
-    out.push(fwd);
-  }
-  return out;
-}
-function renderPdfMonths(){
-  var sel = document.getElementById("pdfMonth");
-  if (!sel) return;
-  var keep = sel.value;
-  sel.innerHTML = "";
-  var list = monthBlocksList(), today = msOf(todayKey());
+/* Which stretch to print. Sir is sent the month that is starting, which until
+   the 16th is not the month today falls in - so the boxes are filled with that
+   and can then be changed to any dates at all. */
+function defaultPdfRange(){
+  var today = msOf(todayKey());
   var thisBlock = blockStartFor(today);
-  var defaultMs = null;
-  list.forEach(function(ms){
-    var days = blockDays(ms);
-    var o = document.createElement("option");
-    o.value = String(ms);
-    o.textContent = fmt(ms) + " - " + fmt(days[days.length-1]);
-    if (ms === thisBlock) o.textContent += "  (current)";
-    sel.appendChild(o);
-  });
-  /* In the last week of a block the month people need is the next one. */
   var curDays = blockDays(thisBlock);
   var endsIn = Math.round((curDays[curDays.length-1] - today) / DAY);
-  defaultMs = (endsIn <= 7)
-    ? curDays[curDays.length-1] + DAY
-    : thisBlock;
-  sel.value = keep && list.indexOf(parseInt(keep,10)) >= 0 ? keep : String(defaultMs);
+  var start = (endsIn <= 7) ? curDays[curDays.length-1] + DAY : thisBlock;
+  if (start < epochMs()) start = epochMs();
+  var days = blockDays(start);
+  return {from:start, to:days[days.length-1]};
+}
+function setPdfRange(from, to){
+  var a = document.getElementById("pdfFrom"), b = document.getElementById("pdfTo");
+  if (a) a.value = iso(from);
+  if (b) b.value = iso(to);
+}
+function renderPdfMonths(){
+  var a = document.getElementById("pdfFrom");
+  if (!a) return;
+  if (!a.value){
+    var r = defaultPdfRange();
+    setPdfRange(r.from, r.to);
+  }
 }
 
 function downloadPdf(){
   var st = document.getElementById("dlStat");
   function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
   var bytes, name;
+  var fa = document.getElementById("pdfFrom"), fb = document.getElementById("pdfTo");
+  var from = fa && fa.value ? msOf(fa.value) : null;
+  var to   = fb && fb.value ? msOf(fb.value) : null;
+  if (from === null || to === null){ say("Pick both dates first.", true); return; }
+  if (to < from){ say("The last date is before the first date.", true); return; }
+  if (from < epochMs()){ say("The roster starts on " + fmt(epochMs()) + ".", true); return; }
+  if (Math.round((to-from)/DAY) > 120){ say("That is more than four months - please choose a shorter stretch.", true); return; }
   try {
-    var sel = document.getElementById("pdfMonth");
-    var startMs = sel && sel.value ? parseInt(sel.value,10) : monthBlock();
-    var days = blockDays(startMs);
-    bytes = pdfFull(startMs);
+    bytes = pdfFull(from, to);
     name = CFG.dept.title.replace(/[^A-Za-z0-9]+/g,"-")
-         + "-" + iso(days[0]) + "-to-" + iso(days[days.length-1]) + ".pdf";
+         + "-" + iso(from) + "-to-" + iso(to) + ".pdf";
   } catch(e){ say("Could not build the PDF.", true); return; }
   try {
     var blob = new Blob([bytes], {type:"application/pdf"});
@@ -2316,6 +2679,7 @@ function wire(){
   document.getElementById("v30").onclick = function(){ setView("30"); };
   document.getElementById("cAll").onclick = function(){ counterAll = !counterAll; renderCounter(); };
   document.getElementById("pAll").onclick = downloadPdf;
+  wireLeaveForm();
   document.getElementById("pPrint").onclick = function(){ window.print(); };
   var stg = document.getElementById("setupToggle"), sbx = document.getElementById("setupBox");
   stg.onclick = function(){
