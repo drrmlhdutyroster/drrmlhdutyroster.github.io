@@ -927,7 +927,8 @@ try { PASSKEY = localStorage.getItem("rml_key") || ""; } catch(e){}
 /* The Head of the Department's passphrase, held only on his own device. */
 var HODKEY = "";
 try { HODKEY = localStorage.getItem("rml_hod") || ""; } catch(e){}
-var HOD = false;
+var HODAUTH = false;       /* the passphrase on this device is good */
+var HOD = false;           /* ...and we are on the Head of the Department's address */
 
 var STORE = (function(){
   var KEY = "rml_roster_v1";
@@ -1217,7 +1218,7 @@ function applyLock(){
      this one person's own copy, so editing is simply open. */
   if (!ENDPOINT){
     UNLOCKED = true;
-    HOD = true;                       /* no Sheet, no passphrases: it is one person's own copy */
+    HODAUTH = true; HOD = true;       /* no Sheet, no passphrases: it is one person's own copy */
     var lb = document.getElementById("lockBtn"), lx = document.getElementById("lockBox");
     if (lb) lb.hidden = true;
     if (lx) lx.hidden = true;
@@ -1302,6 +1303,13 @@ function wireLock(){
    it. His way in is not on the page at all - the address carries ?hod. */
 function hodRequested(){
   try { return /[?&]hod\b/i.test(window.location.search || ""); } catch(e){ return false; }
+}
+/* Holding the passphrase is not enough: the Head of the Department's powers
+   appear only at his own address. A phone that once used it shows the ordinary
+   roster on the ordinary link, with no Setup and no approval buttons. */
+function syncHod(){
+  HOD = HODAUTH && (hodRequested() || !ENDPOINT);
+  return HOD;
 }
 function pendingRequests(){
   var out = [], k;
@@ -1573,7 +1581,7 @@ function wireApprovals(){
     msg.className="status"; msg.textContent="Checking\u2026";
     STORE.checkHod(k).then(function(){
       STORE.setHodKey(k);
-      HOD = true; UNLOCKED = true;
+      HODAUTH = true; UNLOCKED = true; syncHod();
       if (inp) inp.value = "";
       applyLock(); renderAll(); idleStatus();
       if (forget) forget.hidden = false;
@@ -1589,7 +1597,7 @@ function wireApprovals(){
   };
   if (forget) forget.onclick = function(){
     STORE.setHodKey("");
-    HOD = false;
+    HODAUTH = false; syncHod();
     applyLock(); renderAll(); idleStatus();
     msg.className="status"; msg.textContent="Closed.";
   };
@@ -3576,10 +3584,10 @@ STORE.load().then(function(){
      passphrase still works — it may have been changed since. */
   if (HODKEY){
     STORE.checkHod().then(function(){
-      HOD = true; UNLOCKED = true; applyLock(); renderAll();
+      HODAUTH = true; UNLOCKED = true; syncHod(); applyLock(); renderAll();
     }, function(e){
       if (e && String(e.message||e) === "hod"){
-        STORE.setHodKey(""); HOD = false; applyLock(); renderAll();
+        STORE.setHodKey(""); HODAUTH = false; syncHod(); applyLock(); renderAll();
       }
     });
   }
