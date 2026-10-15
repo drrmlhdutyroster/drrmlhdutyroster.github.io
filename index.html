@@ -297,6 +297,27 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .maintline{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 @media (max-width:780px){ .creditname{font-size:19px} }
 
+.ledgerhead{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.1em;font-size:13px;font-weight:600;margin:18px 0 8px;color:var(--muted)}
+#ledger td.num{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
+#counterSec .lockbox{margin:0 0 12px}
+
+.apprline{display:block;width:100%;text-align:left;-webkit-appearance:none;appearance:none;
+  background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-ink);
+  padding:9px 13px;font-size:13.5px;cursor:pointer;line-height:1.4}
+.apprline:hover{filter:brightness(.97)}
+.apprrow{border-top:1px solid var(--rule);padding:11px 0}
+.apprrow:first-child{border-top:0}
+.apprwhat{font-weight:600;font-size:14px}
+.apprdet{font-size:13px;color:var(--muted);margin-top:3px}
+.apprbtns{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+@media print{#apprSec{display:none!important}}
+
+.chip.pend{background:var(--panel2);color:var(--muted);border:1px dashed var(--rule)}
+.chip.decl{background:var(--panel2);color:var(--muted);text-decoration:line-through}
+.chip .sttag{font-family:"Barlow Condensed",sans-serif;font-size:9.5px;letter-spacing:.09em;
+  text-transform:uppercase;opacity:.85;margin-left:3px}
+
 .unlockhint{-webkit-appearance:none;appearance:none;background:none;border:0;padding:2px 0;
   color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .unlockhint:hover{color:var(--ink)}
@@ -397,10 +418,27 @@ body.unlocked #lockBtn{color:var(--green-ink)}
       <input type="date" id="pdfTo"></div>
     <div style="flex:1 1 auto">
       <button class="primary" id="pAll">Download PDF</button>
+      <button class="ghost" id="pReg">Register of changes</button>
       <span class="status" id="dlStat"></span>
     </div>
   </div>
 </div>
+
+<section id="apprSec" hidden>
+  <button class="apprline" id="apprToggle" aria-expanded="false" aria-controls="apprBox"></button>
+  <div class="card" id="apprBox" hidden>
+    <div id="hodBox" class="lockbox" hidden>
+      <label for="hodKey">Head of the Department passphrase</label>
+      <div class="inline" style="align-items:flex-start">
+        <input id="hodKey" type="password" autocomplete="off" style="flex:1 1 220px">
+        <button class="primary" id="hodSave">Open</button>
+        <button class="ghost" id="hodForget" hidden>Close</button>
+      </div>
+      <p class="status" id="hodMsg"></p>
+    </div>
+    <div id="apprList"></div>
+  </div>
+</section>
 
 <section id="mineSec">
   <h2>My duties</h2>
@@ -434,6 +472,7 @@ body.unlocked #lockBtn{color:var(--green-ink)}
   <div class="bar" style="margin-bottom:10px">
     <h2 style="margin:0;border:0;padding:0">Leave record</h2>
     <span class="grow"></span>
+    <button class="primary noprint" id="applyBtn" aria-expanded="false" aria-controls="applyBox">Apply for leave</button>
     <button class="ghost noprint" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox">Leave application</button>
     <button class="ghost noprint" id="cAll" aria-pressed="false">Show everyone</button>
   </div>
@@ -451,8 +490,28 @@ body.unlocked #lockBtn{color:var(--green-ink)}
     <p class="status" id="lfMsg"></p>
   </div>
 
+  <div id="applyBox" class="lockbox" hidden>
+    <div class="inline" style="align-items:flex-end">
+      <div style="flex:1 1 180px"><label for="apWho">Leave for</label>
+        <select id="apWho" style="width:100%"></select></div>
+      <div style="flex:0 0 auto"><label for="apFrom">From</label>
+        <input type="date" id="apFrom"></div>
+      <div style="flex:0 0 auto"><label for="apTo">To</label>
+        <input type="date" id="apTo"></div>
+      <div style="flex:1 1 150px"><label for="apWhy">Reason</label>
+        <input type="text" id="apWhy" placeholder="CL / SL / exam" style="width:100%"></div>
+      <div style="flex:0 0 auto"><button class="primary" id="apGo">Send for approval</button></div>
+    </div>
+    <p class="hint">One application per continuous stretch of days. If somebody is covering a
+      duty, enter that as a cover on the day instead - a covered day is not leave.</p>
+    <p class="status" id="apMsg"></p>
+  </div>
+
   <div id="cPick" class="pickme noprint" hidden></div>
   <div class="scroller" id="cWrap"><table id="counter"></table></div>
+  <h3 class="ledgerhead" id="ledgerHead">Cover balance</h3>
+  <div class="scroller" id="ledgerWrap"><table id="ledger"></table></div>
+  <p class="note" style="margin-top:10px" id="ledgerNote"></p>
   <p class="note" style="margin-top:10px" id="counterNote"></p>
 </section>
 
@@ -489,7 +548,7 @@ body.unlocked #lockBtn{color:var(--green-ink)}
 </div>
 
 <script>
-var SEED = {"config":{"dept":{"hospital":"A.B.V.I.M.S. & Dr. Ram Manohar Lohia Hospital, New Delhi","department":"Department of Emergency Medicine","title":"Post Graduate Duty Roster"},"epoch":"2026-09-16","monthStartDay":16,"annualLeave":30,"slots":[{"k":"MR","label":"Morning Red","short":"MR","zone":"red","time":"09:00-14:00"},{"k":"MG","label":"Morning Green","short":"MG","zone":"green","time":"08:00-14:00"},{"k":"ER","label":"Evening Red","short":"ER","zone":"red","time":"14:00-20:00"},{"k":"EG","label":"Evening Green","short":"EG","zone":"green","time":"14:00-20:00"},{"k":"N","label":"Night Red","short":"NGT","zone":"red","time":"20:00-09:00"},{"k":"OFF","label":"Night off","short":"-","zone":"off","time":"post-duty rest"}],"groups":[{"id":"PG2","label":"PG2","blockDays":2,"phase":1,"blocks":["N","OFF","ER","MR","MG"],"revisions":[{"from":"2026-09-16","members":["AKSHAY","BHAWNA","VIVEK","ALEEF","ALEN"]}]},{"id":"PG1","label":"PG1","blockDays":2,"phase":0,"blocks":["N","OFF","ER","MR","EG","ER"],"revisions":[{"from":"2026-09-16","members":["SARAH","MAZID","MOHIT","KAIVALYA","MUHSIN","KOMAL"]},{"from":"2026-10-08","members":["SARAH","MAZID","MOHIT","KOMAL","MUHSIN","KAIVALYA"]}]}],"holidays":{"2026-10-02":"Gandhi Jayanti","2026-10-20":"Dussehra","2026-11-08":"Diwali","2026-11-24":"Guru Nanak Jayanti","2026-12-25":"Christmas","2027-01-26":"Republic Day","2027-03-10":"Id-ul-Fitr","2027-03-23":"Holi","2027-03-26":"Good Friday","2027-04-15":"Ram Navami","2027-04-19":"Mahavir Jayanti","2027-05-17":"Id-ul-Zuha (Bakrid)","2027-05-20":"Buddha Purnima","2027-06-16":"Muharram","2027-08-15":"Independence Day \u00b7 Milad-un-Nabi","2027-08-25":"Janmashtami","2027-10-02":"Gandhi Jayanti","2027-10-09":"Dussehra","2027-10-29":"Diwali","2027-11-14":"Guru Nanak Jayanti","2027-12-25":"Christmas"}},"data":{"leaves":{"akshay_2026-10-09":{"by":"","createdAt":1791168637448,"date":"2026-10-09","reason":"","resident":"AKSHAY"},"akshay_2026-10-10":{"by":"","createdAt":1791168637449,"date":"2026-10-10","reason":"","resident":"AKSHAY"},"akshay_2026-10-11":{"by":"","createdAt":1791168637449,"date":"2026-10-11","reason":"","resident":"AKSHAY"},"akshay_2026-10-12":{"by":"","createdAt":1791168637449,"date":"2026-10-12","reason":"","resident":"AKSHAY"},"alen_2026-09-21":{"by":"","createdAt":1789995019995,"date":"2026-09-21","reason":"","resident":"ALEN"},"bhawna_2026-09-20":{"by":"","coveredBy":"AKSHAY","createdAt":1789880407593,"date":"2026-09-20","reason":"","resident":"BHAWNA"},"bhawna_2026-09-21":{"by":"","createdAt":1789879948601,"date":"2026-09-21","reason":"","resident":"BHAWNA"},"bhawna_2026-09-27":{"by":"","coveredBy":"VIVEK","createdAt":1789880447676,"date":"2026-09-27","reason":"","resident":"BHAWNA"},"bhawna_2026-10-07":{"by":"","createdAt":1789880463393,"date":"2026-10-07","reason":"","resident":"BHAWNA"},"kaivalya_2026-09-24":{"by":"","createdAt":1790140655283,"date":"2026-09-24","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-25":{"by":"","createdAt":1790140655283,"date":"2026-09-25","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-26":{"by":"","createdAt":1790140655284,"date":"2026-09-26","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-27":{"by":"","createdAt":1790140655284,"date":"2026-09-27","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-28":{"by":"","createdAt":1790140655284,"date":"2026-09-28","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-29":{"by":"","createdAt":1790140655284,"date":"2026-09-29","reason":"","resident":"KAIVALYA"},"komal_2026-09-16":{"by":"","createdAt":1789532569289,"date":"2026-09-16","reason":"sickness","resident":"KOMAL"},"komal_2026-09-17":{"by":"","createdAt":1789532569290,"date":"2026-09-17","reason":"sickness","resident":"KOMAL"},"mohit_2026-09-16":{"by":"","createdAt":1789532636215,"date":"2026-09-16","reason":"sickness","resident":"MOHIT"},"mohit_2026-10-01":{"by":"","createdAt":1791168586766,"date":"2026-10-01","reason":"EL","resident":"MOHIT"},"mohit_2026-10-02":{"by":"","createdAt":1791168577566,"date":"2026-10-02","reason":"EL","resident":"MOHIT"},"muhsin_2026-09-16":{"by":"","createdAt":1789880486606,"date":"2026-09-16","reason":"","resident":"MUHSIN"},"muhsin_2026-09-17":{"by":"","createdAt":1789880496469,"date":"2026-09-17","reason":"","resident":"MUHSIN"},"muhsin_2026-09-30":{"by":"VIVEK","createdAt":1790800000000,"date":"2026-09-30","reason":"","resident":"MUHSIN"},"muhsin_2026-10-01":{"by":"VIVEK","createdAt":1790800001000,"date":"2026-10-01","reason":"","resident":"MUHSIN"},"muhsin_2026-10-02":{"by":"VIVEK","createdAt":1790800002000,"date":"2026-10-02","reason":"","resident":"MUHSIN"},"muhsin_2026-10-03":{"by":"VIVEK","createdAt":1790800003000,"date":"2026-10-03","reason":"","resident":"MUHSIN"},"muhsin_2026-10-04":{"by":"VIVEK","createdAt":1790800004000,"date":"2026-10-04","reason":"","resident":"MUHSIN"},"muhsin_2026-10-05":{"by":"VIVEK","coveredBy":"SARAH","createdAt":1790800005000,"date":"2026-10-05","reason":"","resident":"MUHSIN"},"muhsin_2026-10-06":{"by":"VIVEK","coveredBy":"KOMAL","createdAt":1790800006000,"date":"2026-10-06","reason":"","resident":"MUHSIN"},"muhsin_2026-10-07":{"by":"VIVEK","coveredBy":"KOMAL","createdAt":1790800007000,"date":"2026-10-07","reason":"","resident":"MUHSIN"},"muhsin_2026-10-08":{"by":"VIVEK","coveredBy":"KAIVALYA","createdAt":1790800008000,"date":"2026-10-08","reason":"","resident":"MUHSIN"},"vivek_2026-09-25":{"by":"","createdAt":1790262996924,"date":"2026-09-25","reason":"","resident":"VIVEK"},"vivek_2026-09-26":{"by":"","createdAt":1790262996925,"date":"2026-09-26","reason":"","resident":"VIVEK"}},"swaps":{"2026-09-20_muhsin_kaivalya":{"date":"2026-09-20","a":"MUHSIN","b":"KAIVALYA","createdAt":1789887571698},"2026-09-21_muhsin_kaivalya":{"date":"2026-09-21","a":"MUHSIN","b":"KAIVALYA","createdAt":1789887589538},"2026-09-22_kaivalya_muhsin":{"date":"2026-09-22","a":"KAIVALYA","b":"MUHSIN","createdAt":1789887521136},"2026-09-23_kaivalya_muhsin":{"date":"2026-09-23","a":"KAIVALYA","b":"MUHSIN","createdAt":1790133188449},"2026-09-24_kaivalya_muhsin":{"date":"2026-09-24","a":"KAIVALYA","b":"MUHSIN","createdAt":1790140603607},"2026-09-25_kaivalya_muhsin":{"date":"2026-09-25","a":"KAIVALYA","b":"MUHSIN","createdAt":1790140616698},"2026-09-25_muhsin_mazid":{"date":"2026-09-25","a":"MUHSIN","b":"MAZID","createdAt":1790400000000},"2026-09-26_muhsin_mazid":{"date":"2026-09-26","a":"MUHSIN","b":"MAZID","createdAt":1790400001000},"2026-09-27_muhsin_mazid":{"date":"2026-09-27","a":"MUHSIN","b":"MAZID","createdAt":1790400002000},"2026-09-28_muhsin_mazid":{"date":"2026-09-28","a":"MUHSIN","b":"MAZID","createdAt":1790400003000},"2026-09-29_muhsin_mazid":{"date":"2026-09-29","a":"MUHSIN","b":"MAZID","createdAt":1790400004000},"2026-09-30_muhsin_mazid":{"date":"2026-09-30","a":"MUHSIN","b":"MAZID","createdAt":1790400005000},"2026-10-01_muhsin_mazid":{"date":"2026-10-01","a":"MUHSIN","b":"MAZID","createdAt":1790400006000},"2026-10-02_muhsin_mazid":{"date":"2026-10-02","a":"MUHSIN","b":"MAZID","createdAt":1790400007000},"2026-10-03_muhsin_mazid":{"date":"2026-10-03","a":"MUHSIN","b":"MAZID","createdAt":1790400008000},"2026-10-04_muhsin_mazid":{"date":"2026-10-04","a":"MUHSIN","b":"MAZID","createdAt":1790400009000},"2026-10-05_muhsin_mazid":{"date":"2026-10-05","a":"MUHSIN","b":"MAZID","createdAt":1790400010000},"2026-10-11_akshay_kaivalya":{"date":"2026-10-11","a":"AKSHAY","b":"KAIVALYA","createdAt":1790800014000},"2026-10-12_akshay_muhsin":{"date":"2026-10-12","a":"AKSHAY","b":"MUHSIN","createdAt":1790800015000}},"joining":{"akshay":{"resident":"AKSHAY","date":"2025-02-07"},"aleef":{"resident":"ALEEF","date":"2025-02-03"},"alen":{"resident":"ALEN","date":"2025-02-03"},"bhawna":{"resident":"BHAWNA","date":"2024-12-24"},"kaivalya":{"resident":"KAIVALYA","date":"2026-02-12"},"komal":{"resident":"KOMAL","date":"2026-03-16"},"mazid":{"resident":"MAZID","date":"2026-02-16"},"mohit":{"resident":"MOHIT","date":"2026-01-14"},"muhsin":{"resident":"MUHSIN","date":"2026-01-12"},"sarah":{"resident":"SARAH","date":"2026-02-16"},"vivek":{"resident":"VIVEK","date":"2025-02-03"}},"opening":{"akshay":{"resident":"AKSHAY","days":9,"asOf":"2026-09-21"},"aleef":{"resident":"ALEEF","days":11,"asOf":"2026-09-21"},"alen":{"resident":"ALEN","days":18,"asOf":"2026-09-20"},"bhawna":{"resident":"BHAWNA","days":4,"asOf":"2026-09-20"},"kaivalya":{"resident":"KAIVALYA","days":9,"asOf":"2026-09-20"},"komal":{"resident":"KOMAL","days":12,"asOf":"2026-09-20"},"mazid":{"resident":"MAZID","days":17,"asOf":"2026-09-20"},"mohit":{"resident":"MOHIT","days":9,"asOf":"2026-09-20"},"muhsin":{"resident":"MUHSIN","days":25,"asOf":"2026-09-20"},"sarah":{"resident":"SARAH","days":12,"asOf":"2026-09-20"},"vivek":{"resident":"VIVEK","days":11,"asOf":"2026-09-20"}}}};
+var SEED = {"config":{"dept":{"hospital":"A.B.V.I.M.S. & Dr. Ram Manohar Lohia Hospital, New Delhi","department":"Department of Emergency Medicine","title":"Post Graduate Duty Roster"},"epoch":"2026-09-16","monthStartDay":16,"annualLeave":30,"slots":[{"k":"MR","label":"Morning Red","short":"MR","zone":"red","time":"09:00-14:00"},{"k":"MG","label":"Morning Green","short":"MG","zone":"green","time":"08:00-14:00"},{"k":"ER","label":"Evening Red","short":"ER","zone":"red","time":"14:00-20:00"},{"k":"EG","label":"Evening Green","short":"EG","zone":"green","time":"14:00-20:00"},{"k":"N","label":"Night Red","short":"NGT","zone":"red","time":"20:00-09:00"},{"k":"OFF","label":"Night off","short":"-","zone":"off","time":"post-duty rest"}],"groups":[{"id":"PG2","label":"PG2","blockDays":2,"phase":1,"blocks":["N","OFF","ER","MR","MG"],"revisions":[{"from":"2026-09-16","members":["AKSHAY","BHAWNA","VIVEK","ALEEF","ALEN"]}]},{"id":"PG1","label":"PG1","blockDays":2,"phase":0,"blocks":["N","OFF","ER","MR","EG","ER"],"revisions":[{"from":"2026-09-16","members":["SARAH","MAZID","MOHIT","KAIVALYA","MUHSIN","KOMAL"]},{"from":"2026-10-08","members":["SARAH","MAZID","MOHIT","KOMAL","MUHSIN","KAIVALYA"]}]}],"holidays":{"2026-10-02":"Gandhi Jayanti","2026-10-20":"Dussehra","2026-11-08":"Diwali","2026-11-24":"Guru Nanak Jayanti","2026-12-25":"Christmas","2027-01-26":"Republic Day","2027-03-10":"Id-ul-Fitr","2027-03-23":"Holi","2027-03-26":"Good Friday","2027-04-15":"Ram Navami","2027-04-19":"Mahavir Jayanti","2027-05-17":"Id-ul-Zuha (Bakrid)","2027-05-20":"Buddha Purnima","2027-06-16":"Muharram","2027-08-15":"Independence Day \u00b7 Milad-un-Nabi","2027-08-25":"Janmashtami","2027-10-02":"Gandhi Jayanti","2027-10-09":"Dussehra","2027-10-29":"Diwali","2027-11-14":"Guru Nanak Jayanti","2027-12-25":"Christmas"}},"data":{"leaves":{"akshay_2026-10-09":{"by":"","createdAt":1791168637448,"date":"2026-10-09","reason":"","resident":"AKSHAY"},"akshay_2026-10-10":{"by":"","createdAt":1791168637449,"date":"2026-10-10","reason":"","resident":"AKSHAY"},"akshay_2026-10-11":{"by":"","createdAt":1791168637449,"date":"2026-10-11","reason":"","resident":"AKSHAY"},"akshay_2026-10-12":{"by":"","createdAt":1791168637449,"date":"2026-10-12","reason":"","resident":"AKSHAY"},"alen_2026-09-21":{"by":"","createdAt":1789995019995,"date":"2026-09-21","reason":"","resident":"ALEN"},"bhawna_2026-09-20":{"by":"","coveredBy":"AKSHAY","createdAt":1789880407593,"date":"2026-09-20","reason":"","resident":"BHAWNA"},"bhawna_2026-09-21":{"by":"","createdAt":1789879948601,"date":"2026-09-21","reason":"","resident":"BHAWNA"},"bhawna_2026-09-27":{"by":"","coveredBy":"VIVEK","createdAt":1789880447676,"date":"2026-09-27","reason":"","resident":"BHAWNA"},"bhawna_2026-10-07":{"by":"","createdAt":1789880463393,"date":"2026-10-07","reason":"","resident":"BHAWNA"},"kaivalya_2026-09-24":{"by":"","createdAt":1790140655283,"date":"2026-09-24","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-25":{"by":"","createdAt":1790140655283,"date":"2026-09-25","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-26":{"by":"","createdAt":1790140655284,"date":"2026-09-26","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-27":{"by":"","createdAt":1790140655284,"date":"2026-09-27","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-28":{"by":"","createdAt":1790140655284,"date":"2026-09-28","reason":"","resident":"KAIVALYA"},"kaivalya_2026-09-29":{"by":"","createdAt":1790140655284,"date":"2026-09-29","reason":"","resident":"KAIVALYA"},"komal_2026-09-16":{"by":"","createdAt":1789532569289,"date":"2026-09-16","reason":"sickness","resident":"KOMAL"},"komal_2026-09-17":{"by":"","createdAt":1789532569290,"date":"2026-09-17","reason":"sickness","resident":"KOMAL"},"mohit_2026-09-16":{"by":"","createdAt":1789532636215,"date":"2026-09-16","reason":"sickness","resident":"MOHIT"},"mohit_2026-10-01":{"by":"","createdAt":1791168586766,"date":"2026-10-01","reason":"EL","resident":"MOHIT"},"mohit_2026-10-02":{"by":"","createdAt":1791168577566,"date":"2026-10-02","reason":"EL","resident":"MOHIT"},"muhsin_2026-09-16":{"by":"","createdAt":1789880486606,"date":"2026-09-16","reason":"","resident":"MUHSIN"},"muhsin_2026-09-17":{"by":"","createdAt":1789880496469,"date":"2026-09-17","reason":"","resident":"MUHSIN"},"muhsin_2026-09-30":{"by":"VIVEK","createdAt":1790800000000,"date":"2026-09-30","reason":"","resident":"MUHSIN"},"muhsin_2026-10-01":{"by":"VIVEK","createdAt":1790800001000,"date":"2026-10-01","reason":"","resident":"MUHSIN"},"muhsin_2026-10-02":{"by":"VIVEK","createdAt":1790800002000,"date":"2026-10-02","reason":"","resident":"MUHSIN"},"muhsin_2026-10-03":{"by":"VIVEK","createdAt":1790800003000,"date":"2026-10-03","reason":"","resident":"MUHSIN"},"muhsin_2026-10-04":{"by":"VIVEK","createdAt":1790800004000,"date":"2026-10-04","reason":"","resident":"MUHSIN"},"muhsin_2026-10-05":{"by":"VIVEK","coveredBy":"SARAH","createdAt":1790800005000,"date":"2026-10-05","reason":"","resident":"MUHSIN"},"muhsin_2026-10-06":{"by":"VIVEK","coveredBy":"KOMAL","createdAt":1790800006000,"date":"2026-10-06","reason":"","resident":"MUHSIN"},"muhsin_2026-10-07":{"by":"VIVEK","coveredBy":"KOMAL","createdAt":1790800007000,"date":"2026-10-07","reason":"","resident":"MUHSIN"},"muhsin_2026-10-08":{"by":"VIVEK","coveredBy":"KAIVALYA","createdAt":1790800008000,"date":"2026-10-08","reason":"","resident":"MUHSIN"},"vivek_2026-09-25":{"by":"","createdAt":1790262996924,"date":"2026-09-25","reason":"","resident":"VIVEK"},"vivek_2026-09-26":{"by":"","createdAt":1790262996925,"date":"2026-09-26","reason":"","resident":"VIVEK"}},"swaps":{"2026-09-20_muhsin_kaivalya":{"date":"2026-09-20","a":"MUHSIN","b":"KAIVALYA","createdAt":1789887571698},"2026-09-21_muhsin_kaivalya":{"date":"2026-09-21","a":"MUHSIN","b":"KAIVALYA","createdAt":1789887589538},"2026-09-22_kaivalya_muhsin":{"date":"2026-09-22","a":"KAIVALYA","b":"MUHSIN","createdAt":1789887521136},"2026-09-23_kaivalya_muhsin":{"date":"2026-09-23","a":"KAIVALYA","b":"MUHSIN","createdAt":1790133188449},"2026-09-24_kaivalya_muhsin":{"date":"2026-09-24","a":"KAIVALYA","b":"MUHSIN","createdAt":1790140603607},"2026-09-25_kaivalya_muhsin":{"date":"2026-09-25","a":"KAIVALYA","b":"MUHSIN","createdAt":1790140616698},"2026-09-25_muhsin_mazid":{"date":"2026-09-25","a":"MUHSIN","b":"MAZID","createdAt":1790400000000},"2026-09-26_muhsin_mazid":{"date":"2026-09-26","a":"MUHSIN","b":"MAZID","createdAt":1790400001000},"2026-09-27_muhsin_mazid":{"date":"2026-09-27","a":"MUHSIN","b":"MAZID","createdAt":1790400002000},"2026-09-28_muhsin_mazid":{"date":"2026-09-28","a":"MUHSIN","b":"MAZID","createdAt":1790400003000},"2026-09-29_muhsin_mazid":{"date":"2026-09-29","a":"MUHSIN","b":"MAZID","createdAt":1790400004000},"2026-09-30_muhsin_mazid":{"date":"2026-09-30","a":"MUHSIN","b":"MAZID","createdAt":1790400005000},"2026-10-01_muhsin_mazid":{"date":"2026-10-01","a":"MUHSIN","b":"MAZID","createdAt":1790400006000},"2026-10-02_muhsin_mazid":{"date":"2026-10-02","a":"MUHSIN","b":"MAZID","createdAt":1790400007000},"2026-10-03_muhsin_mazid":{"date":"2026-10-03","a":"MUHSIN","b":"MAZID","createdAt":1790400008000},"2026-10-04_muhsin_mazid":{"date":"2026-10-04","a":"MUHSIN","b":"MAZID","createdAt":1790400009000},"2026-10-05_muhsin_mazid":{"date":"2026-10-05","a":"MUHSIN","b":"MAZID","createdAt":1790400010000},"2026-10-11_akshay_kaivalya":{"date":"2026-10-11","a":"AKSHAY","b":"KAIVALYA","createdAt":1790800014000},"2026-10-12_akshay_muhsin":{"date":"2026-10-12","a":"AKSHAY","b":"MUHSIN","createdAt":1790800015000}},"covers":{},"joining":{"akshay":{"resident":"AKSHAY","date":"2025-02-07"},"aleef":{"resident":"ALEEF","date":"2025-02-03"},"alen":{"resident":"ALEN","date":"2025-02-03"},"bhawna":{"resident":"BHAWNA","date":"2024-12-24"},"kaivalya":{"resident":"KAIVALYA","date":"2026-02-12"},"komal":{"resident":"KOMAL","date":"2026-03-16"},"mazid":{"resident":"MAZID","date":"2026-02-16"},"mohit":{"resident":"MOHIT","date":"2026-01-14"},"muhsin":{"resident":"MUHSIN","date":"2026-01-12"},"sarah":{"resident":"SARAH","date":"2026-02-16"},"vivek":{"resident":"VIVEK","date":"2025-02-03"}},"opening":{"akshay":{"resident":"AKSHAY","days":9,"asOf":"2026-09-21"},"aleef":{"resident":"ALEEF","days":11,"asOf":"2026-09-21"},"alen":{"resident":"ALEN","days":18,"asOf":"2026-09-20"},"bhawna":{"resident":"BHAWNA","days":4,"asOf":"2026-09-20"},"kaivalya":{"resident":"KAIVALYA","days":9,"asOf":"2026-09-20"},"komal":{"resident":"KOMAL","days":12,"asOf":"2026-09-20"},"mazid":{"resident":"MAZID","days":17,"asOf":"2026-09-20"},"mohit":{"resident":"MOHIT","days":9,"asOf":"2026-09-20"},"muhsin":{"resident":"MUHSIN","days":25,"asOf":"2026-09-20"},"sarah":{"resident":"SARAH","days":12,"asOf":"2026-09-20"},"vivek":{"resident":"VIVEK","days":11,"asOf":"2026-09-20"}}}};
 var CFG = JSON.parse(JSON.stringify(SEED.config));
 var DATA = JSON.parse(JSON.stringify(SEED.data));
 /* Minimal PDF writer — Helvetica only, no dependencies.
@@ -711,6 +770,40 @@ function leavesOn(key){
   for(var k in DATA.leaves) if(DATA.leaves[k].date===key) out.push({id:k,v:DATA.leaves[k]});
   return out;
 }
+/* Every new entry is a request, unless the Head of the Department makes it
+   himself - his own entries need nobody's approval. */
+function stampNew(body){
+  if (HOD){
+    body.status = "approved";
+    body.decidedBy = "HOD";
+    body.decidedAt = Date.now();
+    body.directed = true;
+  } else {
+    body.status = "pending";
+  }
+  return body;
+}
+
+/* ---------- approval ----------
+   Every entry carries a status. Anything recorded before approvals existed has
+   none, and counts as settled - history is not retrospectively made pending.
+   A refused entry is kept as a record but takes no part in the roster. */
+function statusOf(v){
+  var st = v && v.status;
+  if (!st) return "approved";
+  return st;
+}
+function isPending(v){ return statusOf(v) === "pending"; }
+function isDeclined(v){ return statusOf(v) === "declined"; }
+function isLive(v){ return statusOf(v) !== "declined"; }   /* shows in the roster */
+
+function coversOn(key){
+  var out=[], k;
+  for(k in DATA.covers) if(DATA.covers[k].date===key) out.push({id:k,v:DATA.covers[k]});
+  out.sort(function(a,b){return (a.v.createdAt||0)-(b.v.createdAt||0);});
+  return out;
+}
+
 /* Two kinds of change to a day live in the same collection: an exchange, where
    two people trade duties, and a move, where one person is taken off their own
    duty and put on another. A row with a slot is a move. */
@@ -733,6 +826,7 @@ function effective(ms){
   for(i=0;i<all.length;i++) duty[all[i]]=baseDuty(all[i],ms);
   var sw=swapsOn(key);
   for(i=0;i<sw.length;i++){
+    if(!isLive(sw[i].v)) continue;
     var a=sw[i].v.a, b=sw[i].v.b;
     if(!duty[a]||!duty[b]) continue;
     var t=duty[a]; duty[a]=duty[b]; duty[b]=t;
@@ -740,6 +834,7 @@ function effective(ms){
   }
   var lv=leavesOn(key);
   for(i=0;i<lv.length;i++){
+    if(!isLive(lv[i].v)) continue;
     var r=lv[i].v.resident, vacated=duty[r];
     if(!vacated) continue;
     duty[r]="LEAVE";
@@ -756,12 +851,28 @@ function effective(ms){
      emptied. The person leaves their own duty behind - nobody is doing two. */
   var mv=movesOn(key);
   for(i=0;i<mv.length;i++){
+    if(!isLive(mv[i].v)) continue;
     var who=mv[i].v.resident, slot=mv[i].v.slot;
     if(!duty[who]||duty[who]==="LEAVE") continue;
     if(!slotExists(slot)) continue;
     duty[who]=slot;
     changed[who]=true;
     if(extra[who]) delete extra[who];
+  }
+  /* Covers stand on their own: somebody is relieved of a duty and somebody
+     else takes it. No leave is involved and nothing is charged to anyone. */
+  var cv=coversOn(key);
+  for(i=0;i<cv.length;i++){
+    if(!isLive(cv[i].v)) continue;
+    var off=cv[i].v.relieved, by=cv[i].v.by, had=duty[off];
+    if(!had || had==="LEAVE" || !duty[by] || duty[by]==="LEAVE") continue;
+    duty[off]="RELIEVED";
+    changed[off]=true; changed[by]=true;
+    if(duty[by]==="OFF") duty[by]=had;              /* was free: simply takes it */
+    else if(duty[by]!==had){                         /* already working: does both */
+      if(!extra[by]) extra[by]=[];
+      if(extra[by].indexOf(had)<0) extra[by].push(had);
+    }
   }
   return {duty:duty, changed:changed, extra:extra, people:all};
 }
@@ -797,6 +908,7 @@ function slotMeta(k){
 }
 function slotName(k){
   if(k==="LEAVE") return "On leave";
+  if(k==="RELIEVED") return "Relieved - covered by a colleague";
   var m=slotMeta(k);
   return m.label + (m.time? " " + m.time : "");
 }
@@ -812,6 +924,10 @@ function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
 var ENDPOINT = "https://script.google.com/macros/s/AKfycbw639V8J-WCGj_Ijt-c310nmKgk-h56TfvK4uEii0YHJqADFWn17bnd_vISYsJcXhs/exec";   /* <<< PASTE THE APPS SCRIPT WEB-APP URL BETWEEN THESE QUOTES */
 var PASSKEY = "";          /* the department passphrase, remembered per device */
 try { PASSKEY = localStorage.getItem("rml_key") || ""; } catch(e){}
+/* The Head of the Department's passphrase, held only on his own device. */
+var HODKEY = "";
+try { HODKEY = localStorage.getItem("rml_hod") || ""; } catch(e){}
+var HOD = false;
 
 var STORE = (function(){
   var KEY = "rml_roster_v1";
@@ -847,6 +963,10 @@ var STORE = (function(){
       document.body.appendChild(tag);
     });
   }
+
+  /* The Head of the Department's passphrase authorises everything the everyday
+     one does, so a device holding only his can still record entries. */
+  function wkey(){ return PASSKEY || HODKEY; }
 
   function readLocal(){
     try { return JSON.parse(localStorage.getItem(KEY) || "null") || null; }
@@ -892,8 +1012,8 @@ var STORE = (function(){
       if (!q2.length) return Promise.resolve(sent);
       var op = q2[0];
       var params = op.action==="drop"
-        ? {action:"drop", key:PASSKEY, coll:op.coll, id:op.id}
-        : {action:"put",  key:PASSKEY, coll:op.coll, id:op.id, body:JSON.stringify(op.body)};
+        ? {action:"drop", key:wkey(), coll:op.coll, id:op.id}
+        : {action:"put",  key:wkey(), coll:op.coll, id:op.id, body:JSON.stringify(op.body)};
       return call(params).then(function(){
         var q3 = readQ(); q3.shift(); writeQ(q3); sent++;
         return step();
@@ -916,10 +1036,10 @@ var STORE = (function(){
       if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; }
       if (!ENDPOINT) return Promise.resolve();
       self.shared = true;
-      return call({action:"load", key:PASSKEY}).then(function(res){
+      return call({action:"load", key:wkey()}).then(function(res){
         if (res.config) CFG = res.config;
         if (res.data){
-          ["leaves","swaps","joining","opening"].forEach(function(c){
+          ["leaves","swaps","covers","joining","opening"].forEach(function(c){
             if (res.data[c]) DATA[c] = res.data[c];
           });
         }
@@ -934,14 +1054,14 @@ var STORE = (function(){
     save: function(){                        /* config only */
       writeLocal();
       if (!ENDPOINT) return Promise.resolve();
-      return call({action:"config", key:PASSKEY, body:JSON.stringify(CFG)});
+      return call({action:"config", key:HODKEY, body:JSON.stringify(CFG)});
     },
     put: function(coll, id, body){
       var self = this, had = DATA[coll].hasOwnProperty(id), prev = DATA[coll][id];
       DATA[coll][id] = body;
       writeLocal();
       if (!ENDPOINT) return Promise.resolve({});
-      return call({action:"put", key:PASSKEY, coll:coll, id:id, body:JSON.stringify(body)})
+      return call({action:"put", key:wkey(), coll:coll, id:id, body:JSON.stringify(body)})
         .then(function(){ self.online = true; return {}; },
         function(e){
           if (isKeyError(e)){                /* refused: undo, say so */
@@ -959,7 +1079,7 @@ var STORE = (function(){
       delete DATA[coll][id];
       writeLocal();
       if (!ENDPOINT) return Promise.resolve({});
-      return call({action:"drop", key:PASSKEY, coll:coll, id:id})
+      return call({action:"drop", key:wkey(), coll:coll, id:id})
         .then(function(){ self.online = true; return {}; },
         function(e){
           if (isKeyError(e)){
@@ -988,7 +1108,7 @@ var STORE = (function(){
       var p = Promise.resolve();
       chunks.forEach(function(ch){
         p = p.then(function(){
-          return call({action:"putmany", key:PASSKEY, coll:coll, body:JSON.stringify(ch)});
+          return call({action:"putmany", key:wkey(), coll:coll, body:JSON.stringify(ch)});
         });
       });
       return p.then(function(){ self.online = true; return {}; },
@@ -1010,13 +1130,37 @@ var STORE = (function(){
        a single row. Rejects with "key" when the passphrase is wrong. */
     check: function(k){
       if (!ENDPOINT) return Promise.resolve(false);
-      return call({action:"putmany", key:(k==null?PASSKEY:k), coll:"leaves", body:"[]"})
+      return call({action:"putmany", key:(k==null?wkey():k), coll:"leaves", body:"[]"})
         .then(function(){ return true; });
+    },
+    /* Proves the HOD passphrase without changing anything: a decision over an
+       empty list of entries. */
+    checkHod: function(k){
+      if (!ENDPOINT) return Promise.resolve(false);
+      return call({action:"decide", key:(k==null?HODKEY:k), coll:"leaves", ids:"[]", patch:"{}"})
+        .then(function(){ return true; });
+    },
+    decide: function(coll, ids, patch){
+      var i, f;
+      for (i=0;i<ids.length;i++){
+        var row = DATA[coll][ids[i]];
+        if (!row) continue;
+        for (f in patch) if (patch.hasOwnProperty(f)) row[f] = patch[f];
+      }
+      writeLocal();
+      if (!ENDPOINT) return Promise.resolve({});
+      return call({action:"decide", key:HODKEY, coll:coll,
+                   ids:JSON.stringify(ids), patch:JSON.stringify(patch)})
+        .then(function(){ return {}; });
     },
     pending: function(){ return readQ().length; },
     setKey: function(k){
       PASSKEY = k || "";
       try { localStorage.setItem("rml_key", PASSKEY); } catch(e){}
+    },
+    setHodKey: function(k){
+      HODKEY = k || "";
+      try { localStorage.setItem("rml_hod", HODKEY); } catch(e){}
     },
     refresh: function(){ return this.load(); }
   };
@@ -1065,6 +1209,7 @@ function applyLock(){
      this one person's own copy, so editing is simply open. */
   if (!ENDPOINT){
     UNLOCKED = true;
+    HOD = true;                       /* no Sheet, no passphrases: it is one person's own copy */
     var lb = document.getElementById("lockBtn"), lx = document.getElementById("lockBox");
     if (lb) lb.hidden = true;
     if (lx) lx.hidden = true;
@@ -1075,6 +1220,15 @@ function applyLock(){
   if (btn) btn.textContent = UNLOCKED ? "Editing unlocked" : "Unlock editing";
   var forget = document.getElementById("lockForget");
   if (forget) forget.hidden = !UNLOCKED;
+  var sb = document.getElementById("setupToggle");
+  if (sb) sb.hidden = !HOD;          /* Setup is the HOD's alone */
+  if (!HOD){
+    var sbx0 = document.getElementById("setupBox");
+    if (sbx0 && !sbx0.hidden){
+      sbx0.hidden = true;
+      if (sb){ sb.textContent = "Setup"; sb.className = "ghost"; sb.setAttribute("aria-expanded","false"); }
+    }
+  }
   if (!UNLOCKED){
     var sbx = document.getElementById("setupBox");
     if (sbx && !sbx.hidden){
@@ -1132,6 +1286,304 @@ function wireLock(){
     UNLOCKED = false;
     applyLock(); renderAll(); idleStatus();
     msg.className="status"; msg.textContent="Locked. This device can look but not change anything.";
+  };
+}
+
+/* ---------- requests awaiting approval ----------
+   Everyone can see what is waiting; only the Head of the Department can decide
+   it. His way in is not on the page at all - the address carries ?hod. */
+function hodRequested(){
+  try { return /[?&]hod\b/i.test(window.location.search || ""); } catch(e){ return false; }
+}
+function pendingRequests(){
+  var out = [], k;
+  function add(coll, id, v, kind){ out.push({coll:coll, id:id, v:v, kind:kind}); }
+  for (k in DATA.leaves) if (isPending(DATA.leaves[k])) add("leaves", k, DATA.leaves[k], "leave");
+  for (k in DATA.swaps)  if (isPending(DATA.swaps[k]))
+    add("swaps", k, DATA.swaps[k], isMove(DATA.swaps[k]) ? "move" : "exchange");
+  for (k in DATA.covers) if (isPending(DATA.covers[k])) add("covers", k, DATA.covers[k], "cover");
+  out.sort(function(a,b){ return a.v.date < b.v.date ? -1 : a.v.date > b.v.date ? 1 : 0; });
+  return out;
+}
+/* Leave is applied for as a stretch of days; it is decided as one. */
+function groupRequests(list){
+  var groups = [], byReq = {};
+  list.forEach(function(r){
+    var key = (r.kind === "leave" && r.v.reqId) ? r.v.reqId
+            : (r.kind === "leave" ? "lv:" + rid(r.v.resident) : r.coll + ":" + r.id);
+    if (!byReq[key]){ byReq[key] = {kind:r.kind, coll:r.coll, items:[], v:r.v}; groups.push(byReq[key]); }
+    byReq[key].items.push(r);
+  });
+  groups.forEach(function(g){
+    g.items.sort(function(a,b){ return a.v.date < b.v.date ? -1 : 1; });
+    g.from = g.items[0].v.date;
+    g.to   = g.items[g.items.length-1].v.date;
+    g.ids  = g.items.map(function(x){ return x.id; });
+  });
+  return groups;
+}
+function requestTitle(g){
+  var v = g.v;
+  if (g.kind === "leave")
+    return "Dr " + title(v.resident) + " - leave, " + fmt(msOf(g.from))
+         + (g.from === g.to ? "" : " to " + fmt(msOf(g.to)))
+         + " (" + g.items.length + (g.items.length === 1 ? " day)" : " days)");
+  if (g.kind === "exchange")
+    return "Dr " + title(v.a) + " and Dr " + title(v.b) + " - exchange, " + fmt(msOf(v.date));
+  if (g.kind === "move")
+    return "Dr " + title(v.resident) + " - move to " + slotMeta(v.slot).label + ", " + fmt(msOf(v.date));
+  return "Dr " + title(v.relieved) + " relieved, Dr " + title(v.by) + " covers - " + fmt(msOf(v.date));
+}
+function requestDetail(g){
+  var v = g.v, bits = [];
+  if (g.kind === "leave"){
+    var g2 = groupOf(v.resident, msOf(g.from));
+    if (g2) bits.push(g2.label);
+    if (v.reason) bits.push("reason: " + v.reason);
+    var ly = leaveYear(v.resident), t = leaveTaken(v.resident, ly);
+    if (ly) bits.push("taken this year " + (t.taken + t.ahead)
+                      + ", balance " + (CFG.annualLeave - t.taken - t.ahead)
+                      + (t.pending ? ", " + t.pending + " more awaiting approval" : ""));
+    var duties = [];
+    g.items.forEach(function(it){
+      var d = baseDuty(v.resident, msOf(it.v.date));
+      if (d && d !== "OFF") duties.push(new Date(msOf(it.v.date)).getUTCDate() + " " + slotMeta(d).short);
+    });
+    if (duties.length) bits.push("duties: " + duties.join(", "));
+  } else if (g.kind === "exchange"){
+    var da = baseDuty(v.a, msOf(v.date)), db = baseDuty(v.b, msOf(v.date));
+    if (da && db) bits.push("Dr " + title(v.a) + " takes " + slotMeta(db).label
+                            + ", Dr " + title(v.b) + " takes " + slotMeta(da).label);
+  } else if (g.kind === "move"){
+    var from = baseDuty(v.resident, msOf(v.date));
+    if (from) bits.push("comes off " + slotMeta(from).label
+                        + "; that duty is then left to whoever remains on it");
+  } else {
+    var theirs = baseDuty(v.by, msOf(v.date));
+    var had = baseDuty(v.relieved, msOf(v.date));
+    if (had) bits.push("Dr " + title(v.by) + (theirs === "OFF"
+      ? " is off and takes " + slotMeta(had).label
+      : " does " + slotMeta(theirs).label + " and " + slotMeta(had).label));
+    bits.push(v.settles ? "repays an earlier cover" : "Dr " + title(v.relieved) + " will owe one cover");
+  }
+  if (v.by || v.requestedBy) bits.push("entered by Dr " + title(v.by || v.requestedBy));
+  return bits.join("  ·  ");
+}
+/* ---------- apply for leave, from the leave record ---------- */
+function wireApply(){
+  var btn = document.getElementById("applyBtn"),
+      box = document.getElementById("applyBox"),
+      who = document.getElementById("apWho"),
+      fa  = document.getElementById("apFrom"),
+      fb  = document.getElementById("apTo"),
+      why = document.getElementById("apWhy"),
+      go  = document.getElementById("apGo"),
+      msg = document.getElementById("apMsg");
+  if (!btn || !box) return;
+  btn.onclick = function(){
+    var open = box.hidden;
+    box.hidden = !open;
+    btn.setAttribute("aria-expanded", open?"true":"false");
+    if (!open) return;
+    var keep = who.value;
+    who.innerHTML = "";
+    who.appendChild(opt("", "— choose —"));
+    roster().forEach(function(n){
+      var g = groupLabel(n);
+      who.appendChild(opt(n, "Dr " + title(n) + (g? " ("+g+")" : "")));
+    });
+    who.value = keep || ME || "";
+    if (!fa.value){ fa.value = todayKey(); fb.value = todayKey(); }
+    msg.textContent = "";
+  };
+  if (fa) fa.onchange = function(){ if (!fb.value || fb.value < fa.value) fb.value = fa.value; };
+  if (go) go.onclick = function(){
+    msg.className = "status";
+    if (!who.value){ msg.className="status bad"; msg.textContent="Choose who the leave is for."; return; }
+    if (!fa.value || !fb.value){ msg.className="status bad"; msg.textContent="Pick both dates."; return; }
+    if (msOf(fb.value) < msOf(fa.value)){ msg.className="status bad"; msg.textContent="The last day is before the first day."; return; }
+    if (msOf(fa.value) < epochMs()){ msg.className="status bad"; msg.textContent="The roster starts on " + fmt(epochMs()) + "."; return; }
+    var span = Math.round((msOf(fb.value)-msOf(fa.value))/DAY)+1;
+    if (span > 60){ msg.className="status bad"; msg.textContent="That is more than two months - please apply in shorter stretches."; return; }
+    var items = [], reqId = "r" + Date.now(), n = who.value;
+    for (var t=msOf(fa.value); t<=msOf(fb.value); t+=DAY){
+      var k2 = iso(t);
+      items.push({id:safeId(rid(n), k2),
+                  body:stampNew({resident:n, date:k2, reason:why.value.trim(),
+                                 by:ME||"", createdAt:Date.now(), reqId:reqId})});
+    }
+    msg.textContent = "Saving\u2026";
+    runSeq([function(){ return STORE.putMany("leaves", items); }]).then(function(r){
+      if (r.refused){ msg.className="status bad"; msg.textContent="Not saved - tap Unlock editing and enter the department passphrase."; return; }
+      if (r.failed){ msg.className="status bad"; msg.textContent="Could not save. Please try again."; return; }
+      renderAll();
+      msg.className = "status";
+      msg.textContent = HOD
+        ? "Entered for " + span + (span===1?" day":" days") + " and approved."
+        : "Sent for approval - " + span + (span===1?" day":" days") + ". It shows in the roster marked awaiting approval.";
+    });
+  };
+}
+
+/* ---------- cover balance ---------- */
+function renderLedger(){
+  var t = document.getElementById("ledger");
+  if (!t) return;
+  var head = document.getElementById("ledgerHead"),
+      wrap = document.getElementById("ledgerWrap"),
+      note = document.getElementById("ledgerNote");
+  var bal = coverBalance();
+  var names = roster().filter(function(n){ return bal[n] && (bal[n].gave || bal[n].got); });
+  var any = names.length;
+  if (head) head.hidden = !any;
+  if (wrap) wrap.hidden = !any;
+  if (note) note.hidden = !any;
+  if (!any){ t.innerHTML = ""; return; }
+
+  t.innerHTML = "";
+  var thead = el("thead"), hr = el("tr");
+  ["Resident","Covered for others","Covered by others","Position"].forEach(function(h,i){
+    var th = el("th", i?null:"plain", h); hr.appendChild(th);
+  });
+  thead.appendChild(hr); t.appendChild(thead);
+  var tb = el("tbody");
+  names.forEach(function(n){
+    var b = bal[n], net = b.gave - b.got;
+    var tr = el("tr"), th = el("th");
+    th.setAttribute("scope","row");
+    th.appendChild(document.createTextNode("Dr " + title(n)));
+    var g = groupLabel(n);
+    if (g) th.appendChild(el("span","yr",g));
+    tr.appendChild(th);
+    tr.appendChild(el("td","num", String(b.gave)));
+    tr.appendChild(el("td","num", String(b.got)));
+    var pos = net > 0 ? "owed " + net : net < 0 ? "owes " + (-net) : "settled";
+    var td = el("td", null, pos);
+    if (net < 0) td.style.color = "var(--warn-ink)";
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+
+  if (note){
+    var open = openCovers(null);
+    note.textContent = open.length
+      ? "Outstanding: " + open.map(function(it){
+          return "Dr " + title(it.owes) + " to Dr " + title(it.owed) + " (" + fmt(msOf(it.date)) + ")";
+        }).join("; ") + "."
+      : "Every cover has been repaid.";
+  }
+}
+
+function renderApprovals(){
+  var sec = document.getElementById("apprSec"),
+      btn = document.getElementById("apprToggle"),
+      box = document.getElementById("apprBox"),
+      list = document.getElementById("apprList"),
+      hbox = document.getElementById("hodBox");
+  if (!sec) return;
+  var groups = groupRequests(pendingRequests());
+  var showHodBox = hodRequested() && !HOD;
+  sec.hidden = !groups.length && !showHodBox && !HOD;
+  if (hbox) hbox.hidden = !(hodRequested() || HOD);
+  /* Arriving at his own address, the Head of the Department should find the
+     box open rather than behind another tap. */
+  if (box && hodRequested() && !HOD && box.hidden){
+    box.hidden = false;
+    if (btn) btn.setAttribute("aria-expanded","true");
+  }
+  if (btn){
+    btn.textContent = groups.length
+      ? groups.length + (groups.length === 1 ? " request awaiting approval" : " requests awaiting approval")
+      : (HOD ? "Nothing awaiting approval" : "");
+  }
+  if (!list) return;
+  list.innerHTML = "";
+  if (!groups.length){
+    list.appendChild(el("p","status", HOD
+      ? "Nothing is waiting. Entries you make yourself take effect at once."
+      : "Nothing is waiting."));
+    return;
+  }
+  groups.forEach(function(g){
+    var row = el("div","apprrow");
+    row.appendChild(el("div","apprwhat", requestTitle(g)));
+    row.appendChild(el("div","apprdet", requestDetail(g)));
+    var btns = el("div","apprbtns");
+    if (g.kind === "leave"){
+      var dl = el("button","ghost","Download application");
+      dl.onclick = function(){
+        downloadLeaveForm(g.v.resident, null,
+          runBetween(g.v.resident, msOf(g.from), msOf(g.to)));
+      };
+      btns.appendChild(dl);
+    }
+    if (HOD){
+      var rem = document.createElement("input");
+      rem.type = "text"; rem.placeholder = "Remark (optional)";
+      rem.style.cssText = "flex:1 1 180px";
+      var yes = el("button","primary","Approve");
+      var no  = el("button","ghost","Not approved");
+      var st  = el("span","status");
+      function decide(status){
+        st.className = "status"; st.textContent = "Saving\u2026";
+        STORE.decide(g.coll, g.ids, {
+          status: status, decidedBy: "HOD", decidedAt: Date.now(),
+          remark: rem.value.trim()
+        }).then(function(){
+          renderAll();
+          setStatus(status === "approved" ? "Approved." : "Marked not approved.");
+        }, function(){
+          st.className = "status bad"; st.textContent = "Could not save.";
+        });
+      }
+      yes.onclick = function(){ decide("approved"); };
+      no.onclick  = function(){ decide("declined"); };
+      btns.appendChild(rem); btns.appendChild(yes); btns.appendChild(no); btns.appendChild(st);
+    }
+    row.appendChild(btns);
+    list.appendChild(row);
+  });
+}
+function wireApprovals(){
+  var btn = document.getElementById("apprToggle"),
+      box = document.getElementById("apprBox"),
+      inp = document.getElementById("hodKey"),
+      save = document.getElementById("hodSave"),
+      forget = document.getElementById("hodForget"),
+      msg = document.getElementById("hodMsg");
+  if (btn && box){
+    btn.onclick = function(){
+      var open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute("aria-expanded", open?"true":"false");
+    };
+  }
+  if (save) save.onclick = function(){
+    var k = inp ? inp.value.trim() : "";
+    if (!k){ msg.className="status bad"; msg.textContent="Type the passphrase."; return; }
+    msg.className="status"; msg.textContent="Checking\u2026";
+    STORE.checkHod(k).then(function(){
+      STORE.setHodKey(k);
+      HOD = true; UNLOCKED = true;
+      if (inp) inp.value = "";
+      applyLock(); renderAll(); idleStatus();
+      if (forget) forget.hidden = false;
+      msg.className="status";
+      msg.textContent="Open. Approvals and Setup are available on this device.";
+    }, function(e){
+      var m = e && String(e.message||e);
+      msg.className="status bad";
+      msg.textContent = (m === "hod" || m === "key")
+        ? "That passphrase is not right."
+        : "Could not check it - no connection just now.";
+    });
+  };
+  if (forget) forget.onclick = function(){
+    STORE.setHodKey("");
+    HOD = false;
+    applyLock(); renderAll(); idleStatus();
+    msg.className="status"; msg.textContent="Closed.";
   };
 }
 
@@ -1238,7 +1690,7 @@ function renderToday(){
     row.appendChild(tv);
     host.appendChild(row);
   });
-  [["Night off", inSlot(eff,"OFF")], ["On leave", inSlot(eff,"LEAVE")]].forEach(function(p){
+  [["Night off", inSlot(eff,"OFF")], ["On leave", inSlot(eff,"LEAVE")], ["Relieved", inSlot(eff,"RELIEVED")]].forEach(function(p){
     if (!p[1].length) return;
     var row = el("div","trow away");
     var tl = el("div","tl"); tl.appendChild(el("b",null,p[0]));
@@ -1345,8 +1797,10 @@ function renderRoster(){
     var tdE = el("td","z-act");
     swapsOn(key).forEach(function(it){ tdE.appendChild(chipFor("swap", it)); });
     movesOn(key).forEach(function(it){ tdE.appendChild(chipFor("move", it)); });
+    coversOn(key).forEach(function(it){ tdE.appendChild(chipFor("newcover", it)); });
     tdE.appendChild(addBtn(key,"swap"));
     tdE.appendChild(addBtn(key,"move"));
+    tdE.appendChild(addBtn(key,"newcover"));
     tr.appendChild(tdE);
 
     tb.appendChild(tr);
@@ -1370,12 +1824,20 @@ function renderRoster(){
 }
 function chipFor(kind, it){
   var ch = el("span","chip " + (kind==="leave"?"lv":"ex"));
+  if (isPending(it.v)) ch.className += " pend";
+  else if (isDeclined(it.v)) ch.className += " decl";
   ch.appendChild(document.createTextNode(kind==="leave"
     ? title(it.v.resident) + (it.v.reason? " · "+it.v.reason : "")
       + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
+    : kind==="newcover"
+      ? title(it.v.relieved) + " relieved · " + title(it.v.by) + " covers"
     : kind==="move"
       ? title(it.v.resident) + " → " + slotMeta(it.v.slot).label
       : title(it.v.a) + " ↔ " + title(it.v.b)));
+  if (isPending(it.v) || isDeclined(it.v)){
+    var tag = el("span","sttag", isPending(it.v) ? "awaiting approval" : "not approved");
+    ch.appendChild(tag);
+  }
   if (kind === "leave"){
     /* Who is covering this one day. A multi-day leave can be covered by a
        different person each day, so it is set per day, not once for the run. */
@@ -1406,7 +1868,8 @@ function chipFor(kind, it){
       ? "Undo move of Dr " + title(it.v.resident)
       : "Undo exchange between Dr " + title(it.v.a) + " and Dr " + title(it.v.b));
   b.onclick = function(){
-    runSeq([function(){ return STORE.drop(kind==="leave"?"leaves":"swaps", it.id); }])
+    var coll = kind==="leave" ? "leaves" : kind==="newcover" ? "covers" : "swaps";
+    runSeq([function(){ return STORE.drop(coll, it.id); }])
       .then(function(r){
         renderAll();
         if (r.refused) setStatus("Not removed — tap Unlock editing and enter the department passphrase.", true);
@@ -1445,7 +1908,7 @@ function coverEditor(key, id){
   var eff = effective(ms);
   everyone(ms).forEach(function(m){
     if (m === n) return;
-    if (eff.duty[m] === "LEAVE") return;
+    if (eff.duty[m] === "LEAVE" || eff.duty[m] === "RELIEVED") return;
     var their = baseDuty(m, ms);
     var isFree = free.indexOf(m) >= 0 || their === "OFF";
     sel.appendChild(opt(m, "Dr " + title(m)
@@ -1500,7 +1963,7 @@ function moveEditor(key){
   who.appendChild(opt("","— choose the person —"));
   everyone(ms).forEach(function(n){
     var d = eff.duty[n];
-    if (!d || d === "LEAVE") return;
+    if (!d || d === "LEAVE" || d === "RELIEVED") return;
     who.appendChild(opt(n, "Dr " + title(n) + "  — on " + slotName(d)));
   });
   var to = document.createElement("select"); to.id="mvTo"; to.style.width="100%";
@@ -1554,8 +2017,98 @@ function moveEditor(key){
     runSeq([function(){
       return STORE.putMany("swaps", [{
         id: safeId("mv", key, who.value.toLowerCase()),
-        body: {date:key, resident:who.value, slot:to.value, by:ME||"", createdAt:Date.now()}
+        body: stampNew({date:key, resident:who.value, slot:to.value, by:ME||"", createdAt:Date.now()})
       }]);
+    }]).then(function(r){ finishSave(r, st); });
+  };
+  actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
+  box.appendChild(actions);
+  return box;
+}
+/* A cover in its own right: somebody is relieved of a duty for one day and
+   somebody else does it. Nobody is on leave, nothing is charged, and the
+   person relieved owes one back. */
+function newCoverEditor(key){
+  var ms = msOf(key), box = el("div");
+  var head = el("div");
+  head.style.cssText = "font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px";
+  head.textContent = "Cover on " + fmt(ms);
+  box.appendChild(head);
+
+  var eff = effective(ms);
+  var row = el("div","inline");
+  var off = document.createElement("select"); off.id="cvOff"; off.style.width="100%";
+  var by  = document.createElement("select"); by.id="cvBy";  by.style.width="100%";
+  off.appendChild(opt("","— who is relieved —"));
+  everyone(ms).forEach(function(n){
+    var d = eff.duty[n];
+    if (!d || d === "LEAVE" || d === "RELIEVED" || d === "OFF") return;
+    off.appendChild(opt(n, "Dr " + title(n) + "  — on " + slotName(d)));
+  });
+  row.appendChild(field("Relieved of duty", off));
+  row.appendChild(field("Covered by", by));
+  box.appendChild(row);
+
+  var settleWrap = el("div"); settleWrap.style.marginTop = "6px";
+  box.appendChild(settleWrap);
+  var note = el("div","status"); note.style.marginTop="8px"; box.appendChild(note);
+  var settleSel = null;
+
+  function fillBy(){
+    by.innerHTML = "";
+    by.appendChild(opt("","— who covers it —"));
+    if (!off.value){ settleWrap.innerHTML=""; settleSel=null; note.textContent=""; return; }
+    everyone(ms).forEach(function(m){
+      if (m === off.value) return;
+      var d = eff.duty[m];
+      if (!d || d === "LEAVE" || d === "RELIEVED") return;
+      by.appendChild(opt(m, "Dr " + title(m) + (d==="OFF" ? "  — off that day" : "  — on " + slotName(d) + ", would do both")));
+    });
+    showSettle();
+  }
+  function showSettle(){
+    settleWrap.innerHTML = ""; settleSel = null;
+    if (!off.value || !by.value) { say(); return; }
+    /* if the person covering is owed one by this person, offer to close it */
+    var owed = openCovers(by.value).filter(function(it){ return rid(it.owed) === rid(off.value); });
+    if (!owed.length){ say(); return; }
+    settleSel = document.createElement("select"); settleSel.id="cvSettle"; settleSel.style.width="100%";
+    settleSel.appendChild(opt("","Not repaying anything - a fresh cover"));
+    owed.forEach(function(it){
+      settleSel.appendChild(opt(it.id, "Repays the cover of " + fmt(msOf(it.date))));
+    });
+    settleSel.value = owed[0].id;
+    settleWrap.appendChild(field("Is this a repayment?", settleSel));
+    settleSel.onchange = say;
+    say();
+  }
+  function say(){
+    if (!off.value || !by.value){ note.textContent = ""; return; }
+    var had = eff.duty[off.value], theirs = eff.duty[by.value];
+    var t = "Dr " + title(by.value) + (theirs === "OFF"
+      ? " is off that day and would take " + slotName(had) + "."
+      : " would do " + slotName(theirs) + " and " + slotName(had) + " - the name appears in both.");
+    t += "  Dr " + title(off.value) + " is relieved, nothing is charged as leave";
+    t += (settleSel && settleSel.value) ? ", and the earlier cover is settled." : ", and owes one cover.";
+    note.textContent = t;
+  }
+  off.onchange = fillBy; by.onchange = showSettle;
+  fillBy();
+
+  var actions = el("div"); actions.style.marginTop="12px";
+  var save = el("button","primary","Save cover"), cancel = el("button","ghost","Cancel");
+  var st = el("span","status"); st.style.marginLeft="10px";
+  cancel.onclick = closeEditor;
+  save.onclick = function(){
+    st.className = "status";
+    if (!off.value){ st.textContent = "Choose who is relieved."; return; }
+    if (!by.value){ st.textContent = "Choose who covers it."; return; }
+    st.textContent = "Saving\u2026";
+    var body = stampNew({date:key, relieved:off.value, by:by.value,
+                         requestedBy:ME||"", createdAt:Date.now()});
+    if (settleSel && settleSel.value) body.settles = settleSel.value;
+    runSeq([function(){
+      return STORE.putMany("covers", [{id:safeId("cv", key, off.value.toLowerCase()), body:body}]);
     }]).then(function(r){ finishSave(r, st); });
   };
   actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
@@ -1566,6 +2119,7 @@ function editorFor(key){
   return editing.kind === "leave" ? leaveEditor(key)
        : editing.kind === "cover" ? coverEditor(key, editing.id)
        : editing.kind === "move"  ? moveEditor(key)
+       : editing.kind === "newcover" ? newCoverEditor(key)
        : swapEditor(key);
 }
 function addBtn(key, kind){
@@ -1579,7 +2133,8 @@ function addBtn(key, kind){
     return h;
   }
   var b = el("button","addbtn",
-    kind==="leave" ? "+ leave" : kind==="move" ? "+ move" : "+ exchange");
+    kind==="leave" ? "+ leave" : kind==="move" ? "+ move"
+    : kind==="newcover" ? "+ cover" : "+ exchange");
   b.onclick = function(){ editing = {date:key, kind:kind}; renderViews(); };
   return b;
 }
@@ -1620,8 +2175,10 @@ function renderCards(){
     ea.appendChild(el("span","k","Change"));
     swapsOn(key).forEach(function(it){ ea.appendChild(chipFor("swap",it)); });
     movesOn(key).forEach(function(it){ ea.appendChild(chipFor("move",it)); });
+    coversOn(key).forEach(function(it){ ea.appendChild(chipFor("newcover",it)); });
     ea.appendChild(addBtn(key,"swap"));
     ea.appendChild(addBtn(key,"move"));
+    ea.appendChild(addBtn(key,"newcover"));
     card.appendChild(ea);
 
     if (editing && editing.date===key && isCardView()){
@@ -1689,10 +2246,11 @@ function leaveEditor(key){
     var n = who.value;
     if (!n){ st.textContent="Choose who is on leave."; return; }
     if (to.value < key){ st.textContent="The last day is before the first day."; return; }
-    var cov = coverSel, items = [];
+    var cov = coverSel, items = [], reqId = "r" + Date.now();
     for (var t=ms; t<=msOf(to.value); t+=DAY){
       var k2 = iso(t);
-      var body = {resident:n, date:k2, reason:why.value.trim(), by:ME||"", createdAt:Date.now()};
+      var body = stampNew({resident:n, date:k2, reason:why.value.trim(),
+                           by:ME||"", createdAt:Date.now(), reqId:reqId});
       if (cov && cov.value && k2===key) body.coveredBy = cov.value;
       items.push({id:safeId(n.toLowerCase(),k2), body:body});
     }
@@ -1740,7 +2298,7 @@ function swapEditor(key){
     st.textContent="Saving…";
     runSeq([function(){
       return STORE.put("swaps", safeId(key,a.value.toLowerCase(),b.value.toLowerCase()),
-                       {date:key,a:a.value,b:b.value,by:ME||"",createdAt:Date.now()});
+                       stampNew({date:key,a:a.value,b:b.value,by:ME||"",createdAt:Date.now()}));
     }]).then(function(r){ finishSave(r, st); });
   };
   actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
@@ -1750,7 +2308,7 @@ function swapEditor(key){
 
 /* ---------- my duties ---------- */
 function zoneOf(k){
-  if (k==="LEAVE") return "leave";
+  if (k==="LEAVE"||k==="RELIEVED") return "leave";
   var z = slotMeta(k).zone;
   return z==="off" ? "off" : z;
 }
@@ -1774,10 +2332,10 @@ function renderMine(){
     if (s == null) return;
     var mex = eff.extra[ME] || [];
     if (s==="N") nights++; else if (s==="OFF") offs++; else if (s==="LEAVE") leave++;
-    if (s!=="OFF" && s!=="LEAVE") duty++;
+    if (s!=="OFF" && s!=="LEAVE" && s!=="RELIEVED") duty++;
     if (mex.length) duty++;
-    var row = el("div","mrow" + (s==="OFF"?" rest":s==="LEAVE"?" lv":""));
-    if (!nextDone && key>=tk && s!=="OFF" && s!=="LEAVE"){ row.className += " next"; nextDone = true; }
+    var row = el("div","mrow" + (s==="OFF"?" rest":(s==="LEAVE"||s==="RELIEVED")?" lv":""));
+    if (!nextDone && key>=tk && s!=="OFF" && s!=="LEAVE" && s!=="RELIEVED"){ row.className += " next"; nextDone = true; }
     var dt = el("div","mdate", d.getUTCDate()+" "+MON[d.getUTCMonth()]);
     dt.appendChild(el("span",null,DOW[d.getUTCDay()]));
     row.appendChild(dt);
@@ -1791,7 +2349,7 @@ function renderMine(){
     if (eff.changed[ME] && !mex.length) du.appendChild(el("small",null,"changed by an exchange"));
     row.appendChild(du);
     var withs = [];
-    if (s!=="OFF" && s!=="LEAVE") inSlot(eff,s).forEach(function(n){ if(n!==ME) withs.push(title(n)); });
+    if (s!=="OFF" && s!=="LEAVE" && s!=="RELIEVED") inSlot(eff,s).forEach(function(n){ if(n!==ME) withs.push(title(n)); });
     mex.forEach(function(k){ inSlot(eff,k).forEach(function(n){ if(n!==ME && withs.indexOf(title(n))<0) withs.push(title(n)); }); });
     row.appendChild(el("div","mwith", withs.length? "with "+withs.join(", ") : ""));
     list.appendChild(row);
@@ -1845,13 +2403,13 @@ function renderInd(){
       var eff = effective(ms), s = eff.duty[n];
       if (s == null){ tr.appendChild(el("td","z-off","—")); return; }
       var ex = eff.extra[n] || [];
-      var z = s==="LEAVE" ? "off" : zoneClass(slotMeta(s).zone);
-      var txt = s==="LEAVE" ? "LV" : slotMeta(s).short;
+      var z = (s==="LEAVE"||s==="RELIEVED") ? "off" : zoneClass(slotMeta(s).zone);
+      var txt = s==="LEAVE" ? "LV" : s==="RELIEVED" ? "REL" : slotMeta(s).short;
       if (ex.length){ txt += "+" + ex.map(function(k){return slotMeta(k).short;}).join("+"); z = zoneClass(slotMeta(ex[0]).zone); }
       var td = el("td","z-"+z, txt);
       if (iso(ms) === todayKey()) td.className += " todaycol";
       if (ex.length) td.title = "Dr "+title(n)+" also covering "+ex.map(slotName).join(", ");
-      if (s==="LEAVE") td.style.color = "var(--warn-ink)";
+      if (s==="LEAVE"||s==="RELIEVED") td.style.color = "var(--warn-ink)";
       tr.appendChild(td);
     });
     tb.appendChild(tr);
@@ -1885,18 +2443,78 @@ function leaveTaken(n, ly){
   var taken = (op && op.days>0) ? Math.round(op.days) : 0;
   var fromMs = (op && op.asOf) ? msOf(op.asOf) : null;
   if (fromMs!==null && fromMs<ly.start) fromMs = ly.start;
-  var ahead=0, covered=0, today = msOf(todayKey());
+  var ahead=0, covered=0, pending=0, today = msOf(todayKey());
   for (var k in DATA.leaves){
     var lv = DATA.leaves[k];
     if (lv.resident!==n) continue;
     var ms = msOf(lv.date);
     if (ms<ly.start || ms>ly.end) continue;
     if (fromMs!==null && ms<fromMs) continue;
-    if (lv.coveredBy){ covered++; continue; }
+    if (isDeclined(lv)) continue;              /* refused: never charged */
+    if (lv.coveredBy){ covered++; continue; }  /* older entries, before covers stood alone */
+    if (isPending(lv)){ pending++; continue; } /* charged only once approved */
     if (ms>today){ ahead++; continue; }
     taken++;
   }
-  return {taken:taken, ahead:ahead, covered:covered};
+  return {taken:taken, ahead:ahead, covered:covered, pending:pending};
+}
+
+/* ---------- cover ledger ----------
+   A cover is a duty done for somebody else. The person relieved owes one back.
+   Entries made before covers stood on their own are counted from the date the
+   department started keeping this, so nothing earlier is reopened. */
+var LEDGER_FROM = "2026-10-05";
+function coverItems(){
+  var out = [], k;
+  for (k in DATA.covers){
+    var c = DATA.covers[k];
+    if (!c || !isLive(c)) continue;
+    out.push({id:k, date:c.date, owes:c.relieved, owed:c.by,
+              settles:c.settles||null, pending:isPending(c)});
+  }
+  /* the older shape: a leave day with somebody named to cover it */
+  for (k in DATA.leaves){
+    var lv = DATA.leaves[k];
+    if (!lv || !lv.coveredBy || !isLive(lv)) continue;
+    if (lv.date < LEDGER_FROM) continue;
+    out.push({id:k, date:lv.date, owes:lv.resident, owed:lv.coveredBy,
+              settles:null, pending:isPending(lv)});
+  }
+  out.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  return out;
+}
+function coverBalance(){
+  /* one line per person: covers given, covers received, and the net */
+  var bal = {}, items = coverItems(), i;
+  function row(n){
+    if (!bal[n]) bal[n] = {gave:0, got:0, outstanding:[]};
+    return bal[n];
+  }
+  var settled = {};
+  for (i=0;i<items.length;i++) if (items[i].settles) settled[items[i].settles] = 1;
+  for (i=0;i<items.length;i++){
+    var it = items[i];
+    if (it.pending) continue;
+    row(it.owed).gave++;
+    row(it.owes).got++;
+    if (!settled[it.id] && !it.settles){
+      row(it.owes).outstanding.push(it);
+      row(it.owed).outstanding.push(it);
+    }
+  }
+  return bal;
+}
+function openCovers(n){
+  /* covers this person still owes, newest last */
+  var items = coverItems(), settled = {}, out = [], i;
+  for (i=0;i<items.length;i++) if (items[i].settles) settled[items[i].settles] = 1;
+  for (i=0;i<items.length;i++){
+    var it = items[i];
+    if (it.pending || it.settles || settled[it.id]) continue;
+    if (n && rid(it.owes) !== rid(n)) continue;
+    out.push(it);
+  }
+  return out;
 }
 function renderCounter(){
   var t = document.getElementById("counter");
@@ -2155,7 +2773,7 @@ function renderSetup(){
       var k = ln.slice(0, eq).trim().toUpperCase();
       var bits = ln.slice(eq+1).split("|");
       if (!/^[A-Z0-9]{1,6}$/.test(k)){ problems.push("Duty slots: '" + k + "' must be 1-6 letters or digits"); return; }
-      if (k === "LEAVE"){ problems.push("Duty slots: LEAVE is used by the roster itself"); return; }
+      if (k === "LEAVE" || k === "RELIEVED"){ problems.push("Duty slots: " + k + " is used by the roster itself"); return; }
       if (seenK[k]){ problems.push("Duty slots: " + k + " listed twice"); return; }
       seenK[k] = 1;
       slotsOut.push({
@@ -2351,6 +2969,21 @@ function leaveRunFor(n, ms){
      so the application must not claim it either. */
   return {from:first, to:last, span:span, covered:covered, days:span-covered};
 }
+/* The permanent attribution names the approving authority; the PDF uses the
+   same words so the paper and the page cannot disagree. */
+var APPROVER = "Prof. (Dr.) Amlendu Yadav, Head of the Department";
+function decisionFor(n, run){
+  /* the decision recorded against this stretch, if there is one */
+  var out = null;
+  for (var t = run.from; t <= run.to; t += DAY){
+    var r = DATA.leaves[safeId(rid(n), iso(t))];
+    if (!r) continue;
+    var st = statusOf(r);
+    if (st === "pending") return null;             /* not settled yet */
+    if (!out) out = {status:st, at:r.decidedAt||null, remark:r.remark||"", directed:!!r.directed};
+  }
+  return out;
+}
 function pdfLeaveApplication(n, run){
   var doc = new PDFDoc(595, 842);           /* A4 portrait */
   var L = 42, R = 595-42, y = 0;
@@ -2390,6 +3023,21 @@ function pdfLeaveApplication(n, run){
       run.span + " calendar days, of which " + run.covered
       + " " + (run.covered===1?"is":"are") + " covered by a colleague and counted as an exchange, not leave.",
       GREY);
+  }
+  /* The position Sir needs in front of him when he decides. */
+  var ly0 = leaveYear(n), tk0 = leaveTaken(n, ly0);
+  if (ly0){
+    var used = tk0.taken + tk0.ahead;
+    y += (run.covered ? 26 : 22);
+    doc.text(L, y, 9, false, "Leave taken this year:", GREY);
+    doc.text(L + 108, y, 9.5, true, String(used), INK);
+    doc.text(L + 150, y, 9, false, "Balance remaining:", GREY);
+    doc.text(L + 248, y, 9.5, true, String(CFG.annualLeave - used), INK);
+    doc.text(L + 290, y, 7.5, false, "of " + CFG.annualLeave + " days, from "
+             + fmt(ly0.start) + " to " + fmt(ly0.end), GREY);
+    if (tk0.pending)
+      doc.text(L, y+12, 7.5, false, tk0.pending + " further day"
+               + (tk0.pending===1?"" : "s") + " awaiting approval.", GREY);
   }
 
   y += 28;
@@ -2453,6 +3101,18 @@ function pdfLeaveApplication(n, run){
   y += 56;
   doc.line(L, y, R, y, LINE);
   y += 18; doc.text(L, y, 9, true, "FOR OFFICE USE", GREY);
+  /* If it was decided online, say so plainly - the signature below still
+     stands, this only records what was already settled on the page. */
+  var dec = decisionFor(n, run);
+  if (dec){
+    y += 18;
+    doc.text(L, y, 9.5, true,
+      (dec.status === "approved" ? "Approved" : "Not approved")
+      + " by " + APPROVER + (dec.at ? " on " + fmt(dec.at) : ""), INK);
+    if (dec.remark){ y += 13; doc.text(L, y, 9, false, "Remark: " + dec.remark, GREY); }
+    if (dec.directed){ y += 13; doc.text(L, y, 8, false, "Directed by the Head of the Department.", GREY); }
+    y += 4;
+  }
   y += 22;
   [["Approved", L],["Not approved", L+110]].forEach(function(pair){
     doc.line(pair[1], y-7, pair[1]+9, y-7, INK, 0.7);
@@ -2594,6 +3254,133 @@ function renderPdfMonths(){
   }
 }
 
+/* ---------- monthly register ----------
+   One sheet listing every decision in a period, for the Head of the Department
+   to sign once instead of signing fifteen separate forms. */
+function registerRows(fromMs, toMs){
+  var rows = [], k;
+  function within(d){ var m = msOf(d); return m >= fromMs && m <= toMs; }
+  /* leave is grouped into stretches so the sheet reads like the applications */
+  var byReq = {};
+  for (k in DATA.leaves){
+    var lv = DATA.leaves[k];
+    if (!lv || !within(lv.date) || isPending(lv)) continue;
+    var key = lv.reqId || ("lv:" + rid(lv.resident) + ":" + lv.date.slice(0,7));
+    if (!byReq[key]) byReq[key] = {kind:"Leave", who:lv.resident, days:[], v:lv};
+    byReq[key].days.push(lv.date);
+  }
+  for (k in byReq){
+    var g = byReq[k];
+    g.days.sort();
+    rows.push({date:g.days[0], kind:"Leave", who:"Dr " + title(g.who),
+      what:(g.days.length === 1 ? fmt(msOf(g.days[0]))
+            : fmt(msOf(g.days[0])) + " to " + fmt(msOf(g.days[g.days.length-1])))
+           + (g.v.reason ? " (" + g.v.reason + ")" : ""),
+      n:g.days.length, status:statusOf(g.v), directed:!!g.v.directed});
+  }
+  for (k in DATA.swaps){
+    var sw = DATA.swaps[k];
+    if (!sw || !within(sw.date) || isPending(sw)) continue;
+    if (isMove(sw))
+      rows.push({date:sw.date, kind:"Move", who:"Dr " + title(sw.resident),
+        what:fmt(msOf(sw.date)) + " to " + slotMeta(sw.slot).label, n:"",
+        status:statusOf(sw), directed:!!sw.directed});
+    else
+      rows.push({date:sw.date, kind:"Exchange", who:"Dr " + title(sw.a) + " / Dr " + title(sw.b),
+        what:fmt(msOf(sw.date)), n:"", status:statusOf(sw), directed:!!sw.directed});
+  }
+  for (k in DATA.covers){
+    var cv = DATA.covers[k];
+    if (!cv || !within(cv.date) || isPending(cv)) continue;
+    rows.push({date:cv.date, kind:"Cover", who:"Dr " + title(cv.by),
+      what:fmt(msOf(cv.date)) + " for Dr " + title(cv.relieved)
+           + (cv.settles ? " (repayment)" : ""), n:"",
+      status:statusOf(cv), directed:!!cv.directed});
+  }
+  rows.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  return rows;
+}
+function pdfRegister(fromMs, toMs){
+  var doc = new PDFDoc(595, 842);
+  var L = 42, R = 595-42;
+  doc.text(L, 52, 10, true, pdfAscii(CFG.dept.hospital.toUpperCase()), INK);
+  doc.text(L, 66, 9, false, CFG.dept.department, GREY);
+  doc.line(L, 74, R, 74, INK, 1.2);
+  var t = "REGISTER OF LEAVE AND DUTY CHANGES";
+  doc.text((595 - textWidth(t, 12, true))/2, 100, 12, true, t, INK);
+  var sub = fmt(fromMs) + " to " + fmt(toMs);
+  doc.text((595 - textWidth(sub, 9, false))/2, 115, 9, false, sub, GREY);
+
+  var y = 142;
+  var cols = [L, L+62, L+170, R-92, R-44];
+  doc.text(cols[0], y, 8, true, "DATE", GREY);
+  doc.text(cols[1], y, 8, true, "TYPE", GREY);
+  doc.text(cols[2], y, 8, true, "RESIDENT AND PARTICULARS", GREY);
+  doc.text(cols[3], y, 8, true, "DAYS", GREY);
+  doc.text(cols[4], y, 8, true, "DECISION", GREY);
+  y += 5; doc.line(L, y, R, y, INK, 0.9); y += 14;
+
+  var rows = registerRows(fromMs, toMs), i = 0, page = 1;
+  for (i = 0; i < rows.length; i++){
+    if (y > 730){
+      doc.text(L, 812, 7.5, false, "Page " + page, GREY);
+      doc.newPage(); page++; y = 60;
+      doc.text(cols[0], y, 8, true, "DATE", GREY);
+      doc.text(cols[2], y, 8, true, "RESIDENT AND PARTICULARS", GREY);
+      y += 5; doc.line(L, y, R, y, INK, 0.9); y += 14;
+    }
+    var r = rows[i];
+    if (i % 2) doc.rect(L, y-9, R-L, 13, SHADE);
+    var d = new Date(msOf(r.date));
+    doc.text(cols[0], y, 8.5, false, d.getUTCDate() + " " + MON[d.getUTCMonth()], INK);
+    doc.text(cols[1], y, 8.5, false, r.kind, INK);
+    doc.text(cols[2], y, 8.5, false, r.who + " - " + r.what, INK);
+    doc.text(cols[3], y, 8.5, false, String(r.n || "-"), INK);
+    doc.text(cols[4], y, 8.5, false,
+      (r.status === "approved" ? (r.directed ? "Directed" : "Approved") : "Not approved"),
+      r.status === "approved" ? INK : GREY);
+    y += 15;
+  }
+  doc.line(L, y-9, R, y-9, LINE);
+  y += 20;
+  doc.text(L, y, 9, false, rows.length + " entr" + (rows.length===1?"y":"ies")
+           + " in this period.", GREY);
+  var pend = groupRequests(pendingRequests()).length;
+  if (pend){ y += 13; doc.text(L, y, 9, false, pend + " further request"
+             + (pend===1?"":"s") + " still awaiting approval, not listed above.", GREY); }
+
+  y += 54;
+  doc.line(R-220, y, R, y, GREY, 0.7);
+  doc.text(R-220, y+12, 8.5, false, "Signature and seal", GREY);
+  doc.text(R-220, y+25, 8.5, false, "Prof. (Dr.) Amlendu Yadav", GREY);
+  doc.text(R-220, y+38, 8.5, false, "Head of the Department", GREY);
+  doc.text(L, 812, 7.5, false, "Page " + page, GREY);
+  return doc.build();
+}
+function downloadRegister(){
+  var st = document.getElementById("dlStat");
+  function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
+  var fa = document.getElementById("pdfFrom"), fb = document.getElementById("pdfTo");
+  var from = fa && fa.value ? msOf(fa.value) : null;
+  var to   = fb && fb.value ? msOf(fb.value) : null;
+  if (from === null || to === null){ say("Pick both dates first.", true); return; }
+  if (to < from){ say("The last date is before the first date.", true); return; }
+  var bytes, name;
+  try {
+    bytes = pdfRegister(from, to);
+    name = "Register-leave-and-duty-changes-" + iso(from) + "-to-" + iso(to) + ".pdf";
+  } catch(e){ say("Could not build the register.", true); return; }
+  try {
+    var blob = new Blob([bytes], {type:"application/pdf"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
+    say("Downloaded " + name);
+  } catch(e){ say("Your browser blocked the download.", true); }
+}
+
 function downloadPdf(){
   var st = document.getElementById("dlStat");
   function say(m, bad){ if(st){ st.textContent=m; st.className="status"+(bad?" bad":""); } }
@@ -2664,8 +3451,8 @@ function renderSpec(){
   if (f) f.textContent = "";
 }
 function renderAll(){
-  renderHeader(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
-  renderInd(); renderCounter(); renderSpec();
+  renderHeader(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
+  renderInd(); renderCounter(); renderLedger(); renderSpec();
 }
 
 /* ---------- copy helper ---------- */
@@ -2729,7 +3516,10 @@ function wire(){
   document.getElementById("v30").onclick = function(){ setView("30"); };
   document.getElementById("cAll").onclick = function(){ counterAll = !counterAll; renderCounter(); };
   document.getElementById("pAll").onclick = downloadPdf;
+  var pr = document.getElementById("pReg");
+  if (pr) pr.onclick = downloadRegister;
   wireLeaveForm();
+  wireApply();
   document.getElementById("pPrint").onclick = function(){ window.print(); };
   var stg = document.getElementById("setupToggle"), sbx = document.getElementById("setupBox");
   stg.onclick = function(){
@@ -2759,11 +3549,21 @@ function wire(){
 STORE.load().then(function(){
   wire();
   wireLock();
+  wireApprovals();
   applyLock();
   renderAll();
   idleStatus();
   /* A device that was unlocked before stays unlocked, but only if the
      passphrase still works — it may have been changed since. */
+  if (HODKEY){
+    STORE.checkHod().then(function(){
+      HOD = true; UNLOCKED = true; applyLock(); renderAll();
+    }, function(e){
+      if (e && String(e.message||e) === "hod"){
+        STORE.setHodKey(""); HOD = false; applyLock(); renderAll();
+      }
+    });
+  }
   if (PASSKEY){
     STORE.check().then(function(){
       UNLOCKED = true; applyLock(); renderAll();
