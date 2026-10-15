@@ -1064,7 +1064,7 @@ var STORE = (function(){
       return call({action:"put", key:wkey(), coll:coll, id:id, body:JSON.stringify(body)})
         .then(function(){ self.online = true; return {}; },
         function(e){
-          if (isKeyError(e)){                /* refused: undo, say so */
+          if (isKeyError(e) || String(e&&e.message)==="decided"){   /* refused: undo, say so */
             if (had) DATA[coll][id] = prev; else delete DATA[coll][id];
             writeLocal();
             throw e;
@@ -1082,7 +1082,7 @@ var STORE = (function(){
       return call({action:"drop", key:wkey(), coll:coll, id:id})
         .then(function(){ self.online = true; return {}; },
         function(e){
-          if (isKeyError(e)){
+          if (isKeyError(e) || String(e&&e.message)==="decided"){
             if (had) DATA[coll][id] = prev;
             writeLocal();
             throw e;
@@ -1113,7 +1113,7 @@ var STORE = (function(){
       });
       return p.then(function(){ self.online = true; return {}; },
         function(e){
-          if (isKeyError(e)){
+          if (isKeyError(e) || String(e&&e.message)==="decided"){
             for (var j=0;j<undo.length;j++){
               if (undo[j].had) DATA[coll][undo[j].id] = undo[j].prev;
               else delete DATA[coll][undo[j].id];
@@ -1168,6 +1168,12 @@ var STORE = (function(){
 
 /* One place that decides what the user is told after a save. */
 function finishSave(r, st){
+  if (r.decided){
+    st.textContent = "Already approved by the Head of the Department - only he can change it.";
+    st.className = "status bad";
+    renderAll();
+    return;
+  }
   if (r.refused){
     st.textContent = "Not saved — tap Unlock editing and enter the department passphrase.";
     st.className = "status bad";
@@ -1185,13 +1191,15 @@ function finishSave(r, st){
 /* Run saves one after another, never stopping at the first failure, so a
    ten-day leave does not end up half recorded. */
 function runSeq(fns){
-  var out = {offline:0, refused:0, failed:0};
+  var out = {offline:0, refused:0, failed:0, decided:0};
   var p = Promise.resolve();
   fns.forEach(function(fn){
     p = p.then(function(){
       return fn().then(function(r){ if (r && r.offline) out.offline++; },
                        function(e){
-                         if (e && String(e.message||e)==="key") out.refused++;
+                         var m = e && String(e.message||e);
+                         if (m==="key" || m==="hod") out.refused++;
+                         else if (m==="decided") out.decided = (out.decided||0) + 1;
                          else out.failed++;
                        });
     });
@@ -1838,7 +1846,22 @@ function chipFor(kind, it){
     var tag = el("span","sttag", isPending(it.v) ? "awaiting approval" : "not approved");
     ch.appendChild(tag);
   }
+  /* A decided entry belongs to the Head of the Department. Residents may
+     withdraw their own request while it is still waiting, and nothing after. */
+  var mine = isPending(it.v) || HOD;
   if (kind === "leave"){
+    /* anyone may take a copy of the application, decided or not */
+    var fb = el("button",null,"form");
+    fb.className = "formbtn appbtn";
+    fb.title = "Leave application form for Dr " + title(it.v.resident);
+    fb.setAttribute("aria-label", "Leave application form for Dr " + title(it.v.resident));
+    fb.onclick = function(ev){
+      ev.stopPropagation();
+      downloadLeaveForm(it.v.resident, msOf(it.v.date));
+    };
+    ch.appendChild(fb);
+  }
+  if (kind === "leave" && mine){
     /* Who is covering this one day. A multi-day leave can be covered by a
        different person each day, so it is set per day, not once for the run. */
     var cb = el("button",null, it.v.coveredBy ? "cover: Dr " + title(it.v.coveredBy) : "+ cover");
@@ -1850,16 +1873,11 @@ function chipFor(kind, it){
       renderViews();
     };
     ch.appendChild(cb);
-    /* the department's leave form, already filled in from this entry */
-    var fb = el("button",null,"form");
-    fb.className = "formbtn appbtn";
-    fb.title = "Leave application form for Dr " + title(it.v.resident);
-    fb.setAttribute("aria-label", "Leave application form for Dr " + title(it.v.resident));
-    fb.onclick = function(ev){
-      ev.stopPropagation();
-      downloadLeaveForm(it.v.resident, msOf(it.v.date));
-    };
-    ch.appendChild(fb);
+  }
+  if (!mine){
+    /* say why there is nothing to tap, rather than leaving a bare chip */
+    ch.title = "Approved by the Head of the Department - only he can change it.";
+    return ch;
   }
   var b = el("button",null,"×");
   b.setAttribute("aria-label", kind==="leave"
@@ -1872,7 +1890,8 @@ function chipFor(kind, it){
     runSeq([function(){ return STORE.drop(coll, it.id); }])
       .then(function(r){
         renderAll();
-        if (r.refused) setStatus("Not removed — tap Unlock editing and enter the department passphrase.", true);
+        if (r.decided) setStatus("Already approved by the Head of the Department — only he can remove it.", true);
+        else if (r.refused) setStatus("Not removed — tap Unlock editing and enter the department passphrase.", true);
         else if (r.offline) setStatus("Removed on this phone. It will reach the department when the connection is back.", true);
       });
   };
