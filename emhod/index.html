@@ -541,11 +541,10 @@ thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-t
   .wrap{padding-block:14px 90px;gap:20px}
   .eyebrow{font-size:12px}
   .credit{margin:6px 0 0}
-  .credit p{display:inline;margin:0;font-size:12px;font-weight:500}
-  .credit .creditname{font-size:12px;font-weight:600}
-  .credit .creditlead:after{content:" "}
-  .credit .creditname:after{content:", "}
-  .credit .creditby{display:block;margin-top:2px}
+  .credit p{margin:0}
+  .credit .creditlead,.credit .creditrole{font-size:12px}
+  .credit .creditname{font-size:17px;font-weight:700;line-height:1.25}
+  .credit .creditby{margin-top:6px;font-size:12px}
 }
 .switchline{margin:0;text-align:center;font-size:14px}
 h3.sethead{font-size:18px;margin:18px 0 4px}
@@ -563,6 +562,11 @@ ol.steps{margin:10px 0;padding-left:22px;display:flex;flex-direction:column;gap:
 ol.steps li{display:flex;gap:6px;align-items:center}
 ol.steps select{flex:1 1 auto}
 ol.steps .rm{min-height:40px;padding:6px 12px}
+.thanks{margin-top:8px;padding-top:16px;border-top:1px solid var(--rule);text-align:center;color:var(--muted)}
+.thanks p{margin:0}
+.thankshead{font-size:13px;font-weight:600;color:var(--ink)}
+.thanksnames span{white-space:nowrap}
+.thanksnames{font-size:13px;line-height:1.6;margin-top:4px !important;text-wrap:balance}
 </style>
 </head>
 <body>
@@ -775,7 +779,6 @@ ol.steps .rm{min-height:40px;padding:6px 12px}
   <button class="ghost" id="pPrint">Print this page</button>
   <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
   <button class="ghost" id="setupToggle" aria-expanded="false" aria-controls="setupBox">Setup</button>
-  <span class="adminnote">For whoever keeps the roster. Everyone else can ignore this.</span>
   <section id="setupSec">
     <div class="card" id="setupBox" hidden>
       <h2 style="margin-top:0">Setup</h2>
@@ -796,6 +799,11 @@ ol.steps .rm{min-height:40px;padding:6px 12px}
     <p class="status" id="lockMsg"></p>
   </div>
 </div>
+<!-- PERMANENT, like the credit at the top: written into the page itself. -->
+<footer class="thanks">
+  <p class="thankshead">Special thanks to our faculty for their guidance and support</p>
+  <p class="thanksnames"><span>Dr Seema Wasnik</span> · <span>Dr Himanshu Sikri</span> · <span>Dr Praveen Singh</span> · <span>Dr Sameeksha Jain</span> · <span>Dr Sameer Nain</span> · <span>Dr Manidip Singh</span> · <span>Dr Ajay Chauhan</span> · <span>Dr Sachin Mittal</span></p>
+</footer>
 </div>
 
 <!-- On a phone: a bar at the bottom to jump between the parts of the page -->
