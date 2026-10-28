@@ -5469,15 +5469,18 @@ function downloadLeaveForm(n, ms, givenRun){
 /* Which stretch to print. Sir is sent the month that is starting, which until
    the 16th is not the month today falls in - so the boxes are filled with that
    and can then be changed to any dates at all. */
+/* The PDF is a calendar month, 1st to the last day, for both rosters: this
+   month, or next month once this one has a week or less to run. */
+function calMonth(ms){
+  var d = new Date(ms), y = d.getUTCFullYear(), m = d.getUTCMonth();
+  return {from:Date.UTC(y, m, 1), to:Date.UTC(y, m + 1, 0)};
+}
 function defaultPdfRange(){
-  var today = msOf(todayKey());
-  var thisBlock = blockStartFor(today);
-  var curDays = blockDays(thisBlock);
-  var endsIn = Math.round((curDays[curDays.length-1] - today) / DAY);
-  var start = (endsIn <= 7) ? curDays[curDays.length-1] + DAY : thisBlock;
-  if (start < epochMs()) start = epochMs();
-  var days = blockDays(start);
-  return {from:start, to:days[days.length-1]};
+  var today = msOf(todayKey()), cur = calMonth(today);
+  var r = (Math.round((cur.to - today) / DAY) <= 7) ? calMonth(cur.to + DAY) : cur;
+  if (r.to < epochMs()) r = calMonth(epochMs());
+  if (r.from < epochMs()) r.from = epochMs();
+  return r;
 }
 function setPdfRange(from, to){
   var a = document.getElementById("pdfFrom"), b = document.getElementById("pdfTo");
@@ -6018,7 +6021,7 @@ function renderHeader(){
       });
       c.appendChild(tabs);
     }
-    else if (seesOther() && ENDPOINT){
+    else if (false && seesOther() && ENDPOINT){   /* PGs: the "JRs on duty today" button is enough */
       var a2 = document.createElement("a");
       a2.className = "rosterswitch";
       /* stay in the same folder; only which roster changes */
@@ -6247,8 +6250,8 @@ function wire(){
     ab.setAttribute("aria-expanded", open ? "true" : "false");
     var fa = document.getElementById("attFrom"), fb = document.getElementById("attTo");
     if (open && fa && !fa.value){
-      var days = blockDays(blockStartFor(msOf(todayKey()) < epochMs() ? epochMs() : msOf(todayKey())));
-      fa.value = iso(Math.max(days[0], epochMs())); fb.value = iso(days[days.length - 1]);
+      var cm = calMonth(msOf(todayKey()) < epochMs() ? epochMs() : msOf(todayKey()));
+      fa.value = iso(Math.max(cm.from, epochMs())); fb.value = iso(cm.to);
     }
   };
   wireLeaveForm();
