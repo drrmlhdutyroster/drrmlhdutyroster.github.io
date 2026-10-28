@@ -379,8 +379,8 @@ body.booting .wrap::after{content:"Loading the roster\2026";display:block;paddin
   text-transform:none;padding:0 5px;border-radius:3px;margin-left:5px;vertical-align:1px}
 .crossmark{background:var(--panel2);color:var(--ink);border:1px solid var(--rule)}
 .restmark{background:var(--warn-bg);color:var(--warn-ink)}
-.otherroster{margin-top:12px;padding-top:8px;border-top:1px dashed var(--rule)}
-.otherroster h3{margin:0 0 6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--muted)}
+.otherroster{margin-top:12px;padding:10px 14px 12px;border-top:1px dashed var(--rule)}
+.otherroster h3{margin:0 0 8px;font-size:13px;line-height:1.35;text-transform:none;letter-spacing:0;color:var(--muted)}
 .rosterswitch{display:inline-block;margin-left:10px;font-size:13px}
 .rtabs{display:flex;gap:4px;margin:10px 0 2px;padding:3px;border:1px solid var(--rule);border-radius:10px;background:var(--panel);max-width:360px}
 .rtab{flex:1;text-align:center;padding:9px 10px;border-radius:7px;font-weight:600;font-size:15px;text-decoration:none;color:var(--muted)}
@@ -530,7 +530,7 @@ button,select,input,textarea{border-radius:10px}
 label{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
 thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-transform:none;letter-spacing:0}
 .hrule{height:1px;background:var(--rule)}
-.card,.lockbox,.scroller,.spec,#todayCard,.otherroster{border-radius:12px}
+.card,.lockbox,.scroller,.spec,#todayCard{border-radius:12px}
 .tag,.nowtag{border-radius:6px}
 .drow .val,.trow .tv{min-width:0}
 .drow .val .nm,.trow .tv .nm{white-space:normal;max-width:100%}
@@ -6060,7 +6060,9 @@ function renderSpec(){
     var counts = {};
     g.blocks.forEach(function(k){ counts[k] = (counts[k]||0)+1; });
     var parts = [];
-    CFG.slots.forEach(function(s){ if (counts[s.k]) parts.push(counts[s.k] + " " + s.label); });
+    /* days on each shift in one turn of the cycle, as the roster shows them */
+    var bd = g.blockDays || 1;
+    CFG.slots.forEach(function(s){ if (counts[s.k]) parts.push((counts[s.k] * bd) + " " + s.label); });
     p.appendChild(document.createTextNode(parts.join(" · ")));
     p.appendChild(el("br"));
     if (isTeamGroup(g)){
@@ -6078,7 +6080,7 @@ function renderSpec(){
       d.appendChild(cards);
     }
     var small = el("span", null, (isTeamGroup(g)
-        ? peopleOf(g, ms).length + " people in " + teamsOn(g, ms).length + " groups · "
+        ? peopleOf(g, Math.max(ms, msOf(CFG.epoch))).length + " people in " + teamsOn(g, Math.max(ms, msOf(CFG.epoch))).length + " groups · "
         : membersOn(g, ms).length + " people · ")
       + (g.blocks.length * g.blockDays) + "-day cycle");
     small.style.color = "var(--muted)";
