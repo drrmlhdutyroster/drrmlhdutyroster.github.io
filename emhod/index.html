@@ -544,6 +544,22 @@ thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-t
   .credit .creditname:after{content:", "}
   .credit .creditby{display:block;margin-top:2px}
 }
+.switchline{margin:0;text-align:center;font-size:14px}
+h3.sethead{font-size:18px;margin:18px 0 4px}
+.plist2{display:flex;flex-direction:column;gap:10px;margin:8px 0}
+.pcard{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px}
+.pcard.gone{opacity:.55}.pcard.gone .pname2{text-decoration:line-through}
+.pctop{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.pctop .pname2{flex:1 1 auto;font-weight:600;min-width:0}
+.pctop .rm{min-height:40px;padding:8px 12px}
+.pctop label.inl{display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px 10px;margin-top:10px}
+.pgrid .pf.wide{grid-column:1/-1}
+.pgrid input,.pgrid select{width:100%}
+ol.steps{margin:10px 0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+ol.steps li{display:flex;gap:6px;align-items:center}
+ol.steps select{flex:1 1 auto}
+ol.steps .rm{min-height:40px;padding:6px 12px}
 </style>
 </head>
 <body>
@@ -678,7 +694,8 @@ thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-t
     <h2 style="margin:0;border:0;padding:0">Leave record</h2>
     <span class="grow"></span>
     <button class="primary noprint" id="applyBtn" aria-expanded="false" aria-controls="applyBox">Apply for leave</button>
-    <button class="ghost noprint" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox">Leave application</button>
+    <!-- one button only: Apply for leave. The printable form is on each leave entry. -->
+    <button class="ghost noprint" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox" hidden>Leave application</button>
     <button class="ghost noprint" id="attBtn" aria-expanded="false" aria-controls="attBox">Attendance</button>
     <button class="ghost noprint" id="cAll" aria-pressed="false">Show everyone</button>
   </div>
@@ -749,6 +766,7 @@ thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-t
 
 <p class="note footnote" id="footNote"></p>
 <p class="maintline" id="maintBy"></p>
+<p class="switchline noprint" id="switchLine" hidden><a href="../?switch">Not you? Use another passphrase</a></p>
 
 <div class="adminbar noprint">
   <button class="ghost" id="pPrint">Print this page</button>
@@ -4350,16 +4368,320 @@ function renderJrSetup(host){
     });
   };
 }
+/* ---------- PG setup, the simple way ----------
+   Three plain lists - the PGs, the duty shifts, and what each group does in
+   turn - instead of typed code lines. Everything the old setup could do is
+   still under "Advanced setup" below it. */
+var PG_ADV_OPEN = false;
 function renderSetup(){
   var host = document.getElementById("setupForm");
   if (!host) return;
   host.innerHTML = "";
-  if (hasTeams()){
-    var it0 = document.getElementById("setupIntro");
-    if (it0) it0.textContent = "";
-    renderJrSetup(host);
-    return;
+  var it0 = document.getElementById("setupIntro");
+  if (it0) it0.textContent = "";
+  if (hasTeams()){ renderJrSetup(host); return; }
+  renderPgSetup(host);
+  var adv = document.createElement("details"); adv.className = "moreset"; adv.id = "pgAdvanced";
+  var sm = document.createElement("summary"); sm.textContent = "Advanced setup - every setting, as before"; adv.appendChild(sm);
+  var ah = el("div"); ah.id = "pgAdvHost"; adv.appendChild(ah);
+  adv.addEventListener("toggle", function(){ PG_ADV_OPEN = adv.open; if (adv.open && !ah.firstChild) renderPgAdvanced(ah); });
+  host.appendChild(adv);
+  if (PG_ADV_OPEN){ adv.open = true; renderPgAdvanced(ah); }
+  if (HOD) host.appendChild(passPanel());
+}
+function renderPgSetup(host){
+  var today = msOf(todayKey()), start = today < epochMs() ? epochMs() : today;
+  var groups = CFG.groups.filter(function(g){ return !isTeamGroup(g); });
+  var gIds = groups.map(function(g){ return g.id; });
+  var gLabel = {}; groups.forEach(function(g){ gLabel[g.id] = g.label || g.id; });
+  var leaving = CFG.leaving || {};
+
+  /* ---- the PGs ---- */
+  var rows = [];
+  groups.forEach(function(g){ membersOn(g, start).forEach(function(n){
+    var j = recOf("joining", n), o = recOf("opening", n);
+    rows.push({name:n, orig:n, group:g.id, join:(j && j.date) || "", phone:phoneOf(n),
+               before:(o && o.days != null) ? String(o.days) : "", asOf:(o && o.asOf) || "",
+               leave:leaving[n] || "", gone:false, fresh:false});
+  }); });
+
+  host.appendChild(el("h3", "sethead", "PGs"));
+  host.appendChild(el("p","note", "Name, joining date, number and group. \"Leave taken before\" is leave already used in "
+    + "the current leave year before " + fmt(epochMs()) + ", when this roster began; it counts in the " + CFG.annualLeave + " days. "
+    + "A PG who is passing out: put their last day under \"Leaving on\" - they come off the roster from the next day."));
+  var plist = el("div","plist2"); host.appendChild(plist);
+  function inputOf(type, val, ph, onch){
+    var i = document.createElement("input"); i.type = type; i.value = val || ""; if (ph) i.placeholder = ph;
+    i.oninput = i.onchange = function(){ onch(i.value); }; return i;
   }
+  function f(lab, node, wide){ var d = el("div","pf" + (wide ? " wide" : "")); d.appendChild(el("label", null, lab)); d.appendChild(node); return d; }
+  function drawPeople(){
+    plist.innerHTML = "";
+    rows.forEach(function(r){
+      var c = el("div","pcard" + (r.gone ? " gone" : ""));
+      var top = el("div","pctop");
+      var ni = inputOf("text", r.fresh ? r.name : title(r.name), "Name, e.g. Rahul Kumar", function(v){ r.name = v; });
+      ni.className = "pname2";
+      top.appendChild(ni);
+      var rm = el("button","ghost rm", r.gone ? "Keep" : "Remove"); rm.type = "button";
+      rm.onclick = function(){ if (r.fresh) rows.splice(rows.indexOf(r), 1); else r.gone = !r.gone; drawPeople(); };
+      top.appendChild(rm);
+      c.appendChild(top);
+      if (r.gone){ c.appendChild(el("div","status","Comes off the roster from the date at the foot of this page.")); plist.appendChild(c); return; }
+      var gs = document.createElement("select"); gIds.forEach(function(id){ gs.appendChild(opt(id, gLabel[id])); });
+      gs.value = r.group; gs.onchange = function(){ r.group = gs.value; };
+      var bi = inputOf("number", r.before, "0", function(v){ r.before = v; }); bi.min = "0"; bi.max = String(CFG.annualLeave); bi.inputMode = "numeric";
+      var pi = inputOf("tel", r.phone, "10-digit mobile", function(v){ r.phone = v; });
+      var grid = el("div","pgrid");
+      grid.appendChild(f("Group", gs));
+      grid.appendChild(f("Joining date", inputOf("date", r.join, "", function(v){ r.join = v; })));
+      grid.appendChild(f("Phone", pi));
+      grid.appendChild(f("Leave taken before", bi));
+      grid.appendChild(f("Leaving on (last day)", inputOf("date", r.leave, "", function(v){ r.leave = v; })));
+      c.appendChild(grid);
+      plist.appendChild(c);
+    });
+  }
+  drawPeople();
+  var addP = el("button","ghost","+ Add a PG"); addP.type = "button"; addP.style.margin = "4px 0 18px";
+  addP.onclick = function(){
+    var cnt = {}; gIds.forEach(function(id){ cnt[id] = 0; });
+    rows.forEach(function(r){ if (!r.gone && cnt.hasOwnProperty(r.group)) cnt[r.group]++; });
+    var small = gIds.reduce(function(a, b){ return cnt[b] < cnt[a] ? b : a; }, gIds[0]);
+    rows.push({name:"", orig:null, group:small, join:"", phone:"", before:"", asOf:"", leave:"", gone:false, fresh:true});
+    drawPeople();
+    var ins = plist.querySelectorAll("input.pname2"); if (ins.length) ins[ins.length-1].focus();
+  };
+  host.appendChild(addP);
+
+  /* ---- the duty shifts ---- */
+  host.appendChild(el("h3", "sethead", "Duty shifts"));
+  host.appendChild(el("p","note","Name, short code for the PDF, timing, and zone - red, green, off, or type another."));
+  var zl = document.createElement("datalist"); zl.id = "zoneList";
+  ["red","green","off","other"].forEach(function(z){ zl.appendChild(opt(z, z)); });
+  host.appendChild(zl);
+  var srows = CFG.slots.map(function(s){
+    var m = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(s.time || "");
+    return {k:s.k, label:s.label, short:s.short, zone:s.zone, from:m ? pad5(m[1]) : "", to:m ? pad5(m[2]) : "",
+            text:m ? "" : (s.time || ""), fresh:false, gone:false};
+  });
+  function pad5(t){ return t.length === 4 ? "0" + t : t; }
+  var slist = el("div","plist2"); host.appendChild(slist);
+  function usedIn(k){ return CFG.groups.some(function(g){ return (g.blocks||[]).indexOf(k) >= 0; }); }
+  function drawSlots(){
+    slist.innerHTML = "";
+    srows.forEach(function(s){
+      var c = el("div","pcard" + (s.gone ? " gone" : ""));
+      var top = el("div","pctop");
+      var li = inputOf("text", s.label, "e.g. Morning Red", function(v){ s.label = v; }); li.className = "pname2";
+      top.appendChild(li);
+      if (s.fresh || !usedIn(s.k)){
+        var rm = el("button","ghost rm", s.gone ? "Keep" : "Remove"); rm.type = "button";
+        rm.onclick = function(){ if (s.fresh) srows.splice(srows.indexOf(s), 1); else s.gone = !s.gone; drawSlots(); };
+        top.appendChild(rm);
+      }
+      c.appendChild(top);
+      if (s.gone){ slist.appendChild(c); return; }
+      var grid = el("div","pgrid");
+      grid.appendChild(f("Short code", inputOf("text", s.short, "e.g. MR", function(v){ s.short = v; })));
+      var zi = inputOf("text", s.zone, "red / green / off", function(v){ s.zone = v; }); zi.setAttribute("list","zoneList");
+      grid.appendChild(f("Zone", zi));
+      if (s.text && !s.fresh){
+        grid.appendChild(f("Timing", inputOf("text", s.text, "e.g. post-duty rest", function(v){ s.text = v; }), true));
+      } else {
+        grid.appendChild(f("From", inputOf("time", s.from, "", function(v){ s.from = v; })));
+        grid.appendChild(f("To", inputOf("time", s.to, "", function(v){ s.to = v; })));
+      }
+      c.appendChild(grid);
+      slist.appendChild(c);
+    });
+  }
+  drawSlots();
+  var addS = el("button","ghost","+ Add a shift"); addS.type = "button"; addS.style.margin = "4px 0 18px";
+  addS.onclick = function(){ srows.push({k:"", label:"", short:"", zone:"other", from:"", to:"", text:"", fresh:true, gone:false}); drawSlots(); };
+  host.appendChild(addS);
+
+  /* ---- what each group does, in turn ---- */
+  host.appendChild(el("h3", "sethead", "What each group does, in turn"));
+  host.appendChild(el("p","note","The shifts each group works through, in order, and how many days each lasts. "
+    + "Each PG in the group starts at a different point of this turn."));
+  var grows = groups.map(function(g){ return {id:g.id, label:g.label || g.id, days:String(g.blockDays || 1), blocks:(g.blocks||[]).slice()}; });
+  var glist = el("div","plist2"); host.appendChild(glist);
+  function slotChoices(){
+    return srows.filter(function(s){ return !s.gone; }).map(function(s){
+      return {k:s.k || ("NEW:" + srows.indexOf(s)), t:(s.label || s.short || "New shift")};
+    });
+  }
+  function drawGroups(){
+    glist.innerHTML = "";
+    grows.forEach(function(G){
+      var c = el("div","pcard");
+      var top = el("div","pctop");
+      top.appendChild(el("b", null, G.label));
+      var di = inputOf("number", G.days, "", function(v){ G.days = v; }); di.min = "1"; di.max = "7"; di.className = "numin"; di.inputMode = "numeric";
+      var dl = el("label","inl"); dl.appendChild(document.createTextNode("Days each ")); dl.appendChild(di);
+      top.appendChild(dl);
+      c.appendChild(top);
+      var steps = el("ol","steps");
+      G.blocks.forEach(function(k, i){
+        var li = el("li");
+        var s = document.createElement("select");
+        slotChoices().forEach(function(o){ s.appendChild(opt(o.k, o.t)); });
+        s.value = k; s.onchange = function(){ G.blocks[i] = s.value; };
+        var x = el("button","ghost rm","×"); x.type = "button"; x.title = "Take this step out";
+        x.onclick = function(){ G.blocks.splice(i, 1); drawGroups(); };
+        li.appendChild(s); li.appendChild(x); steps.appendChild(li);
+      });
+      c.appendChild(steps);
+      var ad = el("button","ghost","+ Add a step"); ad.type = "button";
+      ad.onclick = function(){ var ch = slotChoices(); if (ch.length){ G.blocks.push(ch[0].k); drawGroups(); } };
+      c.appendChild(ad);
+      glist.appendChild(c);
+    });
+  }
+  drawGroups();
+
+  /* ---- the rest ---- */
+  var w2 = el("div","inline"); w2.style.marginTop = "12px";
+  var lvIn = document.createElement("input"); lvIn.type = "number"; lvIn.min = "0"; lvIn.value = String(CFG.annualLeave); lvIn.inputMode = "numeric";
+  w2.appendChild(field("Leave days per year", lvIn));
+  var fromIn = document.createElement("input"); fromIn.type = "date"; fromIn.id = "pgFrom"; fromIn.value = iso(start);
+  w2.appendChild(field("Changes to the PG list apply from", fromIn));
+  host.appendChild(w2);
+
+  var msg = el("div","status"); msg.id = "pgSetupMsg"; msg.style.margin = "8px 0 12px";
+  host.appendChild(msg);
+  var act = el("div");
+  var save = el("button","primary","Save"), reset = el("button","ghost","Discard changes");
+  save.type = reset.type = "button"; save.id = "pgSave";
+  act.appendChild(save); act.appendChild(reset); host.appendChild(act);
+  reset.onclick = function(){ renderSetup(); };
+
+  save.onclick = function(){
+    msg.className = "status bad";
+    var from = fromIn.value, problems = [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)){ msg.textContent = "Choose the date the changes apply from."; return; }
+    var al = parseInt(lvIn.value, 10);
+    if (isNaN(al) || al < 0 || al > 60) problems.push("leave days per year should be 0 to 60");
+    /* shifts */
+    var next = JSON.parse(JSON.stringify(CFG)), taken = {}, newKey = {};
+    srows.forEach(function(s){ if (!s.fresh && !s.gone) taken[s.k] = 1; });
+    var slots = [];
+    srows.forEach(function(s, i){
+      if (s.gone) return;
+      var lab = String(s.label||"").trim(), sh = String(s.short||"").trim().toUpperCase();
+      if (!lab){ problems.push("a shift has no name"); return; }
+      if (!sh) sh = lab.split(/\s+/).map(function(w){ return w[0]; }).join("").toUpperCase();
+      var k = s.k;
+      if (s.fresh){
+        k = sh.replace(/[^A-Z0-9]/g, "") || "S";
+        var base = k, n2 = 2; while (taken[k]) k = base + (n2++);
+        taken[k] = 1; newKey["NEW:" + i] = k;
+      }
+      var tm = s.text && !s.fresh ? String(s.text).trim() : "";
+      if (!tm){
+        if (!s.from || !s.to){ problems.push(lab + ": put both times"); return; }
+        tm = s.from + "-" + s.to;
+      }
+      var z = String(s.zone||"").trim().toLowerCase() || "other";
+      slots.push({k:k, label:lab, short:sh, zone:z, time:tm});
+    });
+    if (!slots.some(function(s){ return s.k === "OFF"; }) && CFG.slots.some(function(s){ return s.k === "OFF"; }))
+      problems.push("the Off shift cannot be removed");
+    /* the turn of each group */
+    grows.forEach(function(G){
+      var bl = G.blocks.map(function(k){ return newKey[k] || k; });
+      if (!bl.length) problems.push(G.label + " has no steps");
+      if (bl.some(function(k){ return !slots.some(function(s){ return s.k === k; }); })) problems.push(G.label + " uses a shift that is removed");
+      var d = parseInt(G.days, 10);
+      if (isNaN(d) || d < 1 || d > 7) problems.push(G.label + ": days each should be 1 to 7");
+      G.cleanBlocks = bl; G.cleanDays = d;
+    });
+    /* the people */
+    var seen = {}, lv = {};
+    rows.forEach(function(r){
+      if (r.gone) return;
+      var n = String(r.name||"").trim().replace(/^dr\.?\s+/i, "").replace(/\s+/g, " ").toUpperCase();
+      if (!n){ if (r.fresh) problems.push("a new PG has no name"); return; }
+      if (seen[n]) problems.push(title(n) + " is listed twice");
+      seen[n] = 1; r.clean = n;
+      var ph = String(r.phone||"").replace(/[\s\-()]/g, "");
+      if (ph && !/^\+?\d{10,13}$/.test(ph)) problems.push(title(n) + "'s number does not look right");
+      r.cleanPhone = ph;
+      var bf = String(r.before == null ? "" : r.before).trim();
+      if (bf !== "" && (!/^\d+$/.test(bf) || +bf > (isNaN(al) ? CFG.annualLeave : al))) problems.push(title(n) + "'s leave taken before is more than the year's leave");
+      r.cleanBefore = bf === "" ? null : +bf;
+      if (r.leave){
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(r.leave)) problems.push(title(n) + ": check the leaving date");
+        else if (r.join && r.leave < r.join) problems.push(title(n) + " leaves before joining");
+        else lv[n] = r.leave;
+      }
+    });
+    if (problems.length){ msg.textContent = "Not saved: " + problems.join("; ") + "."; return; }
+
+    next.annualLeave = al;
+    next.slots = slots;
+    next.leaving = lv;
+    next.phones = JSON.parse(JSON.stringify(CFG.phones || {}));
+    rows.forEach(function(r){
+      if (r.gone || !r.clean) return;
+      if (r.orig && r.orig !== r.clean) delete next.phones[r.orig];
+      if (r.cleanPhone) next.phones[r.clean] = r.cleanPhone; else delete next.phones[r.clean];
+    });
+    /* who is in each group from the date given, and from each leaving day on:
+       the order is kept, newcomers go to the end */
+    var order = {}; gIds.forEach(function(id){ order[id] = []; });
+    rows.forEach(function(r){ if (!r.gone && r.clean) order[r.group].push(r.clean); });
+    var cuts = [from];
+    Object.keys(lv).forEach(function(n){ var d = iso(msOf(lv[n]) + DAY); if (d > from && cuts.indexOf(d) < 0) cuts.push(d); });
+    cuts.sort();
+    next.groups.forEach(function(G){
+      var gr = null; grows.forEach(function(x){ if (x.id === G.id) gr = x; });
+      if (!gr) return;
+      G.blocks = gr.cleanBlocks; G.blockDays = gr.cleanDays;
+      var revs = (G.revisions || []).filter(function(r){ return r.from < from; });
+      var last = JSON.stringify(membersOn(G, msOf(from) - DAY));
+      cuts.forEach(function(d){
+        var mem = order[G.id].filter(function(n){ return !(lv[n] && lv[n] < d); });
+        if (JSON.stringify(mem) === last) return;
+        revs.push({from:d, members:mem}); last = JSON.stringify(mem);
+      });
+      G.revisions = revs;
+    });
+    /* joining dates and leave taken before: records in the Sheet */
+    var joins = [], opens = [], dropOpen = [];
+    rows.forEach(function(r){
+      if (!r.clean) return;
+      var id = rid(r.clean), oj = recOf("joining", r.clean), oo = recOf("opening", r.clean);
+      if (r.join && (!oj || oj.date !== r.join)) joins.push({id:id, body:{resident:r.clean, date:r.join}});
+      if (r.cleanBefore === null){ if (oo) dropOpen.push(id); return; }
+      if (!oo || oo.days !== r.cleanBefore) opens.push({id:id, body:{resident:r.clean, days:r.cleanBefore, asOf:(oo && oo.asOf) || CFG.epoch}});
+    });
+    var keep = CFG; CFG = next;
+    var jobs = [function(){ return STORE.save(); }];
+    if (joins.length) jobs.push(function(){ return STORE.putMany("joining", joins); });
+    if (opens.length) jobs.push(function(){ return STORE.putMany("opening", opens); });
+    dropOpen.forEach(function(id){ jobs.push(function(){ return STORE.drop("opening", id); }); });
+    msg.className = "status"; msg.textContent = "Saving…";
+    runSeq(jobs).then(function(r){
+      if (r.refused || r.why === "role" || r.why === "hod"){
+        CFG = keep; msg.className = "status bad"; msg.textContent = "Not saved - only the Head of the Department can change the PG setup."; return;
+      }
+      if (r.failed && /^name:/.test(r.why||"")){
+        CFG = keep; msg.className = "status bad";
+        msg.textContent = "Not saved - Dr " + title(r.why.slice(5)) + " is already on the JR roster. Add an initial to tell them apart."; return;
+      }
+      renderAll(); renderSetup();
+      var m2 = document.getElementById("pgSetupMsg");
+      if (m2){
+        m2.className = r.failed ? "status bad" : "status";
+        m2.textContent = r.failed ? "Some of it could not be saved - please try again."
+          : r.offline ? "Saved on this phone; it will reach the Sheet when the connection is back." : "Saved.";
+      }
+    });
+  };
+}
+function renderPgAdvanced(host){
   var intro = document.getElementById("setupIntro");
   if (intro) intro.textContent =
     "Everything the department can change lives here. Add or remove people, change what each group does, "
@@ -4582,7 +4904,6 @@ function renderSetup(){
   host.appendChild(act);
 
   reset.onclick = function(){ PENDING_GROUPS = null; renderSetup(); };
-  if (HOD) host.appendChild(passPanel());
   save.onclick = function(){
     msg.className = "status";
     var next = JSON.parse(JSON.stringify(CFG));
@@ -5789,6 +6110,8 @@ function wireNav(){
   mark();
 }
 function renderAll(){
+  var swl = document.getElementById("switchLine");
+  if (swl) swl.hidden = !(LINK && ENDPOINT && !GATED);
   fillAbsMonths();
   var tip = document.getElementById("rosterTip");
   if (tip) tip.hidden = !can("change");          /* the tip is about exchanges - only for whoever can make them */
