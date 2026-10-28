@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Duty Roster</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
 <style>
 :root{
   --ground:#F7F6F3; --panel:#FFFFFF; --panel2:#F1F0EC; --ink:#15191B; --muted:#6B7779;
@@ -34,14 +33,14 @@
     --today-wash:rgba(89,182,189,.14);
 }
 *{box-sizing:border-box}
-body{background:var(--ground);color:var(--ink);font-family:"Barlow",system-ui,sans-serif;
+body{background:var(--ground);color:var(--ink);font-family:var(--font);
      font-size:15px;line-height:1.5;padding:0 16px;
      -webkit-text-size-adjust:100%;text-size-adjust:100%}
 .wrap{max-width:1320px;margin:0 auto;padding-block:26px 60px;display:flex;flex-direction:column;gap:24px}
 
-.eyebrow{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;
+.eyebrow{font-family:var(--font);text-transform:none;letter-spacing:0;
   font-size:12.5px;font-weight:600;color:var(--accent);margin:0 0 2px}
-h1{font-family:"Barlow Condensed",sans-serif;font-size:clamp(28px,5vw,42px);font-weight:700;
+h1{font-family:var(--font);font-size:clamp(28px,5vw,42px);font-weight:700;
    letter-spacing:-.01em;margin:0;line-height:1.05;text-wrap:balance}
 .sub{color:var(--muted);margin:8px 0 0;max-width:72ch}
 .hrule{height:3px;background:var(--accent);margin-top:14px}
@@ -49,21 +48,21 @@ h1{font-family:"Barlow Condensed",sans-serif;font-size:clamp(28px,5vw,42px);font
 .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:1px;
   background:var(--rule);border:1px solid var(--rule)}
 .spec div{background:var(--panel);padding:12px 15px}
-.spec h3{font-family:"Barlow Condensed",sans-serif;margin:0 0 5px;font-size:12.5px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.spec h3{font-family:var(--font);margin:0 0 5px;font-size:12.5px;
+  letter-spacing:0;text-transform:none;color:var(--muted);font-weight:600}
 .spec p{margin:0;font-size:14px}
-.tag{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11.5px;
-  letter-spacing:.08em;padding:1px 6px;border-radius:2px}
+.tag{font-family:var(--font);font-weight:600;font-size:12px;
+  letter-spacing:0;padding:1px 6px;border-radius:2px}
 .tag.r{background:var(--red-bg);color:var(--red-ink)}
 .tag.g{background:var(--green-bg);color:var(--green-ink)}
 
-section>h2{font-family:"Barlow Condensed",sans-serif;font-size:21px;font-weight:700;
-  letter-spacing:.03em;text-transform:uppercase;margin:0 0 10px;padding-bottom:6px;
+section>h2{font-family:var(--font);font-size:21px;font-weight:700;
+  letter-spacing:0;text-transform:none;margin:0 0 10px;padding-bottom:6px;
   border-bottom:1px solid var(--rule)}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
 .bar .grow{flex:1 1 auto}
-.blocklabel{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:600;letter-spacing:.03em}
-.nowtag{font-family:"Barlow Condensed",sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+.blocklabel{font-family:var(--font);font-size:18px;font-weight:600;letter-spacing:0}
+.nowtag{font-family:var(--font);font-size:12px;letter-spacing:0;text-transform:none;
   font-weight:600;background:var(--accent);color:var(--accent-ink);padding:1px 7px;border-radius:2px;margin-left:8px;vertical-align:2px}
 
 button,select,input{font-family:inherit;font-size:16px;color:var(--ink);background:var(--panel);
@@ -71,14 +70,14 @@ button,select,input{font-family:inherit;font-size:16px;color:var(--ink);backgrou
   -webkit-appearance:none;appearance:none;touch-action:manipulation;max-width:100%}
 select{background-image:none;padding-right:10px}
 input[type=checkbox]{-webkit-appearance:auto;appearance:auto;min-height:0;padding:0}
-button{cursor:pointer;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
-  letter-spacing:.09em;font-weight:600;font-size:14px;padding:11px 16px;min-height:44px}
+button{cursor:pointer;font-family:var(--font);text-transform:none;
+  letter-spacing:0;font-weight:600;font-size:14px;padding:11px 16px;min-height:44px}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 button.ghost{background:transparent}
 button[disabled]{opacity:.45;cursor:not-allowed}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-label{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;
-  font-size:11.5px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
+label{font-family:var(--font);text-transform:none;letter-spacing:.1em;
+  font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
 
 .card{background:var(--panel);border:1px solid var(--rule);padding:14px 16px}
 .inline{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
@@ -87,8 +86,8 @@ label{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-
 .scroller{overflow-x:auto;border:1px solid var(--rule);background:var(--panel)}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{padding:5px 7px;text-align:center;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);vertical-align:top}
-thead th{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.07em;
-  font-size:11.5px;font-weight:600;line-height:1.25;background:var(--accent);color:var(--accent-ink);
+thead th{font-family:var(--font);text-transform:none;letter-spacing:0;
+  font-size:12px;font-weight:600;line-height:1.25;background:var(--accent);color:var(--accent-ink);
   border-color:var(--accent);position:sticky;top:0;z-index:2;vertical-align:middle}
 thead th.plain{background:var(--panel);color:var(--ink);border-color:var(--rule)}
 thead th .hz{display:block;font-size:13px;letter-spacing:.1em}
@@ -101,9 +100,9 @@ td.z-green{background:var(--green-bg)}
 td.z-off{background:var(--off-bg)}
 td.z-other{background:var(--panel2)}
 td.z-act{background:var(--panel)}
-.dnum{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
-.dmon{font-size:10.5px;color:var(--muted);margin-left:3px;text-transform:uppercase;letter-spacing:.06em}
-.dow{color:var(--muted);font-size:10.5px;margin-left:5px;text-transform:uppercase;letter-spacing:.06em}
+.dnum{font-family:var(--font);font-size:17px;font-weight:700}
+.dmon{font-size:12px;color:var(--muted);margin-left:3px;text-transform:none;letter-spacing:0}
+.dow{color:var(--muted);font-size:12px;margin-left:5px;text-transform:none;letter-spacing:0}
 
 .nm{display:inline-block;font-size:12.5px;padding:1px 5px;margin:1px;white-space:nowrap}
 .nm.p2{font-weight:700}
@@ -114,8 +113,8 @@ td.z-act{background:var(--panel)}
 .z-other .nm{color:var(--ink)}
 .drow.other .lbl b{color:var(--ink)}
 .nm.changed{box-shadow:inset 0 -2px 0 var(--accent)}
-.covmark{font-family:"Barlow Condensed",sans-serif;font-size:9.5px;font-weight:700;
-  letter-spacing:.09em;text-transform:uppercase;vertical-align:2px;margin-left:3px;
+.covmark{font-family:var(--font);font-size:12px;font-weight:700;
+  letter-spacing:0;text-transform:none;vertical-align:2px;margin-left:3px;
   padding:0 3px;border-radius:2px;background:var(--warn-bg);color:var(--warn-ink)}
 
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:1px 4px 1px 6px;
@@ -127,8 +126,8 @@ td.z-act{background:var(--panel)}
   border-radius:2px;touch-action:manipulation;min-height:28px;min-width:28px}
 .chip button:hover{opacity:1}
 .addbtn{-webkit-appearance:none;appearance:none;background:none;cursor:pointer;
-  font-family:"Barlow Condensed",sans-serif;font-size:12px;letter-spacing:.09em;
-  text-transform:uppercase;font-weight:600;color:var(--accent);
+  font-family:var(--font);font-size:12px;letter-spacing:0;
+  text-transform:none;font-weight:600;color:var(--accent);
   border:1px dashed var(--rule);padding:5px 10px;border-radius:3px;margin:1px;
   display:inline-block;line-height:1.2;touch-action:manipulation;min-height:30px}
 .addbtn:hover{border-color:var(--accent)}
@@ -139,38 +138,38 @@ tr.editor td{background:var(--panel2);text-align:left;padding:14px 16px}
 .status.bad{color:var(--warn-ink)}
 .warnline{color:var(--warn-ink);font-size:12px;margin-top:4px}
 
-#counter td.num{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
-#ind td{font-size:11px;padding:3px 2px}
-#ind thead th{padding:4px 2px;font-size:10.5px}
-.yr{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:10px;letter-spacing:.08em;
+#counter td.num{font-family:var(--font);font-size:17px;font-weight:700}
+#ind td{font-size:12px;padding:3px 2px}
+#ind thead th{padding:4px 2px;font-size:12px}
+.yr{font-family:var(--font);font-weight:600;font-size:12px;letter-spacing:0;
   color:var(--muted);border:1px solid var(--rule);padding:0 4px;border-radius:2px;margin-left:4px}
 .note{color:var(--muted);font-size:13.5px;max-width:82ch}
 .note strong{color:var(--ink)}
 
 tr.today td{background-image:linear-gradient(var(--today-wash),var(--today-wash))}
 tr.today th[scope=row]{box-shadow:inset 4px 0 0 var(--accent)}
-.todaychip{display:block;font-family:"Barlow Condensed",sans-serif;font-size:9.5px;
-  font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;
+.todaychip{display:block;font-family:var(--font);font-size:12px;
+  font-weight:700;letter-spacing:0;text-transform:none;margin-top:2px;
   background:var(--accent);color:var(--accent-ink);border-radius:2px;padding:0 4px;text-align:center}
-.holi{display:block;font-size:10px;font-weight:600;color:var(--warn-ink);
+.holi{display:block;font-size:12px;font-weight:600;color:var(--warn-ink);
   margin-top:2px;white-space:normal;max-width:130px;line-height:1.2}
 tr.hol th[scope=row]{background:var(--warn-bg)}
 .daycard.today>header{background:var(--accent)}
-.daycard>header .todayflag{margin-left:auto;font-size:10.5px;font-weight:700;
-  letter-spacing:.12em;text-transform:uppercase;background:var(--accent-ink);
+.daycard>header .todayflag{margin-left:auto;font-size:12px;font-weight:700;
+  letter-spacing:0;text-transform:none;background:var(--accent-ink);
   color:var(--accent);padding:1px 6px;border-radius:2px}
-.daycard>header .holflag{display:block;font-size:11px;letter-spacing:.06em;opacity:.95}
+.daycard>header .holflag{display:block;font-size:12px;letter-spacing:0;opacity:.95}
 
 /* ---- on duty today ---- */
-.tdate{font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:600;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tdate{font-family:var(--font);font-size:15px;font-weight:600;
+  letter-spacing:0;text-transform:none;color:var(--muted)}
 .todaycard{border:1px solid var(--rule);background:var(--panel)}
 .trow{display:grid;grid-template-columns:132px 1fr;gap:12px;padding:9px 14px;
   border-top:1px solid var(--rule);align-items:baseline}
 .trow:first-child{border-top:0}
-.trow .tl{font-family:"Barlow Condensed",sans-serif;font-size:11.5px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.35}
-.trow .tl b{display:block;font-size:13.5px;letter-spacing:.07em}
+.trow .tl{font-family:var(--font);font-size:12px;font-weight:600;
+  letter-spacing:.1em;text-transform:none;color:var(--muted);line-height:1.35}
+.trow .tl b{display:block;font-size:13.5px;letter-spacing:0}
 .trow.red .tl b{color:var(--red-ink)}
 .trow.green .tl b{color:var(--green-ink)}
 .trow .tv{display:flex;flex-wrap:wrap;gap:3px;font-size:14.5px}
@@ -180,8 +179,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .wabtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;
   padding:11px 16px;border-radius:3px;text-decoration:none;cursor:pointer;
   background:#1EA952;color:#fff;border:1px solid #1EA952;
-  font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
-  letter-spacing:.09em;font-weight:600;font-size:14px}
+  font-family:var(--font);text-transform:none;
+  letter-spacing:0;font-weight:600;font-size:14px}
 .wabtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #tdText{width:100%;margin-top:10px;font:13px ui-monospace,Menlo,Consolas,monospace;
   background:var(--panel);color:var(--ink);border:1px solid var(--rule);
@@ -199,9 +198,9 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .minehead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .stat{display:inline-flex;align-items:baseline;gap:5px;background:var(--panel);
   border:1px solid var(--rule);padding:5px 10px}
-.stat b{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:700;line-height:1}
-.stat span{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted)}
+.stat b{font-family:var(--font);font-size:18px;font-weight:700;line-height:1}
+.stat span{font-family:var(--font);font-size:12px;letter-spacing:.1em;
+  text-transform:none;color:var(--muted)}
 .minelist{border:1px solid var(--rule);background:var(--panel)}
 .mrow{display:grid;grid-template-columns:74px 1fr auto;gap:10px;padding:7px 12px;
   border-top:1px solid var(--rule);align-items:center}
@@ -209,9 +208,9 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .mrow.rest{background:var(--off-bg)}
 .mrow.lv{background:var(--warn-bg)}
 .mrow.next{box-shadow:inset 3px 0 0 var(--accent)}
-.mdate{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:16px;line-height:1.15}
-.mdate span{display:block;font-size:10.5px;font-weight:500;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.08em}
+.mdate{font-family:var(--font);font-weight:700;font-size:16px;line-height:1.15}
+.mdate span{display:block;font-size:12px;font-weight:500;color:var(--muted);
+  text-transform:none;letter-spacing:0}
 .mduty{font-weight:600;font-size:14px}
 .mduty small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 .mduty.red{color:var(--red-ink)}
@@ -225,23 +224,23 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .daycard{border:1px solid var(--rule);background:var(--panel)}
 .daycard>header{display:flex;align-items:baseline;gap:8px;padding:9px 13px;
   background:var(--accent);color:var(--accent-ink);
-  font-family:"Barlow Condensed",sans-serif;letter-spacing:.05em}
+  font-family:var(--font);letter-spacing:0}
 .daycard>header .dd{font-size:20px;font-weight:700;line-height:1}
-.daycard>header .dw{font-size:12px;text-transform:uppercase;letter-spacing:.12em;opacity:.9}
+.daycard>header .dw{font-size:12px;text-transform:none;letter-spacing:0;opacity:.9}
 .daycard.today>header{box-shadow:inset 0 -3px 0 var(--warn-ink)}
 .drow{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:7px 13px;
   border-top:1px solid var(--rule);align-items:baseline}
 .drow:first-of-type{border-top:0}
-.drow .lbl{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.3}
-.drow .lbl b{display:block;font-size:12.5px;letter-spacing:.08em}
+.drow .lbl{font-family:var(--font);font-size:12px;font-weight:600;
+  letter-spacing:.1em;text-transform:none;color:var(--muted);line-height:1.3}
+.drow .lbl b{display:block;font-size:12.5px;letter-spacing:0}
 .drow.red .lbl b{color:var(--red-ink)}
 .drow.green .lbl b{color:var(--green-ink)}
 .drow .val{display:flex;flex-wrap:wrap;gap:2px}
 .dact{padding:9px 13px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;
   gap:6px;align-items:center}
-.dact .k{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:66px}
+.dact .k{font-family:var(--font);font-size:12px;font-weight:600;
+  letter-spacing:.1em;text-transform:none;color:var(--muted);min-width:66px}
 .dedit{padding:12px 13px;border-top:1px solid var(--rule);background:var(--panel2)}
 @media (max-width:780px){
   #tableWrap{display:none}
@@ -282,24 +281,24 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
    buttons, so nobody reaches it by accident. */
 #ind .todaycol{box-shadow:inset 0 0 0 1px var(--accent)}
 #ind thead th.todaycol{background:var(--accent);color:var(--accent-ink)}
-#ind .mon{display:block;font-size:8px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--muted);line-height:1}
+#ind .mon{display:block;font-size:8px;font-weight:600;letter-spacing:0;
+  text-transform:none;color:var(--muted);line-height:1}
 #ind thead th.todaycol .mon{color:var(--accent-ink)}
 @media print{#ind .todaycol{box-shadow:inset 0 0 0 0.8px #000}}
 
 /* the permanent attribution */
 .credit{margin:14px 0 2px}
-.creditlead,.creditrole{font-family:"Barlow Condensed",sans-serif;font-size:11px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0}
-.creditname{font-family:"Barlow Condensed",sans-serif;font-size:21px;font-weight:700;
+.creditlead,.creditrole{font-family:var(--font);font-size:12px;
+  letter-spacing:0;text-transform:none;color:var(--muted);margin:0}
+.creditname{font-family:var(--font);font-size:21px;font-weight:700;
   letter-spacing:.01em;color:var(--ink);margin:1px 0;line-height:1.15}
 .creditby{font-size:12.5px;color:var(--muted);margin:10px 0 0}
 .maintline{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 @media (max-width:780px){ .creditname{font-size:19px} }
 
-.ledgerhead{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+.ledgerhead{font-family:var(--font);text-transform:none;
   letter-spacing:.1em;font-size:13px;font-weight:600;margin:18px 0 8px;color:var(--muted)}
-#ledger td.num{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
+#ledger td.num{font-family:var(--font);font-size:17px;font-weight:700}
 #counterSec .lockbox{margin:0 0 12px}
 
 .apprline{display:block;width:100%;text-align:left;-webkit-appearance:none;appearance:none;
@@ -315,8 +314,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 
 .chip.pend{background:var(--panel2);color:var(--muted);border:1px dashed var(--rule)}
 .chip.decl{background:var(--panel2);color:var(--muted);text-decoration:line-through}
-.chip .sttag{font-family:"Barlow Condensed",sans-serif;font-size:9.5px;letter-spacing:.09em;
-  text-transform:uppercase;opacity:.85;margin-left:3px}
+.chip .sttag{font-family:var(--font);font-size:12px;letter-spacing:0;
+  text-transform:none;opacity:.85;margin-left:3px}
 
 .unlockhint{-webkit-appearance:none;appearance:none;background:none;border:0;padding:2px 0;
   color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
@@ -331,8 +330,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 body.locked .adminbar #setupToggle{display:none}
 @media print{.adminbar{display:none!important}}
 
-.chip .formbtn{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:600;
-  letter-spacing:.09em;text-transform:uppercase;padding:0 5px;min-width:0;min-height:0;
+.chip .formbtn{font-family:var(--font);font-size:12px;font-weight:600;
+  letter-spacing:0;text-transform:none;padding:0 5px;min-width:0;min-height:0;
   border:1px solid currentColor;border-radius:2px;background:transparent;margin-left:4px}
 @media print{.chip .formbtn{display:none}}
 
@@ -370,26 +369,28 @@ body.unlocked #lockBtn{color:var(--green-ink)}
 
 /* no passphrase for this roster: only the heading and the gate show */
 body.gated .wrap > :not(header):not(#gateSec){display:none !important}
+body.booting .wrap > :not(header){display:none !important}
+body.booting .wrap::after{content:"Loading the roster\2026";display:block;padding:48px 0;text-align:center;color:var(--muted);font-size:15px}
 .gatebox{max-width:520px;margin:18px 0}
 /* a JR team shown as one entry, with how many of it are on duty */
 .team{display:inline-block;font-weight:700;margin:0 6px 2px 0;white-space:nowrap}
 .team small{font-weight:400;color:var(--muted);margin-left:4px}
-.crossmark,.restmark{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;
-  text-transform:uppercase;padding:0 5px;border-radius:3px;margin-left:5px;vertical-align:1px}
+.crossmark,.restmark{display:inline-block;font-size:12px;font-weight:600;letter-spacing:0;
+  text-transform:none;padding:0 5px;border-radius:3px;margin-left:5px;vertical-align:1px}
 .crossmark{background:var(--panel2);color:var(--ink);border:1px solid var(--rule)}
 .restmark{background:var(--warn-bg);color:var(--warn-ink)}
 .otherroster{margin-top:12px;padding-top:8px;border-top:1px dashed var(--rule)}
-.otherroster h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.otherroster h3{margin:0 0 6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--muted)}
 .rosterswitch{display:inline-block;margin-left:10px;font-size:13px}
 .rtabs{display:flex;gap:4px;margin:10px 0 2px;padding:3px;border:1px solid var(--rule);border-radius:10px;background:var(--panel);max-width:360px}
 .rtab{flex:1;text-align:center;padding:9px 10px;border-radius:7px;font-weight:600;font-size:15px;text-decoration:none;color:var(--muted)}
 .rtab.on{background:var(--accent);color:var(--accent-ink)}
 a.rtab:hover{color:var(--ink)}
-.rbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--warn-bg);color:var(--warn-ink);font-size:11px;line-height:18px}
+.rbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--warn-bg);color:var(--warn-ink);font-size:12px;line-height:18px}
 .postnow{margin:0 0 12px}.postnow>button{width:100%;padding:12px;font-size:15px}
 .postnow .edhead{margin-top:12px}
 
-.edhead{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px}
+.edhead{font-family:var(--font);font-weight:600;font-size:13px;margin-bottom:10px}
 .postlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px;margin-top:10px}
 .postrow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .postrow .pname{font-size:13.5px}
@@ -400,11 +401,11 @@ details.grpdet{display:inline-block;vertical-align:top;margin:0 6px 2px 0}
 details.grpdet>summary{list-style:none;cursor:pointer}
 details.grpdet>summary::-webkit-details-marker{display:none}
 details.grpdet>summary .team{margin:0}
-details.grpdet>summary .team::after{content:" \25BE";font-size:10px;color:var(--muted)}
+details.grpdet>summary .team::after{content:" \25BE";font-size:12px;color:var(--muted)}
 details.grpdet[open]>summary .team::after{content:" \25B4"}
 .grplist{margin:6px 0 4px;padding:8px 10px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;
   font-size:12.5px;font-weight:400;line-height:1.45;min-width:200px;max-width:520px;white-space:normal;text-align:left}
-.grplist b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:4px}
+.grplist b{display:block;font-size:12px;text-transform:none;letter-spacing:0;color:var(--muted);margin-top:4px}
 .grplist b:first-child{margin-top:0}
 .areas{margin-top:4px;font-size:12.5px;line-height:1.5;color:var(--ink)}
 .areas span.a{font-weight:600}
@@ -427,7 +428,7 @@ details.grpdet[open]>summary .team::after{content:" \25B4"}
 .chip.abs .sttag{white-space:normal}
 .callbtn{display:inline-block;margin-left:6px;padding:2px 9px;border-radius:12px;background:var(--green-ink);color:#fff;
   font-size:12px;font-weight:600;text-decoration:none;line-height:1.5;vertical-align:1px;white-space:nowrap}
-.callbtn.small{padding:0 6px;font-size:11px;margin-left:4px}
+.callbtn.small{padding:0 6px;font-size:12px;margin-left:4px}
 .people{display:flex;flex-wrap:wrap;gap:4px 12px;margin:2px 0 4px}
 .person{white-space:nowrap}
 @media print{.callbtn{display:none!important}}
@@ -439,7 +440,7 @@ details.grpdet[open]>summary .team::after{content:" \25B4"}
 details.moreset{margin:8px 0 4px}
 details.moreset summary{cursor:pointer;font-size:13px;color:var(--muted)}
 .ptable input.numin{width:70px}
-.vistag{display:inline-block;margin-left:4px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:0 4px;border-radius:3px;background:var(--panel2);color:var(--muted);border:1px solid var(--rule)}
+.vistag{display:inline-block;margin-left:4px;font-size:12px;font-weight:600;letter-spacing:0;padding:0 4px;border-radius:3px;background:var(--panel2);color:var(--muted);border:1px solid var(--rule)}
 .ptable select{min-width:100px}
 /* group lists: a plain list, not a box */
 .grplist{margin:6px 0 4px;padding:0;background:none;border:0;border-radius:0;min-width:0;max-width:none}
@@ -461,7 +462,7 @@ ol.plist .callbtn{padding:3px 11px;font-size:12.5px}
 /* tap a group: its list slides up over the page and scrolls */
 button.grpbtn{all:unset;cursor:pointer;display:inline-block;margin:0 6px 2px 0;border-radius:4px}
 button.grpbtn:focus-visible{outline:2px solid var(--green-ink);outline-offset:2px}
-button.grpbtn .team::after{content:" \25B8";font-size:10px;color:var(--muted)}
+button.grpbtn .team::after{content:" \25B8";font-size:12px;color:var(--muted)}
 body.sheetopen{overflow:hidden}
 .sheetbg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.42);display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--panel);color:var(--ink);width:100%;max-width:560px;max-height:86vh;display:flex;flex-direction:column;
@@ -480,7 +481,7 @@ body.sheetopen{overflow:hidden}
   body{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
   #mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--panel);
     border-top:1px solid var(--rule);padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.08)}
-  #mnav button{all:unset;flex:1 1 0;text-align:center;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--muted);
+  #mnav button{all:unset;flex:1 1 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--muted);
     padding:6px 2px;border-radius:8px;cursor:pointer;line-height:1.2}
   #mnav button .ic{display:block;font-size:18px;line-height:1.1;margin-bottom:2px}
   #mnav button.on{color:var(--green-ink);background:var(--panel2)}
@@ -515,6 +516,34 @@ body.sheetopen{overflow:hidden}
 .cmoline{margin-top:4px;font-size:12.5px}
 .cmoline .a{font-weight:700;color:var(--green-ink)}
 .cmobar input,.cmobar select{flex:1 1 160px}
+
+/* ---------- a quiet, phone-first finish ----------
+   The phone's own typeface (San Francisco on an iPhone, Roboto on Android),
+   nothing fetched from elsewhere, sentence case, rounded controls. */
+:root{--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+body{font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.eyebrow{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600}
+h1{font-size:clamp(26px,7vw,40px);letter-spacing:-.02em;font-weight:700}
+section>h2{text-transform:none;letter-spacing:-.01em;font-size:22px;font-weight:700;border-bottom:0;padding-bottom:0}
+button{text-transform:none;letter-spacing:0;font-size:15px;font-weight:600;border-radius:10px}
+button,select,input,textarea{border-radius:10px}
+label{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
+thead th,.spec h3,.nowtag,.yr,.todaychip,.covmark,.creditlead,.creditrole{text-transform:none;letter-spacing:0}
+.hrule{height:1px;background:var(--rule)}
+.card,.lockbox,.scroller,.spec,#todayCard,.otherroster{border-radius:12px}
+.tag,.nowtag{border-radius:6px}
+.drow .val,.trow .tv{min-width:0}
+.drow .val .nm,.trow .tv .nm{white-space:normal;max-width:100%}
+@media (max-width:780px){
+  .wrap{padding-block:14px 90px;gap:20px}
+  .eyebrow{font-size:12px}
+  .credit{margin:6px 0 0}
+  .credit p{display:inline;margin:0;font-size:12px;font-weight:500}
+  .credit .creditname{font-size:12px;font-weight:600}
+  .credit .creditlead:after{content:" "}
+  .credit .creditname:after{content:", "}
+  .credit .creditby{display:block;margin-top:2px}
+}
 </style>
 </head>
 <body>
@@ -933,6 +962,7 @@ var LINK = (function(){
 var CADRE = (function(){
   try {
     if (/[?&]r=jr\b/i.test(window.location.search || "")) return "jr";
+    if (/[?&]r=pg\b/i.test(window.location.search || "")) return "pg";
     if (LINK) return (LINK.who === "jr" || LINK.who === "cmo") ? "jr" : "pg";
     return "pg";
   } catch(e){ return "pg"; }
@@ -1451,6 +1481,8 @@ function lsName(base){ return CADRE === "pg" ? base : base.replace(/^rml_/, "rml
 try { PASSKEY = localStorage.getItem(lsName("rml_key")) || ""; } catch(e){}
 /* a PG looking at the JR roster uses the PG passphrase already on the phone */
 try { if (!PASSKEY && CADRE === "jr") PASSKEY = localStorage.getItem("rml_key") || ""; } catch(e){}
+/* the JR in-charge is faculty too: his passphrase also opens the PG roster, to look at */
+try { if (!PASSKEY && CADRE === "pg") PASSKEY = localStorage.getItem("rml_maam") || ""; } catch(e){}
 var ROLE = null;           /* who the server says this device is: pg, jr, maam or hod */
 var MAAM = false;          /* the faculty who keeps the JR roster */
 var GATED = false;         /* the server would not show this roster without a passphrase */
@@ -1578,14 +1610,23 @@ var STORE = (function(){
   return {
     shared: false,
     online: false,
+    lastRole: null, lastOther: null,
+    /* what this phone held last time: shown at once, before the Sheet answers */
+    loadLocal: function(){
+      var o = readLocal();
+      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; applyQ(); }
+      return !!(o && o.config);
+    },
     load: function(){
       var self = this;
       var o = readLocal();
       if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; }
       if (!ENDPOINT) return Promise.resolve();
       self.shared = true;
-      return call({action:"load", key:wkey()}).then(function(res){
+      return call({action:"load", key:wkey(), both:"1"}).then(function(res){
         GATED = false;
+        self.lastRole = res.role || null;
+        self.lastOther = res.other || null;
         if (res.config) CFG = res.config;
         ELSEWHERE = res.elsewhere || null;
         if (res.data){
@@ -2344,7 +2385,7 @@ function withRoster(cfg, data, fn){
   CFG = cfg; DATA = data;
   try { return fn(); } finally { CFG = c; DATA = d; }
 }
-function seesOther(){ return HOD || FAC || (CADRE === "pg" && ROLE === "pg"); }
+function seesOther(){ return HOD || FAC || MAAM || (CADRE === "pg" && ROLE === "pg"); }
 var OTHER_OPEN = false;     /* a PG opens the JR panel with a button */
 function loadOther(){
   if (!seesOther()) return;
@@ -2363,7 +2404,7 @@ function loadOther(){
 }
 function renderOtherToday(host, ms){
   if (!seesOther() || !OTHER || !OTHER.config.groups || !OTHER.config.groups.length) return;
-  var pgView = !HOD && !FAC;
+  var pgView = CADRE === "pg" && ROLE === "pg" && !HOD && !FAC;
   if (pgView){
     var bt = el("button", OTHER_OPEN ? "primary" : "ghost", OTHER_OPEN ? "Hide JRs on duty" : "JRs on duty today");
     bt.className += " noprint"; bt.style.marginTop = "10px"; bt.id = "jrDutyBtn";
@@ -5639,7 +5680,7 @@ function renderHeader(){
   if (c){
     c.textContent = "";
     /* the HOD moves between the two rosters from here */
-    if ((HOD || FAC) && (ENDPOINT || (SEED && SEED.preview))){
+    if ((HOD || FAC || MAAM) && (ENDPOINT || (SEED && SEED.preview))){
       /* the HOD and faculty: both rosters as two tabs, one tap apart */
       var tabs = el("div","rtabs noprint"), waiting0 = ELSEWHERE && ELSEWHERE.pending;
       tabs.setAttribute("role","tablist");
@@ -5649,7 +5690,7 @@ function renderHeader(){
         x.setAttribute("aria-selected", on ? "true" : "false");
         x.textContent = t[1];
         if (!on){
-          x.href = LINK ? (t[0] === "jr" ? "?r=jr" : "?") : ("?hod" + (t[0] === "jr" ? "&r=jr" : ""));
+          x.href = LINK ? (t[0] === "jr" ? "?r=jr" : "?r=pg") : ("?hod" + (t[0] === "jr" ? "&r=jr" : ""));
           if (waiting0){ var bd = el("small","rbadge", String(waiting0)); bd.title = waiting0 + " awaiting approval"; x.appendChild(bd); }
         }
         tabs.appendChild(x);
@@ -5935,7 +5976,9 @@ function setRole(r){
   ROLE = r || ROLE;
   MAAM = (ROLE === "maam" && CADRE === "jr");
   CMO  = (ROLE === "cmo"  && CADRE === "jr");
-  FAC  = (ROLE === "faculty");
+  /* on the PG roster the JR in-charge is simply faculty: look only */
+  FAC  = (ROLE === "faculty") || (ROLE === "maam" && CADRE === "pg");
+  if (MAAM && PASSKEY){ try { localStorage.setItem("rml_maam", PASSKEY); } catch(e){} }
   if (CMO){ try { CMONAME = localStorage.getItem(lsName("rml_cmo_name")) || ""; } catch(e){} }
 }
 function afterOpen(){
@@ -5966,7 +6009,10 @@ function wireGate(){
         inp.value = ""; say("");
         UNLOCKED = (r !== "faculty"); setRole(r);
         afterOpen();
-        if (r === "hod" || r === "faculty" || r === "pg") loadOther();
+        try { localStorage.setItem(lsName("rml_role"), r); } catch(e){}
+        if (r === "hod" || r === "faculty" || r === "pg" || r === "maam"){
+          if (STORE.lastOther){ useOther(STORE.lastOther); renderAll(); } else loadOther();
+        }
       });
     }, function(e){
       say(e && String(e.message||e) === "key" ? "That passphrase is not right."
@@ -5975,30 +6021,17 @@ function wireGate(){
   };
 }
 
-STORE.load().then(function(){
-  wire();
-  wireLock();
-  wireApprovals();
-  wireGate();
-  applyGate();
-  applyLock();
-  if (!ENDPOINT && SEED && SEED.preview) loadOther();
-  renderAll();
-  idleStatus();
-  if (GATED) return;                  /* nothing more until a passphrase is given */
+/* ---------- starting up ----------
+   The page shows at once: from this phone's own copy if it has one, and with
+   no passphrase at all, straight to the passphrase box - neither has to wait
+   for the Sheet. The Sheet's answer, when it comes, replaces the copy; one
+   trip brings the roster, whose passphrase this is, and the other roster for
+   anyone who may look at both. */
+function fallbackStart(){
+  /* an older server, or no connection: ask the questions one at a time */
   if (FACKEY && !HODKEY && !PASSKEY){ setRole("faculty"); applyLock(); renderAll(); loadOther(); }
-  if (PASSKEY && ENDPOINT) STORE.role().then(function(r){ if (r){ setRole(r); applyLock(); renderAll(); if (r === "pg") loadOther(); } }, function(){});
-  /* A device that was unlocked before stays unlocked, but only if the
-     passphrase still works — it may have been changed since. */
-  if (HODKEY){
-    STORE.checkHod().then(function(){
-      HODAUTH = true; UNLOCKED = true; syncHod(); setRole("hod"); applyLock(); renderAll(); loadOther();
-    }, function(e){
-      if (e && String(e.message||e) === "hod"){
-        STORE.setHodKey(""); HODAUTH = false; syncHod(); applyLock(); renderAll();
-      }
-    });
-  }
+  if (PASSKEY && ENDPOINT) STORE.role().then(function(r){ if (r){ setRole(r); applyLock(); renderAll(); if (r === "pg" || r === "maam") loadOther(); } }, function(){});
+  if (HODKEY) checkHodLater();
   if (PASSKEY){
     STORE.check().then(function(){
       UNLOCKED = true; applyLock(); renderAll();
@@ -6013,7 +6046,58 @@ STORE.load().then(function(){
       else { UNLOCKED = true; applyLock(); renderAll(); }
     });
   }
-});
+}
+function checkHodLater(){
+  STORE.checkHod().then(function(){
+    HODAUTH = true; UNLOCKED = true; syncHod(); setRole("hod"); applyLock(); renderAll(); loadOther();
+  }, function(e){
+    if (e && String(e.message||e) === "hod"){
+      STORE.setHodKey(""); HODAUTH = false; syncHod(); applyLock(); renderAll();
+    }
+  });
+}
+function useRole(r){
+  if (r === "hod"){ HODAUTH = true; UNLOCKED = true; syncHod(); }
+  else UNLOCKED = (r !== "faculty");
+  setRole(r);
+}
+function useOther(o){
+  if (!o || !o.config || !seesOther()) return;
+  var all = {}; COLLS.forEach(function(c){ all[c] = (o.data && o.data[c]) || {}; });
+  OTHER = {config:o.config, data:all};
+}
+(function boot(){
+  var haveKey = !!(PASSKEY || HODKEY || FACKEY);
+  var hadCopy = STORE.loadLocal();
+  if (ENDPOINT && hadCopy && haveKey){
+    var lr = null;
+    try { lr = localStorage.getItem(lsName("rml_role")); } catch(e){}
+    if (lr && (lr !== "hod" || HODKEY)) useRole(lr);
+  }
+  if (ENDPOINT && !hadCopy) document.body.className += " booting";
+  wire();
+  wireLock();
+  wireApprovals();
+  wireGate();
+  applyGate();
+  applyLock();
+  if (!ENDPOINT && SEED && SEED.preview) loadOther();
+  renderAll();
+  idleStatus();
+  if (!ENDPOINT || GATED) return;
+  STORE.load().then(function(){
+    document.body.className = document.body.className.replace(/\bbooting\b/g, "").trim();
+    applyGate();
+    if (GATED){ applyLock(); renderAll(); idleStatus(); return; }
+    var r = STORE.lastRole;
+    if (!r){ applyLock(); renderAll(); idleStatus(); fallbackStart(); return; }
+    useRole(r);
+    try { localStorage.setItem(lsName("rml_role"), r); } catch(e){}
+    if (STORE.lastOther) useOther(STORE.lastOther);   /* never kept on the phone */
+    if (HODKEY && r !== "hod") checkHodLater();
+    applyLock(); renderAll(); idleStatus();
+  });
+})();
 
 </script>
 </body>
