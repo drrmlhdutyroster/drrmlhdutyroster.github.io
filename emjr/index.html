@@ -381,6 +381,13 @@ body.gated .wrap > :not(header):not(#gateSec){display:none !important}
 .otherroster{margin-top:12px;padding-top:8px;border-top:1px dashed var(--rule)}
 .otherroster h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .rosterswitch{display:inline-block;margin-left:10px;font-size:13px}
+.rtabs{display:flex;gap:4px;margin:10px 0 2px;padding:3px;border:1px solid var(--rule);border-radius:10px;background:var(--panel);max-width:360px}
+.rtab{flex:1;text-align:center;padding:9px 10px;border-radius:7px;font-weight:600;font-size:15px;text-decoration:none;color:var(--muted)}
+.rtab.on{background:var(--accent);color:var(--accent-ink)}
+a.rtab:hover{color:var(--ink)}
+.rbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--warn-bg);color:var(--warn-ink);font-size:11px;line-height:18px}
+.postnow{margin:0 0 12px}.postnow>button{width:100%;padding:12px;font-size:15px}
+.postnow .edhead{margin-top:12px}
 
 .edhead{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;margin-bottom:10px}
 .postlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px;margin-top:10px}
@@ -2314,7 +2321,8 @@ function blockStartFor(ms){
   return Date.UTC(y,m,sd);
 }
 function blockDays(s){
-  var d=new Date(s), end=Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+1, monthStartDay()-1), out=[];
+  /* from s to the end of the roster month s falls in */
+  var d=new Date(blockStartFor(s)), end=Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+1, monthStartDay()-1), out=[];
   for (var t=s;t<=end;t+=DAY) out.push(t);
   return out;
 }
@@ -2375,6 +2383,8 @@ function renderOtherToday(host, ms){
       row.appendChild(tl);
       var tv = el("div","tv");
       if (hasTeams()) fillSlot(tv, eff, s.k, ms, true); else tv.textContent = slotText(eff, s.k, ms) || "-";
+      var ocl = cmoLine(iso(ms), s.k);
+      if (ocl) tv.appendChild(ocl);
       row.appendChild(tv);
       box.appendChild(row);
     });
@@ -2386,10 +2396,27 @@ function renderOtherToday(host, ms){
 
 /* ---------- today ---------- */
 function todayMs(){ var ms = msOf(todayKey()); return ms < epochMs() ? null : ms; }
+/* The CMO's main job, at the top of Today: post the JRs of the shift running
+   now (or, before the roster starts, of its first morning). */
+var TODAY_POST = false;
+function todayPostBox(host){
+  if (!hasTeams() || !can("post")) return;
+  var sd = shiftAndDate(), key = sd.key, slot = sd.slot;
+  if (msOf(key) < epochMs()){ key = iso(epochMs()); slot = "M"; }
+  var wrap = el("div","postnow noprint");
+  var b = el("button", TODAY_POST ? "ghost" : "primary",
+    TODAY_POST ? "Close postings" : "Post JRs to areas - " + slotMeta(slot).label + ", " + fmt(msOf(key)));
+  b.type = "button"; b.id = "postNowBtn";
+  b.onclick = function(){ TODAY_POST = !TODAY_POST; renderToday(); };
+  wrap.appendChild(b);
+  if (TODAY_POST) wrap.appendChild(postingEditor(key, slot, function(){ TODAY_POST = false; }));
+  host.appendChild(wrap);
+}
 function renderToday(){
   var host = document.getElementById("todayCard"), lbl = document.getElementById("tdDate");
   if (!host) return;
   host.innerHTML = "";
+  todayPostBox(host);
   var ms = todayMs();
   if (ms === null){
     if (lbl) lbl.textContent = "";
@@ -2438,7 +2465,7 @@ function renderToday(){
       c.appendChild(callBtn(n, true));
       tv.appendChild(c);
     });
-    if (!hasTeams()) tv.appendChild(ecsrrBox(ms, s.k));
+    if (!hasTeams()) tv.appendChild(jrSideBox(ms, s.k));
     row.appendChild(tv);
     host.appendChild(row);
   });
@@ -2571,7 +2598,7 @@ function nameChip(n, ms, eff, slotK, tinted){
 function fillSlot(node, eff, slotK, ms, tinted){
   if (!hasTeams()){
     inSlot(eff, slotK).forEach(function(n){ node.appendChild(nameChip(n, ms, eff, slotK, tinted)); });
-    if (slotK !== "OFF") node.appendChild(ecsrrBox(ms, slotK));
+    if (slotK !== "OFF") node.appendChild(jrSideBox(ms, slotK));
     return inSlot(eff, slotK).length;
   }
   var se = slotEntries(eff, slotK, ms);
@@ -2670,6 +2697,43 @@ function ecsrrFor(ms, pgSlotK){
     });
   });
   return out;
+}
+/* The CMOs who marked themselves on duty on the JR shift(s) overlapping a PG
+   shift, with a Call button each - shown on the PG roster. */
+function jrCmosFor(ms, pgSlotK){
+  if (CADRE !== "pg" || !OTHER || !OTHER.config.groups) return [];
+  var mine = slotHours(pgSlotK), out = [];
+  if (!mine) return out;
+  withRoster(OTHER.config, OTHER.data, function(){
+    if (ms < msOf(CFG.epoch)) return;
+    var key = iso(ms);
+    CFG.slots.forEach(function(s){
+      if (s.k === "OFF" || overlapH(slotHours(s.k), mine) < 2) return;
+      cmosOn(key, s.k).forEach(function(it){
+        if (!out.some(function(o){ return o.name === it.v.name; })) out.push(it.v);
+      });
+    });
+  });
+  return out;
+}
+function jrSideBox(ms, slotK){
+  var f = document.createDocumentFragment(), cm = jrCmosFor(ms, slotK);
+  if (cm.length){
+    var d = el("div","cmoline");
+    d.appendChild(el("span","a","CMO: "));
+    cm.forEach(function(v, i){
+      if (i) d.appendChild(document.createTextNode(", "));
+      d.appendChild(document.createTextNode("Dr " + title(v.name)));
+      if (v.phone){
+        var a = document.createElement("a"); a.className = "callbtn small noprint"; a.href = telHref(v.phone);
+        a.textContent = "\u260E"; a.title = "Call Dr " + title(v.name); a.onclick = function(ev){ ev.stopPropagation(); };
+        d.appendChild(a);
+      }
+    });
+    f.appendChild(d);
+  }
+  f.appendChild(ecsrrBox(ms, slotK));
+  return f;
 }
 function ecsrrBox(ms, slotK){
   var list = ecsrrFor(ms, slotK);
@@ -3222,7 +3286,7 @@ function shiftNow(){
   var h = new Date().getHours();
   return h >= 20 || h < 8 ? "N" : h >= 14 ? "E" : "M";
 }
-function postingEditor(key){
+function postingEditor(key, wantSlot, onClose){
   var ms = msOf(key), box = el("div"), eff = effective(ms);
   var head = el("div"); head.className = "edhead";
   head.textContent = "Postings on " + fmt(ms);
@@ -3231,7 +3295,8 @@ function postingEditor(key){
   var slots = CFG.slots.filter(function(s){ return s.k !== "OFF" && inSlot(eff, s.k).length; });
   var shiftSel = document.createElement("select"); shiftSel.id = "poShift";
   slots.forEach(function(s){ shiftSel.appendChild(opt(s.k, s.label + " " + s.time + " - " + slotText(eff, s.k, ms))); });
-  if (key === todayKey() && slots.some(function(s){ return s.k === shiftNow(); })) shiftSel.value = shiftNow();
+  if (wantSlot && slots.some(function(s){ return s.k === wantSlot; })) shiftSel.value = wantSlot;
+  else if (key === todayKey() && slots.some(function(s){ return s.k === shiftNow(); })) shiftSel.value = shiftNow();
   var top = el("div","inline"); top.appendChild(field("Shift", shiftSel)); box.appendChild(top);
   var list = el("div","postlist"); box.appendChild(list);
   var sels = {};
@@ -3258,7 +3323,7 @@ function postingEditor(key){
     Object.keys(sels).forEach(function(n){ var a = lastPosting(n, key); if (a){ sels[n].value = a; n0++; } });
     st.className = "status"; st.textContent = n0 ? n0 + " filled from their last posting - check and save." : "No earlier postings to copy.";
   };
-  cancel.onclick = closeEditor;
+  cancel.onclick = onClose ? function(){ onClose(); renderToday(); } : closeEditor;
   save.onclick = function(){
     if (CMO && !CMONAME){ st.className = "status bad"; st.textContent = "Type your name under 'CMO on duty' first."; return; }
     /* Only what this CMO changed is sent: several CMOs on one shift each post
@@ -3280,7 +3345,11 @@ function postingEditor(key){
     runSeq([function(){
       return STORE.put("postings", id, {date:key, slot:k, merge:true, areas:changed, cleared:cleared,
                                         by:whoName(), createdAt:Date.now()}, empty ? null : local);
-    }]).then(function(r){ finishSave(r, st); });
+    }]).then(function(r){
+      if (onClose && !(r.refused || r.failed || r.decided)) onClose(true);
+      finishSave(r, st);
+      if (onClose && !(r.refused || r.failed || r.decided || r.offline)) setStatus("Postings saved for " + slotMeta(k).label + ", " + fmt(ms) + ".");
+    });
   };
   actions.appendChild(same); actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
   box.appendChild(actions);
@@ -5570,7 +5639,24 @@ function renderHeader(){
   if (c){
     c.textContent = "";
     /* the HOD moves between the two rosters from here */
-    if (seesOther() && ENDPOINT){
+    if ((HOD || FAC) && (ENDPOINT || (SEED && SEED.preview))){
+      /* the HOD and faculty: both rosters as two tabs, one tap apart */
+      var tabs = el("div","rtabs noprint"), waiting0 = ELSEWHERE && ELSEWHERE.pending;
+      tabs.setAttribute("role","tablist");
+      [["pg","PG roster"],["jr","JR roster"]].forEach(function(t){
+        var on = CADRE === t[0], x = document.createElement(on ? "span" : "a");
+        x.className = "rtab" + (on ? " on" : ""); x.setAttribute("role","tab");
+        x.setAttribute("aria-selected", on ? "true" : "false");
+        x.textContent = t[1];
+        if (!on){
+          x.href = LINK ? (t[0] === "jr" ? "?r=jr" : "?") : ("?hod" + (t[0] === "jr" ? "&r=jr" : ""));
+          if (waiting0){ var bd = el("small","rbadge", String(waiting0)); bd.title = waiting0 + " awaiting approval"; x.appendChild(bd); }
+        }
+        tabs.appendChild(x);
+      });
+      c.appendChild(tabs);
+    }
+    else if (seesOther() && ENDPOINT){
       var a2 = document.createElement("a");
       a2.className = "rosterswitch";
       /* stay in the same folder; only which roster changes */
