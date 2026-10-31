@@ -387,7 +387,7 @@ body.booting .wrap::after{content:"Loading the roster\2026";display:block;paddin
 .rtab.on{background:var(--accent);color:var(--accent-ink)}
 a.rtab:hover{color:var(--ink)}
 .rbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--warn-bg);color:var(--warn-ink);font-size:12px;line-height:18px}
-.postnow{padding:12px 14px;border-bottom:1px solid var(--rule)}.postnow>button{width:100%;padding:12px;font-size:15px}
+.postnow{padding:10px 14px;border-bottom:1px solid var(--rule)}.postnow>button{width:100%;padding:10px;font-size:15px;min-height:44px}
 .postnow .postrow .pname{min-width:0;overflow-wrap:anywhere}
 .postnow .postlist{grid-template-columns:1fr}
 .postnow .edhead{margin-top:12px}
@@ -597,6 +597,20 @@ th .acadline.small{display:block;font-weight:400;max-width:160px}
 .anaestime{font-size:13px;color:var(--muted);min-width:92px}
 .anaeswho{min-width:0;overflow-wrap:anywhere}
 .anaeswho .callbtn{margin-left:6px}
+.acadstrip{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--rule);border-radius:0;background:var(--today-wash);
+  padding:10px 14px;min-height:0;font-size:14px;font-weight:400;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.acadstrip b{color:var(--accent);font-weight:600}
+.acadstrip.unset{color:var(--muted)}
+button.acadstrip:active{opacity:.7}
+.acadedit{padding:4px 14px 12px;border-bottom:1px solid var(--rule);background:var(--today-wash)}
+.acadbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.foldbtn{display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--rule);border-radius:0;padding:10px 14px;min-height:44px;font-size:14px;font-weight:600;color:var(--accent)}
+.otherroster{padding-top:2px;margin-top:0;border-top:0}
+.nm.changed[role=button]{cursor:pointer}
+.reasonbox{padding:4px 2px 8px;font-size:16px;line-height:1.5}
+.reasonbox p{margin:0 0 8px}
+.sharewrap{margin-top:10px}
+.sharewrap #tdShare{margin-top:8px}
 </style>
 </head>
 <body>
@@ -641,11 +655,14 @@ th .acadline.small{display:block;font-weight:400;max-width:160px}
     <span class="tdate" id="tdDate"></span>
   </div>
   <div class="todaycard" id="todayCard"></div>
-  <div class="bar noprint" id="tdShare" style="margin:10px 0 0">
-    <a class="wabtn" id="tdWa" target="_blank" rel="noopener">Send to WhatsApp</a>
-    <button id="tdCopy">Copy message</button>
-    <button class="ghost" id="tdShow" aria-expanded="false" aria-controls="tdText">Show text</button>
-    <span class="status" id="tdStat"></span>
+  <div class="noprint sharewrap">
+    <button class="ghost" id="tdShareBtn" aria-expanded="false" aria-controls="tdShare">Share</button>
+    <div class="bar" id="tdShare" hidden>
+      <a class="wabtn" id="tdWa" target="_blank" rel="noopener">Send to WhatsApp</a>
+      <button id="tdCopy">Copy message</button>
+      <button class="ghost" id="tdShow" aria-expanded="false" aria-controls="tdText">Show text</button>
+      <span class="status" id="tdStat"></span>
+    </div>
   </div>
   <textarea id="tdText" class="noprint" hidden readonly rows="14"
     aria-label="Today's duty message, ready to copy"></textarea>
@@ -1601,52 +1618,48 @@ function academicLine(key, small){
   if (!(a && a.topic)) d.className += " unset";
   return d;
 }
-/* the box on Today: today's class or presentation, or the next one, with a
-   place to fill in the topic and presenter */
+/* Today: one slim line for today's class or case presentation; tap it to
+   fill in the topic and presenter. Nothing on other days. */
 var ACAD_EDIT = false;
 function academicBox(host){
   if (hasTeams() || CADRE !== "pg") return;
-  var tk = todayKey(), key = academicKind(tk) ? tk : nextAcademic(tk);
-  if (!key) return;
-  var kind = academicKind(key), a = academicOn(key) || {};
-  var box = el("div","acadbox");
-  var when = key === tk ? "Today" : key === iso(msOf(tk) + DAY) ? "Tomorrow" : DOW[new Date(msOf(key)).getUTCDay()] + " " + fmt(msOf(key));
-  var head = el("div","acadhead");
-  head.appendChild(el("span","acadwhen", when + " \u00B7 " + kind));
+  var key = todayKey(), kind = academicKind(key);
+  if (!kind) return;
+  var a = academicOn(key) || {};
   var canEdit = UNLOCKED && !FAC && (ROLE === "pg" || HOD);
-  if (canEdit){
-    var eb = el("button","ghost small", ACAD_EDIT ? "Close" : (a.topic ? "Change" : "Add topic")); eb.type = "button";
-    eb.onclick = function(){ ACAD_EDIT = !ACAD_EDIT; renderToday(); };
-    head.appendChild(eb);
-  }
-  box.appendChild(head);
-  if (!ACAD_EDIT){
-    box.appendChild(el("div","acadtopic", a.topic || "Topic not set yet"));
-    if (a.by) box.appendChild(el("div","acadby", "Presenting: Dr " + title(a.by)));
-  } else {
-    var ti = document.createElement("input"); ti.type = "text"; ti.value = a.topic || ""; ti.placeholder = kind === "Class" ? "Topic of the class" : "Case / topic";
-    var ps = document.createElement("select"); ps.appendChild(opt("", "— who is presenting —"));
-    roster().forEach(function(n){ ps.appendChild(opt(n, "Dr " + title(n))); });
-    var ot = document.createElement("input"); ot.type = "text"; ot.placeholder = "or type a name (e.g. faculty)";
-    if (a.by && roster().indexOf(a.by) >= 0) ps.value = a.by; else if (a.by) ot.value = title(a.by);
-    var g = el("div","pgrid"); 
-    var f1 = el("div","pf wide"); f1.appendChild(el("label", null, "Topic")); f1.appendChild(ti); g.appendChild(f1);
-    var f2 = el("div","pf"); f2.appendChild(el("label", null, "Presenting")); f2.appendChild(ps); g.appendChild(f2);
-    var f3 = el("div","pf"); f3.appendChild(el("label", null, "Other presenter")); f3.appendChild(ot); g.appendChild(f3);
-    box.appendChild(g);
-    var sv = el("button","primary","Save"), st = el("span","status"); sv.type = "button"; sv.style.marginTop = "10px";
-    sv.onclick = function(){
-      var by = ps.value || String(ot.value || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase();
-      st.className = "status"; st.textContent = "Saving\u2026";
-      runSeq([function(){ return STORE.put("academics", safeId("acad", key),
-        {date:key, kind:kind, topic:String(ti.value || "").trim(), by:by, setBy:whoName() || ME || "", createdAt:Date.now()}); }])
-      .then(function(r){
-        if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
-        ACAD_EDIT = false; renderAll(); setStatus(kind + " on " + fmt(msOf(key)) + " saved.");
-      });
-    };
-    var row = el("div"); row.appendChild(sv); row.appendChild(st); box.appendChild(row);
-  }
+  var line = el(canEdit ? "button" : "div", "acadstrip" + (a.topic ? "" : " unset"));
+  if (canEdit) line.type = "button";
+  line.appendChild(el("b", null, kind + " today"));
+  line.appendChild(document.createTextNode(" \u00B7 " + (a.topic || (canEdit ? "tap to add the topic" : "topic not set"))
+    + (a.by ? " \u00B7 Dr " + title(a.by) : "")));
+  if (canEdit) line.onclick = function(){ ACAD_EDIT = !ACAD_EDIT; renderToday(); };
+  host.appendChild(line);
+  if (!(canEdit && ACAD_EDIT)) return;
+  var box = el("div","acadedit");
+  var ti = document.createElement("input"); ti.type = "text"; ti.value = a.topic || ""; ti.placeholder = kind === "Class" ? "Topic of the class" : "Case / topic";
+  var ps = document.createElement("select"); ps.appendChild(opt("", "— who is presenting —"));
+  roster().forEach(function(n){ ps.appendChild(opt(n, "Dr " + title(n))); });
+  var ot = document.createElement("input"); ot.type = "text"; ot.placeholder = "or type a name (e.g. faculty)";
+  if (a.by && roster().indexOf(a.by) >= 0) ps.value = a.by; else if (a.by) ot.value = title(a.by);
+  var g = el("div","pgrid");
+  var f1 = el("div","pf wide"); f1.appendChild(el("label", null, "Topic")); f1.appendChild(ti); g.appendChild(f1);
+  var f2 = el("div","pf"); f2.appendChild(el("label", null, "Presenting")); f2.appendChild(ps); g.appendChild(f2);
+  var f3 = el("div","pf"); f3.appendChild(el("label", null, "Other presenter")); f3.appendChild(ot); g.appendChild(f3);
+  box.appendChild(g);
+  var sv = el("button","primary","Save"), cn = el("button","ghost","Cancel"), st = el("span","status");
+  sv.type = cn.type = "button";
+  cn.onclick = function(){ ACAD_EDIT = false; renderToday(); };
+  sv.onclick = function(){
+    var by = ps.value || String(ot.value || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase();
+    st.className = "status"; st.textContent = "Saving\u2026";
+    runSeq([function(){ return STORE.put("academics", safeId("acad", key),
+      {date:key, kind:kind, topic:String(ti.value || "").trim(), by:by, setBy:whoName() || ME || "", createdAt:Date.now()}); }])
+    .then(function(r){
+      if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
+      ACAD_EDIT = false; renderAll(); setStatus(kind + " saved.");
+    });
+  };
+  var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(cn); row.appendChild(st); box.appendChild(row);
   host.appendChild(box);
 }
 
@@ -1656,26 +1669,51 @@ var ANAES_TIMES = [["9-4","9 am - 4 pm"],["4-9","4 pm - 9 pm"]];
 function anaesOn(key){
   return (CFG.anaes || []).filter(function(a){ return a && a.name && (!a.from || a.from <= key) && (!a.to || a.to >= key); });
 }
-function anaesBox(host, key){
+function anaesNow(){
+  var h = new Date().getHours(), t = h >= 9 && h < 16 ? "9-4" : h >= 16 && h < 21 ? "4-9" : null;
+  if (!t) return null;
+  return {time:t, list:anaesOn(todayKey()).filter(function(a){ return a.time === t; })};
+}
+/* a shift-style row on Today, only during 9 am - 9 pm and only whoever's timing it is */
+function anaesRow(host){
   if (hasTeams() || CADRE !== "pg") return;
-  var list = anaesOn(key);
-  if (!list.length) return;
-  var box = el("div","anaesbox");
-  box.appendChild(el("div","anaeshead","Anaesthesia PG in ECSRR"));
-  ANAES_TIMES.forEach(function(t){
-    var on = list.filter(function(a){ return a.time === t[0]; });
-    if (!on.length) return;
-    var r = el("div","anaesrow"); r.appendChild(el("span","anaestime", t[1]));
-    var w = el("span","anaeswho");
-    on.forEach(function(a, i){
-      if (i) w.appendChild(document.createTextNode(", "));
-      w.appendChild(document.createTextNode("Dr " + title(a.name)));
-      if (a.phone){ var c = document.createElement("a"); c.className = "callbtn small noprint"; c.href = telHref(a.phone);
-        c.textContent = "\u260E Call"; c.title = "Call Dr " + title(a.name); w.appendChild(c); }
-    });
-    r.appendChild(w); box.appendChild(r);
+  var now = anaesNow();
+  if (!now || !now.list.length) return;
+  var row = el("div","trow other"), tl = el("div","tl");
+  tl.appendChild(el("b", null, "Anaesthesia (ECSRR)"));
+  tl.appendChild(document.createTextNode(now.time === "9-4" ? "09:00-16:00" : "16:00-21:00"));
+  row.appendChild(tl);
+  var tv = el("div","tv");
+  now.list.forEach(function(a){
+    var c = el("span","nm", "Dr " + title(a.name));
+    if (a.phone){ var k = document.createElement("a"); k.className = "callbtn small noprint"; k.href = telHref(a.phone);
+      k.textContent = "\u260E"; k.title = "Call Dr " + title(a.name); c.appendChild(k); }
+    tv.appendChild(c);
   });
-  host.appendChild(box);
+  row.appendChild(tv); host.appendChild(row);
+}
+/* the CMO(s) on duty right now, from the JR roster - one row on any Today */
+function cmoNowRow(host){
+  var sd = shiftAndDate(), list = [], lab = "";
+  if (hasTeams()) return;                    /* the JR roster shows its CMOs on each shift already */
+  if (!OTHER || !OTHER.config.groups) return;
+  withRoster(OTHER.config, OTHER.data, function(){
+    list = cmosOn(sd.key, sd.slot).map(function(x){ return x.v; });
+    var m = slotMeta(sd.slot); lab = (m.label || "") + (m.time ? " " + m.time : "");
+  });
+  if (!list.length) return;
+  var row = el("div","trow other"), tl = el("div","tl");
+  tl.appendChild(el("b", null, "CMO on duty"));
+  tl.appendChild(document.createTextNode(lab));
+  row.appendChild(tl);
+  var tv = el("div","tv");
+  list.forEach(function(v){
+    var c = el("span","nm", "Dr " + title(v.name));
+    if (v.phone){ var k = document.createElement("a"); k.className = "callbtn small noprint"; k.href = telHref(v.phone);
+      k.textContent = "\u260E"; k.title = "Call Dr " + title(v.name); c.appendChild(k); }
+    tv.appendChild(c);
+  });
+  row.appendChild(tv); host.appendChild(row);
 }
 
 /* ---------------------------------------------------------------
@@ -2664,15 +2702,16 @@ function loadOther(){
 function renderOtherToday(host, ms){
   if (!seesOther() || !OTHER || !OTHER.config.groups || !OTHER.config.groups.length) return;
   var pgView = CADRE === "pg" && ROLE === "pg" && !HOD && !FAC;
-  if (pgView){
-    var bt = el("button", OTHER_OPEN ? "primary" : "ghost", OTHER_OPEN ? "Hide JRs on duty" : "JRs on duty today");
-    bt.className += " noprint"; bt.style.marginTop = "10px"; bt.id = "jrDutyBtn";
+  {
+    var lbl0 = pgView ? "JRs on duty today" : (otherCadre() === "jr" ? "JR roster today" : "PG roster today");
+    var bt = el("button", "foldbtn" + (OTHER_OPEN ? " open" : ""), lbl0 + (OTHER_OPEN ? " \u25BE" : " \u25B8"));
+    bt.className += " noprint"; bt.id = "jrDutyBtn";
     bt.onclick = function(){ OTHER_OPEN = !OTHER_OPEN; renderToday(); };
     host.appendChild(bt);
     if (!OTHER_OPEN) return;
   }
   var box = el("div","otherroster");
-  box.appendChild(el("h3", null, (otherCadre() === "jr" ? "JR roster" : "PG roster") + " today - tap a group for names and Call"));
+  box.appendChild(el("h3", null, "Tap a group for names and Call"));
   withRoster(OTHER.config, OTHER.data, function(){
     if (ms < msOf(CFG.epoch)){ box.appendChild(el("div","status","Starts on " + fmt(msOf(CFG.epoch)) + ".")); return; }
     var eff = effective(ms);
@@ -2705,7 +2744,7 @@ function todayPostBox(host){
   if (msOf(key) < epochMs()){ key = iso(epochMs()); slot = "M"; }
   var wrap = el("div","postnow noprint");
   var b = el("button", TODAY_POST ? "ghost" : "primary",
-    TODAY_POST ? "Close postings" : "Post JRs to areas - " + slotMeta(slot).label + ", " + fmt(msOf(key)));
+    TODAY_POST ? "Close postings" : "Post JRs \u00B7 " + slotMeta(slot).label);
   b.type = "button"; b.id = "postNowBtn";
   b.onclick = function(){ TODAY_POST = !TODAY_POST; renderToday(); };
   wrap.appendChild(b);
@@ -2718,7 +2757,6 @@ function renderToday(){
   host.innerHTML = "";
   todayPostBox(host);
   academicBox(host);
-  anaesBox(host, todayKey());
   var ms = todayMs();
   if (ms === null){
     if (lbl) lbl.textContent = "";
@@ -2762,7 +2800,10 @@ function renderToday(){
     else inSlot(eff, s.k).forEach(function(n){
       var c = el("span","nm", "Dr " + title(n));
       c.style.color = s.zone==="red" ? "var(--red-ink)" : s.zone==="green" ? "var(--green-ink)" : "var(--muted)";
-      if (eff.changed[n]) c.className += " changed";
+      if (eff.changed[n]){
+        c.className += " changed"; c.setAttribute("role","button"); c.tabIndex = 0; c.title = "Tap to see why";
+        (function(nn){ c.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a")) return; showReason(nn, iso(ms)); }; })(n);
+      }
       if (isCovering(eff,n,s.k)) c.appendChild(el("span","covmark","cov"));
       c.appendChild(callBtn(n, true));
       tv.appendChild(c);
@@ -2771,6 +2812,8 @@ function renderToday(){
     row.appendChild(tv);
     host.appendChild(row);
   });
+  anaesRow(host);
+  cmoNowRow(host);
   var offRow = hasTeams() ? [] : [["Night off", inSlot(eff,"OFF")]];
   if (hasTeams()){
     var offTeams = slotEntries(eff, "OFF", ms).teams.map(function(t){ return t.name; });
@@ -2884,12 +2927,41 @@ function appendPeople(box, names, suffixFn){
   if (!names.length){ box.appendChild(el("div","status","-")); return; }
   box.appendChild(ol);
 }
+/* Why somebody's duty that day is not the plain roster: shown when their
+   (underlined) name is tapped. */
+function changeReason(n, key){
+  var out = [];
+  function st(v){ return isPending(v) ? " (awaiting approval)" : ""; }
+  swapsOn(key).forEach(function(x){ var v = x.v; if (!isLive(v)) return;
+    if (v.a === n || v.b === n) out.push("Exchanged duty with Dr " + title(v.a === n ? v.b : v.a) + st(v)); });
+  movesOn(key).forEach(function(x){ var v = x.v; if (!isLive(v)) return;
+    if (v.resident === n) out.push("Moved to " + slotMeta(v.slot).label + st(v)); });
+  coversOn(key).forEach(function(x){ var v = x.v; if (!isLive(v)) return;
+    if (v.by === n) out.push("Covering Dr " + title(v.relieved) + "'s duty" + st(v));
+    if (v.relieved === n) out.push("Relieved - Dr " + title(v.by) + " covers" + st(v)); });
+  leavesOn(key).forEach(function(x){ var v = x.v; if (!isLive(v)) return;
+    if (v.coveredBy === n) out.push("Covering for Dr " + title(v.resident) + " (on leave)" + st(v));
+    if (v.resident === n) out.push((v.half ? "Half day leave" : "On leave") + (v.reason ? " - " + v.reason : "") + st(v)); });
+  absencesOn(key).forEach(function(x){ var v = x.v; if (v.resident === n && v.status !== "withdrawn") out.push(v.converted ? "Absent, made CL" : "Marked absent"); });
+  return out;
+}
+function showReason(n, key){
+  var why = changeReason(n, key), box = el("div","reasonbox");
+  if (!why.length) why = ["Duty changed from the roster for this day."];
+  why.forEach(function(w){ box.appendChild(el("p", null, w)); });
+  var cb = callBtn(n, false); if (cb && cb.nodeType === 1) box.appendChild(cb);
+  openSheet("Dr " + title(n) + " - " + fmt(msOf(key)), box);
+}
 function nameChip(n, ms, eff, slotK, tinted){
   var g = groupOf(n, ms), lead = CFG.groups.length ? CFG.groups[0].id : null;
   var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), title(n));
   var vis = hasTeams() && visitorOf(n);
   if (vis) c.appendChild(el("span","vistag", visLabel(vis, " · ")));
-  if (eff.changed[n]) c.className += " changed";
+  if (eff.changed[n]){
+    c.className += " changed"; c.setAttribute("role","button"); c.tabIndex = 0;
+    c.title = "Tap to see why";
+    c.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a")) return; ev.stopPropagation(); showReason(n, iso(ms)); };
+  }
   if (isCovering(eff, n, slotK)){
     c.appendChild(el("span","covmark","cov"));
     c.title = "Dr " + title(n) + " is covering this as well as their own duty";
@@ -3025,23 +3097,8 @@ function jrCmosFor(ms, pgSlotK){
   return out;
 }
 function jrSideBox(ms, slotK){
-  var f = document.createDocumentFragment(), cm = jrCmosFor(ms, slotK);
-  if (cm.length){
-    var d = el("div","cmoline");
-    d.appendChild(el("span","a","CMO: "));
-    cm.forEach(function(v, i){
-      if (i) d.appendChild(document.createTextNode(", "));
-      d.appendChild(document.createTextNode("Dr " + title(v.name)));
-      if (v.phone){
-        var a = document.createElement("a"); a.className = "callbtn small noprint"; a.href = telHref(v.phone);
-        a.textContent = "\u260E"; a.title = "Call Dr " + title(v.name); a.onclick = function(ev){ ev.stopPropagation(); };
-        d.appendChild(a);
-      }
-    });
-    f.appendChild(d);
-  }
-  f.appendChild(ecsrrBox(ms, slotK));
-  return f;
+  /* the JRs in ECSRR on this shift (the CMO on duty has its own row on Today) */
+  return ecsrrBox(ms, slotK);
 }
 function ecsrrBox(ms, slotK){
   var list = ecsrrFor(ms, slotK);
@@ -6723,6 +6780,12 @@ function wire(){
     if (open){ renderSetup(); sbx.scrollIntoView({block:"nearest"}); }
   };
   wireCopy("tdCopy","tdShow","tdText","tdStat", todayMessage, "Copied - paste it into the group.");
+  var shb = document.getElementById("tdShareBtn"), shp = document.getElementById("tdShare");
+  if (shb && shp) shb.onclick = function(){
+    shp.hidden = !shp.hidden; shb.setAttribute("aria-expanded", shp.hidden ? "false" : "true");
+    shb.className = shp.hidden ? "ghost" : "primary";
+    if (!shp.hidden) refreshShare();
+  };
   var wa = document.getElementById("tdWa");
   if (wa) wa.onclick = function(){ refreshShare(); };
   var mq = window.matchMedia ? window.matchMedia("(max-width:780px)") : null;
