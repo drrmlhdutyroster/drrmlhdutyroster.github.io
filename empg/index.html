@@ -567,6 +567,19 @@ ol.steps .rm{min-height:40px;padding:6px 12px}
 .thankshead{font-size:13px;font-weight:600;color:var(--ink)}
 .thanksnames span{white-space:nowrap}
 .thanksnames{font-size:13px;line-height:1.6;margin-top:4px !important;text-wrap:balance}
+.posttally{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.posttally .tl{font-size:13px;padding:4px 9px;border-radius:999px;background:var(--panel2);color:var(--ink);white-space:nowrap}
+.posttally .tl.short{background:var(--warn-bg);color:var(--warn-ink);font-weight:600}
+label.chk{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;color:var(--ink);font-weight:500;white-space:nowrap}
+label.chk input{width:20px;height:20px}
+.overcap{margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:var(--warn-bg);color:var(--warn-ink);font-size:13px;font-weight:600}
+td.overcell{background:var(--warn-bg);color:var(--warn-ink)}
+.overnote{font-size:12px;font-weight:500;color:var(--warn-ink);margin-top:2px;white-space:nowrap}
+.postnow .postrow{gap:10px}
+.postnow .actions,.postnow > div > div:last-child{display:flex;flex-wrap:wrap;gap:8px}
+.soonbox{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn-ink);font-size:14px;line-height:1.5}
+.soonbox b{display:block;font-size:15px;margin-bottom:4px}
+.apprrow.soon{border-left:4px solid var(--warn-ink);padding-left:10px}
 </style>
 </head>
 <body>
@@ -741,6 +754,7 @@ ol.steps .rm{min-height:40px;padding:6px 12px}
         <input type="date" id="apFrom"></div>
       <div style="flex:0 0 auto"><label for="apTo">To</label>
         <input type="date" id="apTo"></div>
+      <div style="flex:0 0 auto" id="apHalfWrap" hidden><label class="chk"><input type="checkbox" id="apHalf"> Half day</label></div>
       <div style="flex:1 1 150px"><label for="apWhy">Reason</label>
         <input type="text" id="apWhy" placeholder="CL / SL / exam" style="width:100%"></div>
       <div style="flex:0 0 auto"><button class="primary" id="apGo">Send for approval</button></div>
@@ -1251,7 +1265,31 @@ function cmoLine(key, slot){
   });
   return d;
 }
-function areasList(){ return (CFG.areas && CFG.areas.length) ? CFG.areas : []; }
+/* The JR posting areas. The fixed places are filled every shift (Dog bite
+   only from 4 pm - before that the OPD sees dog bites); everyone else is
+   the CMO's to place, and starts in Green. */
+var JR_AREAS = ["Trauma","Triage","ECSRR","Medicine","Dog bite","Yellow","Cannula","Green"];
+var JR_FIXED = {"Trauma":2, "Triage":2, "ECSRR":1, "Medicine":1, "Dog bite":1};
+function areasList(){
+  var own = (CFG.areas && CFG.areas.length) ? CFG.areas.slice() : [];
+  if (!hasTeams()) return own;
+  var out = JR_AREAS.slice();
+  own.forEach(function(a){ if (out.indexOf(a) < 0) out.splice(out.length - 1, 0, a); });
+  return out;
+}
+function fixedFor(slotK){
+  var q = JSON.parse(JSON.stringify(CFG.fixedPosts || JR_FIXED));
+  if (slotK === "M") delete q["Dog bite"];
+  return q;
+}
+/* A shift is settled a couple of hours after it ends. */
+function shiftOver(key, slotK){
+  var h = slotHours(slotK);
+  if (!h) return false;
+  var now = new Date(), wall = msOf(todayKey()) + (now.getHours()*60 + now.getMinutes())*60000;
+  return wall >= msOf(key) + (h[1] + 2)*3600000;
+}
+var EFF_RAW = false;    /* the posting screen needs everyone due, before any of this */
 function coversOn(key){
   var out=[], k;
   for(k in DATA.covers) if(DATA.covers[k].date===key) out.push({id:k,v:DATA.covers[k]});
@@ -1276,7 +1314,7 @@ function movesOn(key){
   return changesOn(key).filter(function(x){ return isMove(x.v); });
 }
 function effective(ms){
-  var key=iso(ms), duty={}, changed={}, extra={}, i;
+  var key=iso(ms), duty={}, changed={}, extra={}, half={}, auto={}, i;
   var all=everyone(ms);
   for(i=0;i<all.length;i++) duty[all[i]]=baseDuty(all[i],ms);
   var sw=swapsOn(key);
@@ -1299,6 +1337,7 @@ function effective(ms){
       if (CFG.refusedAbsent && vacated!=="OFF" && vacated!=="LEAVE"){ duty[r]="ABSENT"; changed[r]=true; }
       continue;
     }
+    if (lv[i].v.half){ half[r]=true; continue; }   /* half a duty off: still on the shift */
     duty[r]="LEAVE";
     var cb=lv[i].v.coveredBy;
     if(!cb||!duty[cb]||isAway(duty[cb])) continue;
@@ -1347,7 +1386,34 @@ function effective(ms){
       if(extra[by].indexOf(had)<0) extra[by].push(had);
     }
   }
-  return {duty:duty, changed:changed, extra:extra, people:all};
+  /* JR roster: a shift the CMO posted is the attendance - whoever was due and
+     was not posted anywhere is absent, once the shift is over. A shift nobody
+     posted counts nobody absent. An absence entered by hand (or the HOD's
+     "make present" / "make it CL") decides the day instead. */
+  if (hasTeams() && !EFF_RAW){
+    var byHand = {};
+    for(i=0;i<ab.length;i++) byHand[ab[i].v.resident] = 1;
+    CFG.slots.forEach(function(s){
+      if (s.k === "OFF") return;
+      var post = postingsOn(key, s.k);
+      if (!Object.keys(post).length || !shiftOver(key, s.k)) return;
+      for (var j=0;j<all.length;j++){
+        var n = all[j];
+        if (duty[n] !== s.k || post[n] || byHand[n] || (extra[n] && extra[n].length)) continue;
+        duty[n] = "ABSENT"; changed[n] = true; auto[n] = s.k;
+      }
+    });
+  }
+  return {duty:duty, changed:changed, extra:extra, half:half, auto:auto, people:all};
+}
+/* absences that come from a posted shift, shaped like the ones entered by hand */
+function autoAbsOn(key){
+  if (!hasTeams()) return [];
+  var e = effective(msOf(key)), out = [];
+  Object.keys(e.auto || {}).forEach(function(n){
+    out.push({id:safeId("ab", key, rid(n)), v:{date:key, resident:n, auto:true, slot:e.auto[n]}, derived:true});
+  });
+  return out;
 }
 function inSlot(eff, slot){
   var out=[],i,n;
@@ -2061,12 +2127,23 @@ function requestTitle(g){
   if (g.kind === "leave")
     return "Dr " + title(v.resident) + " - leave, " + fmt(msOf(g.from))
          + (g.from === g.to ? "" : " to " + fmt(msOf(g.to)))
-         + " (" + g.items.length + (g.items.length === 1 ? " day)" : " days)");
+         + " (" + (g.items.length === 1 && v.half ? "half day" : g.items.length + (g.items.length === 1 ? " day" : " days"))
+         + (hasTeams() ? leaveCountsText(g) : "") + ")";
   if (g.kind === "exchange")
     return "Dr " + title(v.a) + " and Dr " + title(v.b) + " - exchange, " + fmt(msOf(v.date));
   if (g.kind === "move")
     return "Dr " + title(v.resident) + " - move to " + slotMeta(v.slot).label + ", " + fmt(msOf(v.date));
   return "Dr " + title(v.relieved) + " relieved, Dr " + title(v.by) + " covers - " + fmt(msOf(v.date));
+}
+/* ", counts as 3" when nights make it count for more than its days */
+function leaveCountsText(g){
+  var tot = 0;
+  g.items.forEach(function(it){
+    var v = it.v || it;
+    if (CFG.offFree && baseDuty(v.resident, msOf(v.date)) === "OFF") return;
+    tot += leaveWeight(v.resident, v.date, v.half);
+  });
+  return tot !== g.items.length ? ", counts as " + tot : "";
 }
 function requestDetail(g){
   var v = g.v, bits = [];
@@ -2122,9 +2199,13 @@ function wireApply(){
       go  = document.getElementById("apGo"),
       msg = document.getElementById("apMsg");
   if (!btn || !box) return;
+  var halfW = document.getElementById("apHalfWrap"), half = document.getElementById("apHalf");
+  function halfShow(){ if (halfW) halfW.hidden = !(hasTeams() && fa.value && fa.value === fb.value); if (half && halfW && halfW.hidden) half.checked = false; }
+  if (fb) fb.onchange = halfShow;
   btn.onclick = function(){
     var open = box.hidden;
     box.hidden = !open;
+    setTimeout(halfShow, 0);
     btn.setAttribute("aria-expanded", open?"true":"false");
     if (!open) return;
     var keep = who.value;
@@ -2139,7 +2220,7 @@ function wireApply(){
     if (!fa.value){ fa.value = todayKey(); fb.value = todayKey(); }
     msg.textContent = "";
   };
-  if (fa) fa.onchange = function(){ if (!fb.value || fb.value < fa.value) fb.value = fa.value; };
+  if (fa) fa.onchange = function(){ if (!fb.value || fb.value < fa.value) fb.value = fa.value; halfShow(); };
   if (go) go.onclick = function(){
     msg.className = "status";
     if (!who.value){ msg.className="status bad"; msg.textContent="Choose who the leave is for."; return; }
@@ -2148,13 +2229,15 @@ function wireApply(){
     if (msOf(fa.value) < epochMs()){ msg.className="status bad"; msg.textContent="The roster starts on " + fmt(epochMs()) + "."; return; }
     var span = Math.round((msOf(fb.value)-msOf(fa.value))/DAY)+1;
     if (span > 60){ msg.className="status bad"; msg.textContent="That is more than two months - please apply in shorter stretches."; return; }
-    var items = [], reqId = "r" + Date.now(), n = who.value;
+    var items = [], reqId = "r" + Date.now(), n = who.value, isHalf = !!(half && half.checked && span === 1 && hasTeams());
     for (var t=msOf(fa.value); t<=msOf(fb.value); t+=DAY){
-      var k2 = iso(t);
-      items.push({id:safeId(rid(n), k2),
-                  body:stampNew({resident:n, date:k2, reason:why.value.trim(),
-                                 by:ME||"", createdAt:Date.now(), reqId:reqId})});
+      var k2 = iso(t), b0 = {resident:n, date:k2, reason:why.value.trim(), by:ME||"", createdAt:Date.now(), reqId:reqId};
+      if (isHalf) b0.half = true;
+      items.push({id:safeId(rid(n), k2), body:stampNew(b0)});
     }
+    /* JRs: no more than 2.5 days of leave in a calendar month */
+    var over = hasTeams() ? overMonthCap(n, items.map(function(x){ return x.body; })) : "";
+    if (over && !HOD){ msg.className = "status bad"; msg.textContent = over + " Leave is limited to " + monthCap() + " days a month."; return; }
     msg.textContent = "Saving\u2026";
     runSeq([function(){ return STORE.putMany("leaves", items); }]).then(function(r){
       if (r.refused){ msg.className="status bad"; msg.textContent="Not saved - tap Unlock editing and enter the department passphrase."; return; }
@@ -2162,7 +2245,7 @@ function wireApply(){
       renderAll();
       msg.className = "status";
       msg.textContent = HOD
-        ? "Entered for " + span + (span===1?" day":" days") + " and approved."
+        ? "Entered for " + (isHalf ? "half a day" : span + (span===1?" day":" days")) + " and approved." + (over ? " Note: over the monthly limit - " + over : "")
         : "Sent for approval - " + span + (span===1?" day":" days") + ". It shows in the roster marked awaiting approval.";
     });
   };
@@ -2248,10 +2331,33 @@ function renderApprovals(){
       : "Nothing is waiting."));
     return;
   }
+  /* the HOD: leave that starts soon (or has started) and is still waiting */
+  var today0 = msOf(todayKey());
+  function startsIn(g){ return g.kind === "leave" ? Math.round((msOf(g.from) - today0) / DAY) : 99; }
+  groups.sort(function(a, b){ return startsIn(a) - startsIn(b); });
+  var soon = groups.filter(function(g){ return startsIn(g) <= 2; });
+  if (HOD && soon.length){
+    if (box && box.hidden){ box.hidden = false; if (btn) btn.setAttribute("aria-expanded","true"); }
+    if (btn) btn.textContent += " - " + soon.length + " start" + (soon.length === 1 ? "s" : "") + " soon";
+    var al = el("div","soonbox");
+    al.appendChild(el("b", null, soon.length === 1 ? "1 leave starts soon - please decide" : soon.length + " leaves start soon - please decide"));
+    soon.forEach(function(g){
+      var d = startsIn(g);
+      al.appendChild(el("div", null, "Dr " + title(g.v.resident) + " - "
+        + (d < 0 ? "started " + fmt(msOf(g.from)) : d === 0 ? "starts today" : d === 1 ? "starts tomorrow" : "starts " + fmt(msOf(g.from)))));
+    });
+    list.appendChild(al);
+  }
   groups.forEach(function(g){
     var row = el("div","apprrow");
+    var dIn = startsIn(g);
+    if (dIn <= 2) row.className += " soon";
     row.appendChild(el("div","apprwhat", requestTitle(g)));
     row.appendChild(el("div","apprdet", requestDetail(g)));
+    if (g.kind === "leave" && hasTeams()){
+      var ov = monthsOver(g.v.resident);
+      if (ov.length) row.appendChild(el("div","overcap", "Over " + monthCap() + " days a month: " + ov.join(", ")));
+    }
     var btns = el("div","apprbtns");
     if (g.kind === "leave"){
       var dl = el("button","ghost","Download application");
@@ -2604,6 +2710,12 @@ function renderViews(){ renderRoster(); renderCards(); }
    Kept with the roster's setup. Everyone who can open the roster gets a Call
    button; the number itself is not printed on the page (the phone shows it
    when it dials). */
+/* how a visitor is described: an intern, or a PG CMO and their department */
+function visLabel(vis, sep){
+  if (!vis) return "";
+  if (vis.kind === "intern") return "Intern";
+  return "PG CMO" + (vis.dept ? (sep || ", ") + vis.dept : "");
+}
 function phoneOf(n){
   var vv = visitorOf(n);
   var p = (CFG.phones || {})[n] || (vv && vv.phone);
@@ -2630,7 +2742,7 @@ function callBtn(n, small){
 /* "Dr Name" with a call button, for lists */
 function personEl(n, suffix){
   var sp = el("span","person"), vis = hasTeams() && visitorOf(n);
-  sp.appendChild(document.createTextNode("Dr " + title(n) + (vis ? " (PG CMO" + (vis.dept ? ", " + vis.dept : "") + ")" : "") + (suffix || "")));
+  sp.appendChild(document.createTextNode("Dr " + title(n) + (vis ? " (" + visLabel(vis) + ")" : "") + (suffix || "")));
   sp.appendChild(callBtn(n, false));
   return sp;
 }
@@ -2645,7 +2757,7 @@ function nameChip(n, ms, eff, slotK, tinted){
   var g = groupOf(n, ms), lead = CFG.groups.length ? CFG.groups[0].id : null;
   var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), title(n));
   var vis = hasTeams() && visitorOf(n);
-  if (vis) c.appendChild(el("span","vistag","PG CMO" + (vis.dept ? " · " + vis.dept : "")));
+  if (vis) c.appendChild(el("span","vistag", visLabel(vis, " · ")));
   if (eff.changed[n]) c.className += " changed";
   if (isCovering(eff, n, slotK)){
     c.appendChild(el("span","covmark","cov"));
@@ -2897,7 +3009,7 @@ function renderRoster(){
 
     var tdL = el("td","z-act");
     leavesOn(key).forEach(function(it){ tdL.appendChild(chipFor("leave", it)); });
-    absencesOn(key).forEach(function(it){ tdL.appendChild(absChip(it)); });
+    absencesOn(key).concat(autoAbsOn(key)).forEach(function(it){ tdL.appendChild(absChip(it)); });
     tdL.appendChild(addBtn(key,"leave"));
     if (hasTeams()) tdL.appendChild(addBtn(key,"absent"));
     tr.appendChild(tdL);
@@ -2936,7 +3048,7 @@ function chipFor(kind, it){
   if (isPending(it.v)) ch.className += " pend";
   else if (isDeclined(it.v)) ch.className += " decl";
   ch.appendChild(document.createTextNode(kind==="leave"
-    ? title(it.v.resident) + (it.v.reason? " · "+it.v.reason : "")
+    ? title(it.v.resident) + (it.v.half ? " · half day" : "") + (it.v.reason? " · "+it.v.reason : "")
       + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
     : kind==="newcover"
       ? title(it.v.relieved) + " relieved · " + title(it.v.by) + " covers"
@@ -3259,7 +3371,9 @@ function absChip(it){
   ch.appendChild(document.createTextNode(title(v.resident) + (v.converted ? " · leave" : " · absent")
     + (v.reason ? " · " + v.reason : "")));
   ch.appendChild(el("span","sttag", wd ? "made present" + (v.withdrawnBy ? " by " + v.withdrawnBy : "")
-    : v.converted ? "absent, made CL by HOD" : (v.by ? "by " + v.by : "")));
+    : v.converted ? "absent, made CL by HOD"
+    : it.derived ? (HOD ? "not posted - " + slotMeta(v.slot).label : "")
+    : (v.by ? "by " + v.by : "")));
   ch.title = "Marked absent" + (v.by ? " by " + v.by : "") + (v.createdAt ? " on " + fmt(v.createdAt) : "")
     + (wd ? "; withdrawn" + (v.withdrawnBy ? " by " + v.withdrawnBy : "") : "")
     + (v.converted ? "; turned into leave by the HOD" : "");
@@ -3279,6 +3393,7 @@ function absChip(it){
       ev.stopPropagation();
       if (CMO && !CMONAME){ setStatus("Type your name under 'CMO on duty' first.", true); return; }
       var b = JSON.parse(JSON.stringify(v));
+      if (it.derived){ b.by = "posting"; b.createdAt = Date.now(); }
       b.status = "withdrawn"; b.withdrawnBy = whoName(); b.withdrawnAt = Date.now();
       save(b, "Marked present. The absence stays in the record as withdrawn.");
     };
@@ -3290,6 +3405,7 @@ function absChip(it){
     c.onclick = function(ev){
       ev.stopPropagation();
       var b = JSON.parse(JSON.stringify(v));
+      if (it.derived){ b.by = "posting"; b.createdAt = Date.now(); }
       if (v.converted){ delete b.converted; delete b.convertedAt; delete b.convertedBy; }
       else b.converted = true;
       save(b, v.converted ? "Counted as absent again." : "Turned into CL - charged to Dr " + title(v.resident) + "'s leave.");
@@ -3351,8 +3467,15 @@ function shiftNow(){
   var h = new Date().getHours();
   return h >= 20 || h < 8 ? "N" : h >= 14 ? "E" : "M";
 }
+/* When somebody was last posted to an area, before a day ("" if never). */
+function lastIn(n, area, beforeKey){
+  var best = "", k, d = DATA.postings || {};
+  for (k in d){ var r = d[k]; if (r && r.areas && r.areas[n] === area && r.date < beforeKey && r.date > best) best = r.date; }
+  return best;
+}
 function postingEditor(key, wantSlot, onClose){
-  var ms = msOf(key), box = el("div"), eff = effective(ms);
+  var ms = msOf(key), box = el("div");
+  EFF_RAW = true; var eff; try { eff = effective(ms); } finally { EFF_RAW = false; }
   var head = el("div"); head.className = "edhead";
   head.textContent = "Postings on " + fmt(ms);
   box.appendChild(head);
@@ -3363,8 +3486,21 @@ function postingEditor(key, wantSlot, onClose){
   if (wantSlot && slots.some(function(s){ return s.k === wantSlot; })) shiftSel.value = wantSlot;
   else if (key === todayKey() && slots.some(function(s){ return s.k === shiftNow(); })) shiftSel.value = shiftNow();
   var top = el("div","inline"); top.appendChild(field("Shift", shiftSel)); box.appendChild(top);
+  var tally = el("div","posttally"); box.appendChild(tally);
   var list = el("div","postlist"); box.appendChild(list);
   var sels = {};
+  function count(){
+    var k = shiftSel.value, q = fixedFor(k), c = {}, n;
+    for (n in sels) if (sels[n].value) c[sels[n].value] = (c[sels[n].value]||0) + 1;
+    tally.innerHTML = "";
+    Object.keys(q).forEach(function(a){
+      var have = c[a] || 0, sp = el("span", "tl" + (have < q[a] ? " short" : ""),
+        (a === "Dog bite" && k === "E" ? "Dog bite (4 pm)" : a) + " " + have + "/" + q[a]);
+      tally.appendChild(sp);
+    });
+    var rest = 0; for (n in c) if (!q.hasOwnProperty(n)) rest += c[n];
+    tally.appendChild(el("span","tl", "Others " + rest));
+  }
   function draw(){
     list.innerHTML = ""; sels = {};
     var k = shiftSel.value, have = postingsOn(key, k);
@@ -3375,17 +3511,43 @@ function postingEditor(key, wantSlot, onClose){
       s.appendChild(opt("","— not posted —"));
       areasList().forEach(function(a){ s.appendChild(opt(a, a)); });
       s.value = have[n] || "";
+      s.onchange = count;
       r.appendChild(s); list.appendChild(r); sels[n] = s;
     });
+    count();
   }
   shiftSel.onchange = draw; draw();
   var actions = el("div"); actions.style.marginTop = "12px";
+  var auto = el("button","ghost","Fill automatically");
+  auto.onclick = function(){
+    /* fill the fixed places fairly - whoever was there least recently - from
+       those not yet placed or in Green; everyone else to Green */
+    var k = shiftSel.value, q = fixedFor(k), c = {}, n;
+    for (n in sels) if (sels[n].value) c[sels[n].value] = (c[sels[n].value]||0) + 1;
+    var short = [];
+    Object.keys(q).forEach(function(a){
+      var need = q[a] - (c[a] || 0);
+      if (need <= 0) return;
+      var pool = Object.keys(sels).filter(function(x){ return !sels[x].value || sels[x].value === "Green"; });
+      pool.sort(function(x, y){
+        var lx = lastIn(x, a, key), ly = lastIn(y, a, key);
+        return lx === ly ? (x < y ? -1 : 1) : (lx < ly ? -1 : 1);
+      });
+      pool.slice(0, need).forEach(function(x){ sels[x].value = a; });
+      if (pool.length < need) short.push(a + " " + ((c[a] || 0) + pool.length) + " of " + q[a]);
+    });
+    for (n in sels) if (!sels[n].value) sels[n].value = "Green";
+    count();
+    st.className = short.length ? "status bad" : "status";
+    st.textContent = short.length ? "Not enough people for: " + short.join(", ") + "." : "Filled - check, change anyone you need to, then Save.";
+  };
   var same = el("button","ghost","Same as last time"), save = el("button","primary","Save postings"),
       cancel = el("button","ghost","Cancel");
   var st = el("span","status"); st.style.marginLeft = "10px";
   same.onclick = function(){
     var n0 = 0;
     Object.keys(sels).forEach(function(n){ var a = lastPosting(n, key); if (a){ sels[n].value = a; n0++; } });
+    count();
     st.className = "status"; st.textContent = n0 ? n0 + " filled from their last posting - check and save." : "No earlier postings to copy.";
   };
   cancel.onclick = onClose ? function(){ onClose(); renderToday(); } : closeEditor;
@@ -3416,7 +3578,7 @@ function postingEditor(key, wantSlot, onClose){
       if (onClose && !(r.refused || r.failed || r.decided || r.offline)) setStatus("Postings saved for " + slotMeta(k).label + ", " + fmt(ms) + ".");
     });
   };
-  actions.appendChild(same); actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
+  actions.appendChild(auto); actions.appendChild(same); actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
   box.appendChild(actions);
   return box;
 }
@@ -3504,7 +3666,7 @@ function renderCards(){
     var la = el("div","dact noprint");
     la.appendChild(el("span","k", hasTeams() ? "Off duty" : "Leave"));
     leavesOn(key).forEach(function(it){ la.appendChild(chipFor("leave",it)); });
-    absencesOn(key).forEach(function(it){ la.appendChild(absChip(it)); });
+    absencesOn(key).concat(autoAbsOn(key)).forEach(function(it){ la.appendChild(absChip(it)); });
     la.appendChild(addBtn(key,"leave"));
     if (hasTeams()) la.appendChild(addBtn(key,"absent"));
     card.appendChild(la);
@@ -3846,6 +4008,57 @@ function leaveYear(n){
   var sy = new Date(start).getUTCFullYear();
   return {start:start, end:Date.UTC(sy+1,jd.getUTCMonth(),jd.getUTCDate())-DAY, no:sy-jd.getUTCFullYear()+1};
 }
+/* How much a day of leave counts. A half day is half. On the JR roster a
+   night costs two: the night itself and the rest day that goes with it. */
+function leaveWeight(n, dateKey, half){
+  var w = half ? 0.5 : 1;
+  if (hasTeams() && baseDuty(n, msOf(dateKey)) === "N") w *= 2;
+  return w;
+}
+/* ---------- 2.5 days a month (JRs) ---------- */
+function monthCap(){ var c = parseFloat(CFG.monthCap); return isNaN(c) ? 2.5 : c; }
+/* leave counted in a calendar month: approved or awaiting, not refused, not a day off anyway */
+function monthLeave(n, y, m, skipIds){
+  var tot = 0, k;
+  for (k in DATA.leaves){
+    var lv = DATA.leaves[k];
+    if (lv.resident !== n || isDeclined(lv) || (skipIds && skipIds[k])) continue;
+    var d = new Date(msOf(lv.date));
+    if (d.getUTCFullYear() !== y || d.getUTCMonth() !== m) continue;
+    if (CFG.offFree && baseDuty(n, msOf(lv.date)) === "OFF") continue;
+    tot += leaveWeight(n, lv.date, lv.half);
+  }
+  return tot;
+}
+/* the months in which somebody's leave (approved or awaiting) is over the
+   limit, e.g. ["Nov 3.5"] - shown to the HOD and in the leave record */
+function monthsOver(n){
+  var seen = {}, out = [], k;
+  for (k in DATA.leaves){
+    var lv = DATA.leaves[k];
+    if (lv.resident !== n || isDeclined(lv)) continue;
+    var d = new Date(msOf(lv.date)), mk = d.getUTCFullYear() + "-" + d.getUTCMonth();
+    if (seen[mk]) continue; seen[mk] = 1;
+    var tot = monthLeave(n, d.getUTCFullYear(), d.getUTCMonth());
+    if (tot > monthCap()) out.push(MON[d.getUTCMonth()] + " " + tot);
+  }
+  return out;
+}
+/* "" when new leave fits; otherwise what is over, in words */
+function overMonthCap(n, bodies){
+  var add = {}, cap = monthCap(), out = [];
+  bodies.forEach(function(b){
+    if (CFG.offFree && baseDuty(n, msOf(b.date)) === "OFF") return;
+    var d = new Date(msOf(b.date)), mk = d.getUTCFullYear() + "-" + d.getUTCMonth();
+    add[mk] = (add[mk] || 0) + leaveWeight(n, b.date, b.half);
+  });
+  var skip = {}; bodies.forEach(function(b){ skip[safeId(rid(n), b.date)] = 1; });
+  Object.keys(add).forEach(function(mk){
+    var y = +mk.split("-")[0], m = +mk.split("-")[1], had = monthLeave(n, y, m, skip);
+    if (had + add[mk] > cap) out.push(MON[m] + ": " + had + " already taken or asked for; this would make " + (had + add[mk]) + ".");
+  });
+  return out.join(" ");
+}
 function leaveTaken(n, ly){
   if (!ly) return {taken:0, ahead:0, covered:0};
   var op = recOf("opening", n);
@@ -3864,10 +4077,11 @@ function leaveTaken(n, ly){
     if (fromMs!==null && ms<fromMs) continue;
     if (isDeclined(lv)) continue;              /* refused: never charged */
     if (CFG.offFree && baseDuty(n, ms) === "OFF") continue;   /* due off anyway: not leave */
+    var w = leaveWeight(n, lv.date, lv.half);   /* half a day is half; a JR night is two */
     if (lv.coveredBy){ covered++; continue; }  /* older entries, before covers stood alone */
-    if (isPending(lv)){ pending++; continue; } /* charged only once approved */
-    if (ms>today){ ahead++; continue; }
-    taken++;
+    if (isPending(lv)){ pending += w; continue; } /* charged only once approved */
+    if (ms>today){ ahead += w; continue; }
+    taken += w;
   }
   /* an absence the HOD turned into leave is charged like any approved leave */
   var abs = DATA.absences || {};
@@ -3959,6 +4173,7 @@ function renderCounter(){
   var absCount = hasTeams() ? absentCounts() : null;
   var thead = el("thead"), hr = el("tr");
   ["Resident","Date of joining", leaveMonths()===12 ? "Leave taken this year" : "Leave taken this period","Remaining of " + CFG.annualLeave]
+    .concat(hasTeams() ? ["This month (of " + monthCap() + ")"] : [])
     .concat(absCount ? ["Absent this period"] : [])
     .forEach(function(h,i){ hr.appendChild(el("th", i===0?"plain":null, h)); });
   thead.appendChild(hr); t.appendChild(thead);
@@ -3999,6 +4214,14 @@ function renderCounter(){
     if (ly && left<=5) cl.style.color = "var(--warn-ink)";
     if (ly && left<=0) cl.style.background = "var(--warn-bg)";
     tr.appendChild(cl);
+    if (hasTeams()){
+      var tdn = new Date(msOf(todayKey()) < epochMs() ? epochMs() : msOf(todayKey()));
+      var mt = monthLeave(n, tdn.getUTCFullYear(), tdn.getUTCMonth()), ovr = monthsOver(n);
+      var mc = el("td","num", String(mt));
+      if (mt > monthCap()) mc.className += " overcell";
+      if (ovr.length){ var od = el("div","overnote", "over: " + ovr.join(", ")); mc.appendChild(od); }
+      tr.appendChild(mc);
+    }
     if (absCount){
       var an = absCount[n] || 0, ac = el("td","num", String(an));
       if (an) ac.style.color = "var(--warn-ink)";
@@ -4223,39 +4446,51 @@ function renderJrSetup(host){
   };
   host.appendChild(add);
 
-  /* ---- PG CMOs posted from other departments: change month by month ---- */
-  host.appendChild(el("h3", null, "PG CMOs from other departments"));
-  host.appendChild(el("p","note","Posted with a group for a stretch of dates - usually a month. They work that group's shifts, "
-    + "can be marked absent, and appear on the attendance sheet."));
+  /* ---- PG CMOs from other departments, and interns: both posted with a
+     group for a stretch of dates, usually a month ---- */
   var vrows = (CFG.visitors || []).map(function(v){ return JSON.parse(JSON.stringify(v)); });
-  var vt = el("table","ptable"), vtb = el("tbody"), vhr = el("tr");
-  ["Name","Department","Phone","Group","From","To",""].forEach(function(h){ vhr.appendChild(el("th",null,h)); });
-  var vth = el("thead"); vth.appendChild(vhr); vt.appendChild(vth); vt.appendChild(vtb);
-  var vwrap = el("div","scroller"); vwrap.appendChild(vt); host.appendChild(vwrap);
-  function vdraw(){
-    vtb.innerHTML = "";
-    if (!vrows.length){ var er = el("tr"), ed = el("td", null, "None posted."); ed.colSpan = 7; er.appendChild(ed); vtb.appendChild(er); }
-    vrows.forEach(function(v){
-      var tr = el("tr"); tr.className = "visrow";
-      function inp(type, key, ph){ var i = document.createElement("input"); i.type = type; i.value = v[key] || "";
-        i.setAttribute("data-k", key); if (ph) i.placeholder = ph; i.oninput = i.onchange = function(){ v[key] = i.value; }; return i; }
-      var nm = inp("text","name","Name"); nm.value = v.name ? title(v.name) : "";
-      var gs = document.createElement("select"); groupNames.forEach(function(x){ gs.appendChild(opt(x, x)); });
-      gs.value = v.group || groupNames[0]; v.group = gs.value; gs.onchange = function(){ v.group = gs.value; };
-      var rm = el("button","ghost rm","remove"); rm.onclick = function(){ vrows.splice(vrows.indexOf(v), 1); vdraw(); };
-      [nm, inp("text","dept","e.g. Medicine"), inp("tel","phone","10-digit"), gs, inp("date","from"), inp("date","to"), rm]
-        .forEach(function(x){ var td = el("td"); td.appendChild(x); tr.appendChild(td); });
-      vtb.appendChild(tr);
-    });
-  }
-  vdraw();
-  var vadd = el("button","ghost","+ Add a PG CMO"); vadd.style.margin = "10px 0 14px";
-  vadd.onclick = function(){
-    var t0 = new Date(msOf(todayKey())), y0 = t0.getUTCFullYear(), m0 = t0.getUTCMonth();
-    vrows.push({name:"", dept:"", phone:"", group:groupNames[0], from:iso(Date.UTC(y0, m0, 1)), to:iso(Date.UTC(y0, m0 + 1, 0))});
+  function visSection(kind, head, note, addLabel){
+    host.appendChild(el("h3", null, head));
+    host.appendChild(el("p","note", note));
+    var cols = kind === "intern" ? ["Name","Phone","Group","From","To",""] : ["Name","Department","Phone","Group","From","To",""];
+    var vt = el("table","ptable"), vtb = el("tbody"), vhr = el("tr");
+    cols.forEach(function(h){ vhr.appendChild(el("th",null,h)); });
+    var vth = el("thead"); vth.appendChild(vhr); vt.appendChild(vth); vt.appendChild(vtb);
+    var vwrap = el("div","scroller"); vwrap.appendChild(vt); host.appendChild(vwrap);
+    function mine(v){ return (v.kind || "cmo") === kind; }
+    function vdraw(){
+      vtb.innerHTML = "";
+      var list = vrows.filter(mine);
+      if (!list.length){ var er = el("tr"), ed = el("td", null, "None posted."); ed.colSpan = cols.length; er.appendChild(ed); vtb.appendChild(er); }
+      list.forEach(function(v){
+        var tr = el("tr"); tr.className = "visrow" + (kind === "intern" ? " internrow" : "");
+        function inp(type, key, ph){ var i = document.createElement("input"); i.type = type; i.value = v[key] || "";
+          i.setAttribute("data-k", key); if (ph) i.placeholder = ph; i.oninput = i.onchange = function(){ v[key] = i.value; }; return i; }
+        var nm = inp("text","name","Name"); nm.value = v.name ? title(v.name) : "";
+        var gs = document.createElement("select"); groupNames.forEach(function(x){ gs.appendChild(opt(x, x)); });
+        gs.value = v.group || groupNames[0]; v.group = gs.value; gs.onchange = function(){ v.group = gs.value; };
+        var rm = el("button","ghost rm","remove"); rm.onclick = function(){ vrows.splice(vrows.indexOf(v), 1); vdraw(); };
+        var cells = kind === "intern"
+          ? [nm, inp("tel","phone","10-digit"), gs, inp("date","from"), inp("date","to"), rm]
+          : [nm, inp("text","dept","e.g. Medicine"), inp("tel","phone","10-digit"), gs, inp("date","from"), inp("date","to"), rm];
+        cells.forEach(function(x){ var td = el("td"); td.appendChild(x); tr.appendChild(td); });
+        vtb.appendChild(tr);
+      });
+    }
     vdraw();
-  };
-  host.appendChild(vadd);
+    var vadd = el("button","ghost", addLabel); vadd.style.margin = "10px 0 14px";
+    vadd.onclick = function(){
+      var t0 = new Date(msOf(todayKey())), y0 = t0.getUTCFullYear(), m0 = t0.getUTCMonth();
+      var nv = {name:"", dept:"", phone:"", group:groupNames[0], from:iso(Date.UTC(y0, m0, 1)), to:iso(Date.UTC(y0, m0 + 1, 0))};
+      if (kind === "intern") nv.kind = "intern";
+      vrows.push(nv); vdraw();
+    };
+    host.appendChild(vadd);
+  }
+  visSection("cmo", "PG CMOs from other departments", "Posted with a group for a stretch of dates - usually a month. They work that group's shifts, "
+    + "can be posted to areas, can be absent, and appear on the attendance sheet.", "+ Add a PG CMO");
+  visSection("intern", "Interns", "Posted with a group for a stretch of dates, the same way: they work that group's shifts, "
+    + "can be posted to areas, and appear on the attendance sheet with a Call button.", "+ Add an intern");
 
   var more = document.createElement("details"); more.className = "moreset";
   var msum = document.createElement("summary"); msum.textContent = "More settings"; more.appendChild(msum);
@@ -4318,10 +4553,13 @@ function renderJrSetup(host){
       var n = String(v.name||"").trim().replace(/^dr\.?\s+/i, "").replace(/\s+/g, " ").toUpperCase();
       if (!n) return;
       if (seen[n]) vBad.push(title(n) + " is already a JR");
+      seen[n] = 1;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(v.from||"") || (v.to && v.to < v.from)) vBad.push(title(n) + ": check the dates");
       var ph = String(v.phone||"").replace(/[\s\-()]/g, "");
       if (ph && !/^\+?\d{10,13}$/.test(ph)) vBad.push(title(n) + "'s number does not look right");
-      vOut.push({name:n, dept:String(v.dept||"").trim(), phone:ph, group:v.group, from:v.from, to:v.to || ""});
+      var vo = {name:n, dept:v.kind === "intern" ? "" : String(v.dept||"").trim(), phone:ph, group:v.group, from:v.from, to:v.to || ""};
+      if (v.kind === "intern") vo.kind = "intern";
+      vOut.push(vo);
     });
     if (vBad.length){ msg.className = "status bad"; msg.textContent = "Not saved: " + vBad.join("; ") + "."; return; }
     next.visitors = vOut;
@@ -5181,7 +5419,7 @@ function pdfTeamPage(doc, ms){
       /* with each JR's number, for whoever has the paper copy */
       (t.members||[]).forEach(function(n, j){
         var vis = visitorOf(n), ph = phoneOf(n);
-        doc.text(x, y, 8.5, false, (j+1) + ".  Dr " + title(n) + (vis ? " (PG CMO" + (vis.dept ? ", " + vis.dept : "") + ")" : ""), INK);
+        doc.text(x, y, 8.5, false, (j+1) + ".  Dr " + title(n) + (vis ? " (" + visLabel(vis) + ")" : ""), INK);
         if (ph) doc.text(x + colW - 14 - textWidth(ph, 8, false), y, 8, false, ph, GREY);
         y += 12;
       });
@@ -5732,12 +5970,13 @@ function renderHours(){
      P present - on a duty, or covering one      O off
      L leave                                      A absent
      R relieved - a colleague covered the duty    (blank) not on the roster that day */
-var ATT_KEYS = [["P","Present"],["O","Off"],["L","Leave"],["A","Absent"],["R","Relieved"]];
+var ATT_KEYS = [["P","Present"],["O","Off"],["L","Leave"],["H","Half day leave"],["A","Absent"],["R","Relieved"]];
 function attMark(eff, n){
   var d = eff.duty[n];
   if (d == null) return "";
   if ((eff.extra[n]||[]).length) return "P";
   if (d === "LEAVE") return "L";
+  if (eff.half && eff.half[n] && d !== "ABSENT" && d !== "RELIEVED" && d !== "OFF") return "H";
   if (d === "ABSENT") return "A";
   if (d === "RELIEVED") return "R";
   if (d === "OFF") return "O";
@@ -5749,8 +5988,8 @@ function attendanceData(fromMs, toMs){
   days.forEach(function(ms){ everyone(ms).forEach(function(n){ if (people.indexOf(n) < 0) people.push(n); }); });
   people.forEach(function(n){
     var vis = hasTeams() && visitorOf(n);
-    rows[n] = {name:n, group:(vis ? "PG CMO " + (vis.dept || "") + " / " : "") + (groupLabel(n, fromMs) || groupLabel(n, toMs) || (vis && vis.group) || ""),
-               marks:[], tot:{P:0,O:0,L:0,A:0,R:0}, hours:0};
+    rows[n] = {name:n, group:(vis ? visLabel(vis, " ") + " / " : "") + (groupLabel(n, fromMs) || groupLabel(n, toMs) || (vis && vis.group) || ""),
+               marks:[], tot:{P:0,O:0,L:0,H:0,A:0,R:0}, hours:0};
   });
   effs.forEach(function(e){
     people.forEach(function(n){
@@ -5882,7 +6121,8 @@ function absenceRows(y, m){
       if (e.duty[n] !== "ABSENT") continue;
       if (!by[n]){ by[n] = {name:n, group:groupLabel(n, t), days:[], how:{}}; order.push(n); }
       by[n].days.push(new Date(t).getUTCDate());
-      var how = marks[n] ? "marked" + (marks[n].by ? " by " + marks[n].by : "") : "leave not approved";
+      var how = marks[n] ? "marked" + (marks[n].by && marks[n].by !== "posting" ? " by " + marks[n].by : "")
+              : (e.auto && e.auto[n]) ? "absent" : "leave not approved";
       by[n].how[how] = 1;
     }
   }
