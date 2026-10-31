@@ -580,6 +580,23 @@ td.overcell{background:var(--warn-bg);color:var(--warn-ink)}
 .soonbox{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn-ink);font-size:14px;line-height:1.5}
 .soonbox b{display:block;font-size:15px;margin-bottom:4px}
 .apprrow.soon{border-left:4px solid var(--warn-ink);padding-left:10px}
+.acadbox,.anaesbox{padding:12px 14px;border-bottom:1px solid var(--rule)}
+.acadbox{background:var(--today-wash)}
+.acadhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.acadwhen{font-size:13px;font-weight:700;color:var(--accent)}
+.acadhead button{min-height:36px;padding:6px 12px;font-size:14px}
+.acadtopic{font-size:16px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
+.acadby{font-size:14px;color:var(--muted);margin-top:2px}
+.acadline{font-size:13px;margin-top:4px;color:var(--ink);overflow-wrap:anywhere}
+.acadline b{color:var(--accent)}
+.acadline.unset{color:var(--muted)}
+.daycard > .acadline{padding:8px 13px;border-top:1px solid var(--rule);background:var(--today-wash);margin:0}
+th .acadline.small{display:block;font-weight:400;max-width:160px}
+.anaeshead{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.anaesrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:3px 0;font-size:15px}
+.anaestime{font-size:13px;color:var(--muted);min-width:92px}
+.anaeswho{min-width:0;overflow-wrap:anywhere}
+.anaeswho .callbtn{margin-left:6px}
 </style>
 </head>
 <body>
@@ -1014,7 +1031,7 @@ function rowPeople(coll, v){
   if (coll === "postings") return Object.keys(v.areas || {});
   return [v.resident];
 }
-var COLLS = ["leaves","swaps","covers","joining","opening","absences","postings","cmos"];
+var COLLS = ["leaves","swaps","covers","joining","opening","absences","postings","cmos","academics"];
 /* Which roster a row belongs to: stamped on it, or else whoever it is about. */
 function nameCadres(configs){
   var map = {};
@@ -1030,6 +1047,7 @@ function nameCadres(configs){
 function rowCadre(coll, v, map){
   if (v && v.cadre) return v.cadre;
   if (coll === "cmos") return "jr";
+  if (coll === "academics") return "pg";
   var ps = rowPeople(coll, v);
   for (var i=0;i<ps.length;i++) if (ps[i] && map[ps[i]]) return map[ps[i]];
   return "pg";
@@ -1314,7 +1332,7 @@ function movesOn(key){
   return changesOn(key).filter(function(x){ return isMove(x.v); });
 }
 function effective(ms){
-  var key=iso(ms), duty={}, changed={}, extra={}, half={}, auto={}, i;
+  var key=iso(ms), duty={}, changed={}, extra={}, half={}, auto={}, lwp={}, i;
   var all=everyone(ms);
   for(i=0;i<all.length;i++) duty[all[i]]=baseDuty(all[i],ms);
   var sw=swapsOn(key);
@@ -1337,8 +1355,9 @@ function effective(ms){
       if (CFG.refusedAbsent && vacated!=="OFF" && vacated!=="LEAVE"){ duty[r]="ABSENT"; changed[r]=true; }
       continue;
     }
-    if (lv[i].v.half){ half[r]=true; continue; }   /* half a duty off: still on the shift */
+    if (lv[i].v.half){ half[r]=true; if (isExcess(lv[i].id)) lwp[r]=true; continue; }   /* half a duty off: still on the shift */
     duty[r]="LEAVE";
+    if (isExcess(lv[i].id)) lwp[r]=true;
     var cb=lv[i].v.coveredBy;
     if(!cb||!duty[cb]||isAway(duty[cb])) continue;
     changed[cb]=true;
@@ -1404,7 +1423,7 @@ function effective(ms){
       }
     });
   }
-  return {duty:duty, changed:changed, extra:extra, half:half, auto:auto, people:all};
+  return {duty:duty, changed:changed, extra:extra, half:half, auto:auto, lwp:lwp, people:all};
 }
 /* absences that come from a posted shift, shaped like the ones entered by hand */
 function autoAbsOn(key){
@@ -1554,6 +1573,110 @@ function slotName(k){
   return m.label + (m.time? " " + m.time : "");
 }
 function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
+
+/* ---------- academics (PG roster) ----------
+   A class every Tuesday and Thursday and a case presentation every Friday,
+   except on a gazetted holiday. Anyone on the PG roster can fill in the topic
+   and who presents. */
+function academicKind(key){
+  if (hasTeams() || CADRE !== "pg" || holidayOn(key)) return null;
+  var d = new Date(msOf(key)).getUTCDay();
+  return d === 2 || d === 4 ? "Class" : d === 5 ? "Case presentation" : null;
+}
+function academicOn(key){ return (DATA.academics || {})[safeId("acad", key)] || null; }
+function nextAcademic(fromKey){
+  for (var i = 0; i < 14; i++){
+    var k = iso(msOf(fromKey) + i * DAY);
+    if (academicKind(k)) return k;
+  }
+  return null;
+}
+function academicLine(key, small){
+  var kind = academicKind(key);
+  if (!kind) return null;
+  var a = academicOn(key), d = el("div", "acadline" + (small ? " small" : ""));
+  d.appendChild(el("b", null, kind));
+  var t = a && a.topic ? a.topic : "topic not set";
+  d.appendChild(document.createTextNode(" \u00B7 " + t + (a && a.by ? " \u00B7 Dr " + title(a.by) : "")));
+  if (!(a && a.topic)) d.className += " unset";
+  return d;
+}
+/* the box on Today: today's class or presentation, or the next one, with a
+   place to fill in the topic and presenter */
+var ACAD_EDIT = false;
+function academicBox(host){
+  if (hasTeams() || CADRE !== "pg") return;
+  var tk = todayKey(), key = academicKind(tk) ? tk : nextAcademic(tk);
+  if (!key) return;
+  var kind = academicKind(key), a = academicOn(key) || {};
+  var box = el("div","acadbox");
+  var when = key === tk ? "Today" : key === iso(msOf(tk) + DAY) ? "Tomorrow" : DOW[new Date(msOf(key)).getUTCDay()] + " " + fmt(msOf(key));
+  var head = el("div","acadhead");
+  head.appendChild(el("span","acadwhen", when + " \u00B7 " + kind));
+  var canEdit = UNLOCKED && !FAC && (ROLE === "pg" || HOD);
+  if (canEdit){
+    var eb = el("button","ghost small", ACAD_EDIT ? "Close" : (a.topic ? "Change" : "Add topic")); eb.type = "button";
+    eb.onclick = function(){ ACAD_EDIT = !ACAD_EDIT; renderToday(); };
+    head.appendChild(eb);
+  }
+  box.appendChild(head);
+  if (!ACAD_EDIT){
+    box.appendChild(el("div","acadtopic", a.topic || "Topic not set yet"));
+    if (a.by) box.appendChild(el("div","acadby", "Presenting: Dr " + title(a.by)));
+  } else {
+    var ti = document.createElement("input"); ti.type = "text"; ti.value = a.topic || ""; ti.placeholder = kind === "Class" ? "Topic of the class" : "Case / topic";
+    var ps = document.createElement("select"); ps.appendChild(opt("", "— who is presenting —"));
+    roster().forEach(function(n){ ps.appendChild(opt(n, "Dr " + title(n))); });
+    var ot = document.createElement("input"); ot.type = "text"; ot.placeholder = "or type a name (e.g. faculty)";
+    if (a.by && roster().indexOf(a.by) >= 0) ps.value = a.by; else if (a.by) ot.value = title(a.by);
+    var g = el("div","pgrid"); 
+    var f1 = el("div","pf wide"); f1.appendChild(el("label", null, "Topic")); f1.appendChild(ti); g.appendChild(f1);
+    var f2 = el("div","pf"); f2.appendChild(el("label", null, "Presenting")); f2.appendChild(ps); g.appendChild(f2);
+    var f3 = el("div","pf"); f3.appendChild(el("label", null, "Other presenter")); f3.appendChild(ot); g.appendChild(f3);
+    box.appendChild(g);
+    var sv = el("button","primary","Save"), st = el("span","status"); sv.type = "button"; sv.style.marginTop = "10px";
+    sv.onclick = function(){
+      var by = ps.value || String(ot.value || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase();
+      st.className = "status"; st.textContent = "Saving\u2026";
+      runSeq([function(){ return STORE.put("academics", safeId("acad", key),
+        {date:key, kind:kind, topic:String(ti.value || "").trim(), by:by, setBy:whoName() || ME || "", createdAt:Date.now()}); }])
+      .then(function(r){
+        if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
+        ACAD_EDIT = false; renderAll(); setStatus(kind + " on " + fmt(msOf(key)) + " saved.");
+      });
+    };
+    var row = el("div"); row.appendChild(sv); row.appendChild(st); box.appendChild(row);
+  }
+  host.appendChild(box);
+}
+
+/* ---------- anaesthesia PGs in ECSRR (PG roster) ----------
+   Posted month by month, 9 am-4 pm or 4 pm-9 pm; set in Setup. */
+var ANAES_TIMES = [["9-4","9 am - 4 pm"],["4-9","4 pm - 9 pm"]];
+function anaesOn(key){
+  return (CFG.anaes || []).filter(function(a){ return a && a.name && (!a.from || a.from <= key) && (!a.to || a.to >= key); });
+}
+function anaesBox(host, key){
+  if (hasTeams() || CADRE !== "pg") return;
+  var list = anaesOn(key);
+  if (!list.length) return;
+  var box = el("div","anaesbox");
+  box.appendChild(el("div","anaeshead","Anaesthesia PG in ECSRR"));
+  ANAES_TIMES.forEach(function(t){
+    var on = list.filter(function(a){ return a.time === t[0]; });
+    if (!on.length) return;
+    var r = el("div","anaesrow"); r.appendChild(el("span","anaestime", t[1]));
+    var w = el("span","anaeswho");
+    on.forEach(function(a, i){
+      if (i) w.appendChild(document.createTextNode(", "));
+      w.appendChild(document.createTextNode("Dr " + title(a.name)));
+      if (a.phone){ var c = document.createElement("a"); c.className = "callbtn small noprint"; c.href = telHref(a.phone);
+        c.textContent = "\u260E Call"; c.title = "Call Dr " + title(a.name); w.appendChild(c); }
+    });
+    r.appendChild(w); box.appendChild(r);
+  });
+  host.appendChild(box);
+}
 
 /* ---------------------------------------------------------------
    STORE.  Everything persistent goes through here. Today it writes to
@@ -2237,7 +2360,7 @@ function wireApply(){
     }
     /* JRs: no more than 2.5 days of leave in a calendar month */
     var over = hasTeams() ? overMonthCap(n, items.map(function(x){ return x.body; })) : "";
-    if (over && !HOD){ msg.className = "status bad"; msg.textContent = over + " Leave is limited to " + monthCap() + " days a month."; return; }
+    /* over the limit: it can still be sent; the extra days are leave without pay */
     msg.textContent = "Saving\u2026";
     runSeq([function(){ return STORE.putMany("leaves", items); }]).then(function(r){
       if (r.refused){ msg.className="status bad"; msg.textContent="Not saved - tap Unlock editing and enter the department passphrase."; return; }
@@ -2246,7 +2369,12 @@ function wireApply(){
       msg.className = "status";
       msg.textContent = HOD
         ? "Entered for " + (isHalf ? "half a day" : span + (span===1?" day":" days")) + " and approved." + (over ? " Note: over the monthly limit - " + over : "")
-        : "Sent for approval - " + span + (span===1?" day":" days") + ". It shows in the roster marked awaiting approval.";
+        : "Sent for approval - " + (isHalf ? "half a day" : span + (span===1?" day":" days")) + ". It shows in the roster marked awaiting approval.";
+      if (over){
+        msg.className = "status bad";
+        msg.textContent += " Note: " + monthCap() + " days a month is the limit - " + over
+          + " The days over it count as leave without pay (salary deducted). The Head of the Department sees this.";
+      }
     });
   };
 }
@@ -2356,7 +2484,8 @@ function renderApprovals(){
     row.appendChild(el("div","apprdet", requestDetail(g)));
     if (g.kind === "leave" && hasTeams()){
       var ov = monthsOver(g.v.resident);
-      if (ov.length) row.appendChild(el("div","overcap", "Over " + monthCap() + " days a month: " + ov.join(", ")));
+      if (ov.length) row.appendChild(el("div","overcap", "Over " + monthCap() + " days a month (" + ov.join(", ")
+        + ") - the days over the limit count as leave without pay."));
     }
     var btns = el("div","apprbtns");
     if (g.kind === "leave"){
@@ -2588,6 +2717,8 @@ function renderToday(){
   if (!host) return;
   host.innerHTML = "";
   todayPostBox(host);
+  academicBox(host);
+  anaesBox(host, todayKey());
   var ms = todayMs();
   if (ms === null){
     if (lbl) lbl.textContent = "";
@@ -2997,6 +3128,7 @@ function renderRoster(){
     th.appendChild(el("span","dow",DOW[d.getUTCDay()]));
     if (hol) th.appendChild(el("span","holi",hol));
     if (key===tk) th.appendChild(el("span","todaychip","Today"));
+    var ac1 = academicLine(key, true); if (ac1) th.appendChild(ac1);
     tr.appendChild(th);
 
     CFG.slots.forEach(function(s){
@@ -3049,6 +3181,7 @@ function chipFor(kind, it){
   else if (isDeclined(it.v)) ch.className += " decl";
   ch.appendChild(document.createTextNode(kind==="leave"
     ? title(it.v.resident) + (it.v.half ? " · half day" : "") + (it.v.reason? " · "+it.v.reason : "")
+      + (hasTeams() && isExcess(it.id) ? " · over 2.5 - without pay" : "")
       + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
     : kind==="newcover"
       ? title(it.v.relieved) + " relieved · " + title(it.v.by) + " covers"
@@ -3649,6 +3782,7 @@ function renderCards(){
     if (hol) h.appendChild(el("span","holflag",hol));
     if (key===tk) h.appendChild(el("span","todayflag","Today"));
     card.appendChild(h);
+    var ac2 = academicLine(key, false); if (ac2) card.appendChild(ac2);
 
     CFG.slots.forEach(function(s){
       var row = el("div","drow "+s.zone), lbl = el("div","lbl");
@@ -4044,6 +4178,33 @@ function monthsOver(n){
   }
   return out;
 }
+/* Which leave days go past the monthly limit: within each calendar month,
+   in date order, the days after 2.5 have been used. They are leave without
+   pay - kept off the entitlement and shown so on the attendance sheet. */
+var EXCESS = null;
+function excessIds(){
+  if (EXCESS) return EXCESS;
+  EXCESS = {};
+  if (!hasTeams()) return EXCESS;
+  var by = {}, k;
+  for (k in DATA.leaves){
+    var lv = DATA.leaves[k];
+    if (!lv || isDeclined(lv)) continue;
+    if (CFG.offFree && baseDuty(lv.resident, msOf(lv.date)) === "OFF") continue;
+    (by[lv.resident] = by[lv.resident] || []).push({id:k, v:lv});
+  }
+  Object.keys(by).forEach(function(n){
+    var used = {};
+    by[n].sort(function(a, b){ return a.v.date < b.v.date ? -1 : a.v.date > b.v.date ? 1 : (a.v.createdAt||0) - (b.v.createdAt||0); });
+    by[n].forEach(function(x){
+      var mk = x.v.date.slice(0, 7), w = leaveWeight(n, x.v.date, x.v.half);
+      if ((used[mk] || 0) + w > monthCap() + 1e-9) EXCESS[x.id] = 1;
+      used[mk] = (used[mk] || 0) + w;
+    });
+  });
+  return EXCESS;
+}
+function isExcess(id){ return !!excessIds()[id]; }
 /* "" when new leave fits; otherwise what is over, in words */
 function overMonthCap(n, bodies){
   var add = {}, cap = monthCap(), out = [];
@@ -4078,6 +4239,7 @@ function leaveTaken(n, ly){
     if (isDeclined(lv)) continue;              /* refused: never charged */
     if (CFG.offFree && baseDuty(n, ms) === "OFF") continue;   /* due off anyway: not leave */
     var w = leaveWeight(n, lv.date, lv.half);   /* half a day is half; a JR night is two */
+    if (isExcess(k)) continue;                  /* over the monthly limit: without pay, not from the entitlement */
     if (lv.coveredBy){ covered++; continue; }  /* older entries, before covers stood alone */
     if (isPending(lv)){ pending += w; continue; } /* charged only once approved */
     if (ms>today){ ahead += w; continue; }
@@ -4785,6 +4947,41 @@ function renderPgSetup(host){
   }
   drawGroups();
 
+  /* ---- anaesthesia PGs posted in ECSRR: change month by month ---- */
+  host.appendChild(el("h3", "sethead", "Anaesthesia PGs in ECSRR"));
+  host.appendChild(el("p","note","They change every month. Name, number, timing and dates - they show on Today, with a Call button, for the days given."));
+  var arows = (CFG.anaes || []).map(function(a){ return JSON.parse(JSON.stringify(a)); });
+  var alist = el("div","plist2"); host.appendChild(alist);
+  function drawAnaes(){
+    alist.innerHTML = "";
+    if (!arows.length) alist.appendChild(el("p","status","None added."));
+    arows.forEach(function(a){
+      var c = el("div","pcard anaescard"), top = el("div","pctop");
+      var ni = inputOf("text", a.name ? title(a.name) : "", "Name", function(v){ a.name = v; }); ni.className = "pname2";
+      top.appendChild(ni);
+      var rm = el("button","ghost rm","Remove"); rm.type = "button";
+      rm.onclick = function(){ arows.splice(arows.indexOf(a), 1); drawAnaes(); };
+      top.appendChild(rm); c.appendChild(top);
+      var ts = document.createElement("select"); ANAES_TIMES.forEach(function(t){ ts.appendChild(opt(t[0], t[1])); });
+      ts.value = a.time || "9-4"; a.time = ts.value; ts.onchange = function(){ a.time = ts.value; };
+      var grid = el("div","pgrid");
+      grid.appendChild(f("Phone", inputOf("tel", a.phone, "10-digit mobile", function(v){ a.phone = v; })));
+      grid.appendChild(f("Timing", ts));
+      grid.appendChild(f("From", inputOf("date", a.from, "", function(v){ a.from = v; })));
+      grid.appendChild(f("To", inputOf("date", a.to, "", function(v){ a.to = v; })));
+      c.appendChild(grid); alist.appendChild(c);
+    });
+  }
+  drawAnaes();
+  var addA = el("button","ghost","+ Add an anaesthesia PG"); addA.type = "button"; addA.style.margin = "4px 0 18px";
+  addA.onclick = function(){
+    var t0 = new Date(msOf(todayKey())), y0 = t0.getUTCFullYear(), m0 = t0.getUTCMonth();
+    arows.push({name:"", phone:"", time:"9-4", from:iso(Date.UTC(y0, m0, 1)), to:iso(Date.UTC(y0, m0 + 1, 0))});
+    drawAnaes();
+    var ins = alist.querySelectorAll("input.pname2"); if (ins.length) ins[ins.length-1].focus();
+  };
+  host.appendChild(addA);
+
   /* ---- the rest ---- */
   var w2 = el("div","inline"); w2.style.marginTop = "12px";
   var lvIn = document.createElement("input"); lvIn.type = "number"; lvIn.min = "0"; lvIn.value = String(CFG.annualLeave); lvIn.inputMode = "numeric";
@@ -4861,8 +5058,18 @@ function renderPgSetup(host){
         else lv[n] = r.leave;
       }
     });
+    var anOut = [];
+    arows.forEach(function(a){
+      var n = String(a.name||"").trim().replace(/^dr\.?\s+/i, "").replace(/\s+/g, " ").toUpperCase();
+      if (!n) return;
+      var ph = String(a.phone||"").replace(/[\s\-()]/g, "");
+      if (ph && !/^\+?\d{10,13}$/.test(ph)) problems.push(title(n) + "'s number does not look right");
+      if (a.from && a.to && a.to < a.from) problems.push(title(n) + ": check the dates");
+      anOut.push({name:n, phone:ph, time:a.time || "9-4", from:a.from || "", to:a.to || ""});
+    });
     if (problems.length){ msg.textContent = "Not saved: " + problems.join("; ") + "."; return; }
 
+    next.anaes = anOut;
     next.annualLeave = al;
     next.slots = slots;
     next.leaving = lv;
@@ -5970,12 +6177,12 @@ function renderHours(){
      P present - on a duty, or covering one      O off
      L leave                                      A absent
      R relieved - a colleague covered the duty    (blank) not on the roster that day */
-var ATT_KEYS = [["P","Present"],["O","Off"],["L","Leave"],["H","Half day leave"],["A","Absent"],["R","Relieved"]];
+var ATT_KEYS = [["P","Present"],["O","Off"],["L","Leave"],["H","Half day leave"],["W","Leave without pay (over 2.5 a month)"],["A","Absent"],["R","Relieved"]];
 function attMark(eff, n){
   var d = eff.duty[n];
   if (d == null) return "";
   if ((eff.extra[n]||[]).length) return "P";
-  if (d === "LEAVE") return "L";
+  if (d === "LEAVE") return (eff.lwp && eff.lwp[n]) ? "W" : "L";
   if (eff.half && eff.half[n] && d !== "ABSENT" && d !== "RELIEVED" && d !== "OFF") return "H";
   if (d === "ABSENT") return "A";
   if (d === "RELIEVED") return "R";
@@ -5989,7 +6196,7 @@ function attendanceData(fromMs, toMs){
   people.forEach(function(n){
     var vis = hasTeams() && visitorOf(n);
     rows[n] = {name:n, group:(vis ? visLabel(vis, " ") + " / " : "") + (groupLabel(n, fromMs) || groupLabel(n, toMs) || (vis && vis.group) || ""),
-               marks:[], tot:{P:0,O:0,L:0,H:0,A:0,R:0}, hours:0};
+               marks:[], tot:{P:0,O:0,L:0,H:0,W:0,A:0,R:0}, hours:0};
   });
   effs.forEach(function(e){
     people.forEach(function(n){
@@ -6361,6 +6568,7 @@ function wireNav(){
   mark();
 }
 function renderAll(){
+  EXCESS = null;
   var swl = document.getElementById("switchLine");
   if (swl) swl.hidden = !(LINK && ENDPOINT && !GATED);
   fillAbsMonths();
