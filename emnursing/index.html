@@ -679,6 +679,33 @@ body.nurse #mnav [data-go=counterSec], body.nurse #mnav [data-go=indSec], body.n
 .grpbtn.ecsrr{min-height:0;padding:2px 8px;font-size:12px;border-radius:999px;margin-left:4px;vertical-align:1px}
 .grpbtn.ecsrr .team{font-size:12px;font-weight:600}
 .grpbtn.ecsrr small{font-size:11px;margin-left:3px}
+/* nursing staff: no tools card at all */
+body.nurse #toolsCard{display:none !important}
+#dbstatus:empty{display:none}
+/* PG CMOs from other departments: plain, like any colleague */
+.nm.visitor{font-weight:400;background:transparent;color:var(--ink) !important}
+.nm.visitor .vistag{font-size:11px;color:var(--muted);font-weight:400;background:transparent;border:0;padding:0;margin-left:4px}
+/* the CMO on duty: the one name that stands out */
+.cmoline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;width:100%;margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:var(--green-bg);color:var(--green-ink);font-size:14px}
+.cmoline .a{font-size:12px;font-weight:600;opacity:.85}
+.cmoline .cmoname2{font-weight:700}
+/* a JR shift that has been posted: label on top, the posting full width below */
+.trow.posted{grid-template-columns:1fr;gap:6px}
+.trow.posted .tl{display:flex;align-items:baseline;gap:8px}
+.trow.posted .tl b{display:inline}
+.trow.posted .tv{display:block}
+.trow.posted .tv > .grpbtn{margin-bottom:4px}
+.trow.posted .arealist{border-top:0;padding-top:0;margin-top:4px;background:var(--panel2);border-radius:8px;padding:6px 10px}
+.arow{grid-template-columns:84px 1fr;padding:4px 0;border-bottom:1px solid var(--rule)}
+.arow:last-child{border-bottom:0}
+.postremind{margin:8px 0 0;font-size:13px;color:var(--warn-ink);text-align:center}
+.tv > .nm.visitor{display:block;margin:2px 0}
+.absfold{cursor:pointer}
+.absgrp{width:100%}
+.absbtn{background:transparent;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);cursor:pointer}
+.abslist{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.chip.abs{border:1px solid var(--rule) !important;border-style:solid !important;background:var(--panel2) !important;color:var(--ink) !important;font-size:12.5px}
+.chip.abs .sttag{color:var(--muted);background:transparent;border:0}
 </style>
 </head>
 <body>
@@ -751,7 +778,7 @@ body.nurse #mnav [data-go=counterSec], body.nurse #mnav [data-go=indSec], body.n
 </section>
 
 <div id="myDetails" class="cmocard noprint" hidden></div>
-<div class="card noprint">
+<div class="card noprint" id="toolsCard">
   <div class="inline">
     <div id="whoWrap"><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
     <div id="previewBar" hidden><label for="previewRole">Preview - try it as</label>
@@ -1201,7 +1228,24 @@ function teamsOn(g, ms, raw){
 }
 function visitorsOn(ms){
   var k = iso(ms);
-  return (CFG.visitors || []).filter(function(v){ return v && v.name && v.from <= k && (!v.to || k <= v.to); });
+  return (CFG.visitors || []).filter(function(v){
+    if (!v || !v.name || v.from > k || (v.to && k > v.to)) return false;
+    if (v.roster){ var sp = rosterSpan(v.name); if (sp && (k < sp[0] || k > sp[1])) return false; }
+    return true;
+  });
+}
+/* A roster PG CMO's first and last day on the roster sheet: before or after
+   that they are not posted here at all (e.g. one PG for the first half of
+   the month, another for the second) - not "off". */
+var SPAN = null, SPAN_SRC = null;
+function rosterSpan(name){
+  var R = CFG.visitorRoster || {};
+  if (SPAN_SRC !== R){ SPAN = {}; SPAN_SRC = R;
+    Object.keys(R).sort().forEach(function(k){ var d = R[k] || {};
+      Object.keys(d).forEach(function(s){ (d[s] || []).forEach(function(n){
+        var end = s === "N" ? iso(msOf(k) + DAY) : k;     /* the night off after a last night */
+        if (!SPAN[n]) SPAN[n] = [k, end]; else if (end > SPAN[n][1]) SPAN[n][1] = end; }); }); }); }
+  return SPAN[name] || null;
 }
 function visitorOf(n){
   var vs = CFG.visitors || [];
@@ -1245,6 +1289,8 @@ function rosterVisitorDuty(name, ms){
   if (!v || !v.roster) return undefined;
   var k = iso(ms);
   if (k < v.from || (v.to && k > v.to)) return null;
+  var sp = rosterSpan(name);
+  if (!sp || k < sp[0] || k > sp[1]) return null;
   var r = (CFG.visitorRoster || {})[k] || {};
   for (var s in r) if ((r[s] || []).indexOf(name) >= 0 && slotExists(s)) return s;
   return "OFF";
@@ -1376,10 +1422,10 @@ function cmoLine(key, slot){
   var list = cmosOn(key, slot);
   if (!list.length) return null;
   var d = el("div","cmoline");
-  d.appendChild(el("span","a","CMO: "));
+  d.appendChild(el("span","a","CMO on duty"));
   list.forEach(function(it, i){
     if (i) d.appendChild(document.createTextNode(", "));
-    d.appendChild(document.createTextNode("Dr " + title(it.v.name)));
+    d.appendChild(el("b","cmoname2","Dr " + title(it.v.name)));
     if (it.v.phone){
       var a = document.createElement("a"); a.className = "callbtn small noprint"; a.href = telHref(it.v.phone);
       a.textContent = "\u260E"; a.title = "Call Dr " + title(it.v.name); d.appendChild(a);
@@ -2832,13 +2878,23 @@ function setStatus(msg, bad){
   s.textContent = msg; s.className = "status" + (bad?" bad":"");
 }
 function idleStatus(){
+  var waiting = STORE.pending ? STORE.pending() : 0;
+  /* nursing staff and CMOs need no status line - only a warning if offline */
+  if (NURSE || CMO){
+    if (ENDPOINT && STORE.online === false && !waiting) setStatus("Offline - showing the last copy.", true);
+    else if (waiting) setStatus(waiting + " entr" + (waiting===1?"y":"ies") + " waiting to go up - they will when the connection is back.", true);
+    else setStatus("");
+    return;
+  }
   var who = ME ? "Showing Dr " + title(ME) + "’s duties below."
                : "Choose your name and your own duties appear below.";
-  var waiting = STORE.pending ? STORE.pending() : 0;
+  if (CADRE === "jr" && ROLE === "jr")
+    who = ME ? "Your duties and leave are below, Dr " + title(ME) + ". To take leave, tap Apply for leave - it goes to HOD Sir."
+             : "Choose your name above to see your duties and your leave balance.";
   if (FAC) who += "  Faculty view - you can see the rosters; only the Head of the Department changes them.";
   else if (CMO) who += "  CMO: you can allot postings and mark yourself on duty" + (CMONAME ? "" : " - type your name in the box first") + ".";
   else if (MAAM) who += "  In-charge: changes you make take effect at once.";
-  else if (CADRE === "jr" && ROLE === "jr") who += "  You can apply for leave; it goes to the Head of the Department.";
+  else if (CADRE === "jr" && ROLE === "jr") {}
   else if (ENDPOINT && !UNLOCKED) who += "  This device can look but not change - unlock editing at the foot of the page.";
   if (!ENDPOINT) setStatus(who + "  Entries are saved on this device only.");
   else if (STORE.online && !waiting) setStatus(who + "  Shared with the department.");
@@ -2946,7 +3002,7 @@ function renderOtherToday(host, ms){
       var tv = el("div","tv");
       if (hasTeams()) fillSlot(tv, eff, s.k, ms, true); else tv.textContent = slotText(eff, s.k, ms) || "-";
       var ocl = cmoLine(iso(ms), s.k);
-      if (ocl) tv.appendChild(ocl);
+      if (ocl) tv.insertBefore(ocl, tv.firstChild);
       row.appendChild(tv);
       box.appendChild(row);
     });
@@ -2972,6 +3028,8 @@ function todayPostBox(host){
   b.type = "button"; b.id = "postNowBtn";
   b.onclick = function(){ TODAY_POST = !TODAY_POST; renderToday(); };
   wrap.appendChild(b);
+  var posted = Object.keys(postingsOn(key, slot)).length;
+  if (!TODAY_POST && !posted) wrap.appendChild(el("p","postremind","Please post the JRs as early as possible in the shift."));
   if (TODAY_POST) wrap.appendChild(postingEditor(key, slot, function(){ TODAY_POST = false; }));
   host.appendChild(wrap);
 }
@@ -3006,8 +3064,12 @@ function renderToday(){
     if (hasTeams()){
       fillSlot(tv, eff, s.k, ms, true);
       var cl = cmoLine(iso(ms), s.k);
-      if (cl) tv.appendChild(cl);
+      if (cl) tv.insertBefore(cl, tv.firstChild);
       var ar = slotAreas(eff, s.k, ms).filter(function(a){ return a.area !== "Not posted"; });
+      if (ar.length) row.className += " posted";
+      /* PG CMOs already have their own line above the JRs */
+      ar = ar.map(function(a){ return {area:a.area, names:a.names.filter(function(n){ return !visitorOf(n); })}; })
+             .filter(function(a){ return a.names.length; });
       if (ar.length){
         var ad = el("div","arealist");
         ar.forEach(function(a){
@@ -3056,7 +3118,15 @@ function renderToday(){
     var row = el("div","trow away");
     var tl = el("div","tl"); tl.appendChild(el("b",null,p[0]));
     row.appendChild(tl);
-    row.appendChild(el("div","tv", p[1].map(function(n){return "Dr "+title(n);}).join(", ")));
+    var names = p[1].map(function(n){return "Dr "+title(n);}).join(", ");
+    if (p[0] === "Absent"){
+      /* kept quiet: just a count, the names on a tap */
+      var tv = el("div","tv absfold"), open = false;
+      tv.setAttribute("role","button"); tv.tabIndex = 0;
+      var paint = function(){ tv.textContent = open ? names : p[1].length + " ▸"; };
+      tv.onclick = function(){ open = !open; paint(); }; paint();
+      row.appendChild(tv);
+    } else row.appendChild(el("div","tv", names));
     host.appendChild(row);
   });
   renderOtherToday(host, ms);
@@ -3185,7 +3255,7 @@ function nameChip(n, ms, eff, slotK, tinted){
   var g = groupOf(n, ms), lead = CFG.groups.length ? CFG.groups[0].id : null;
   var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), title(n));
   var vis = hasTeams() && visitorOf(n);
-  if (vis) c.appendChild(el("span","vistag", visLabel(vis, " · ")));
+  if (vis){ c.className += " visitor"; c.appendChild(el("span","vistag", visLabel(vis, " · "))); }
   if (eff.changed[n] && !NURSE){
     c.className += " changed"; c.setAttribute("role","button"); c.tabIndex = 0;
     c.title = "Tap to see why";
@@ -3211,6 +3281,8 @@ function fillSlot(node, eff, slotK, ms, tinted){
     return inSlot(eff, slotK).length;
   }
   var se = slotEntries(eff, slotK, ms);
+  /* order on a shift: (the CMO on duty, added by the caller), then PG CMOs, then the JR group */
+  se.people.forEach(function(n){ node.appendChild(nameChip(n, ms, eff, slotK, tinted)); });
   se.teams.forEach(function(t){
     var c = el("span", "team", t.name);
     c.appendChild(el("small", null, t.on === t.total ? "all " + t.total : t.on + " of " + t.total));
@@ -3229,7 +3301,6 @@ function fillSlot(node, eff, slotK, ms, tinted){
     };
     node.appendChild(btn);
   });
-  se.people.forEach(function(n){ node.appendChild(nameChip(n, ms, eff, slotK, tinted)); });
   return se.teams.length + se.people.length;
 }
 /* Who is on a shift, by area: [{area, names}], with anyone not yet posted
@@ -3422,14 +3493,14 @@ function renderRoster(){
     CFG.slots.forEach(function(s){
       var td = el("td","z-"+zoneClass(s.zone));
       var nWho = fillSlot(td, eff, s.k, ms, false);
-      if (hasTeams() && s.k !== "OFF"){ var cl1 = cmoLine(key, s.k); if (cl1) td.appendChild(cl1); }
+      if (hasTeams() && s.k !== "OFF"){ var cl1 = cmoLine(key, s.k); if (cl1) td.insertBefore(cl1, td.firstChild); }
       if (s.k==="OFF" && !nWho) td.appendChild(el("span","nm","—"));
       tr.appendChild(td);
     });
 
     var tdL = el("td","z-act");
     leavesOn(key).forEach(function(it){ tdL.appendChild(chipFor("leave", it)); });
-    absencesOn(key).concat(autoAbsOn(key)).forEach(function(it){ tdL.appendChild(absChip(it)); });
+    absFold(tdL, key, absencesOn(key).concat(autoAbsOn(key)));
     tdL.appendChild(addBtn(key,"leave"));
     if (hasTeams()) tdL.appendChild(addBtn(key,"absent"));
     tr.appendChild(tdL);
@@ -3786,6 +3857,18 @@ function newCoverEditor(key){
    Marked by the CMO, the in-charge or the HOD. Never deleted: a mistake is
    withdrawn, and the withdrawal stays in the record. Only the HOD can turn an
    absence into leave, which then counts against the JR's entitlement. */
+var ABS_OPEN = {};
+function absFold(host, key, items){
+  if (!items.length) return;
+  var wrap = el("div","absgrp"), btn = el("button","absbtn"), list = el("div","abslist");
+  btn.type = "button";
+  var paint = function(){ var o = !!ABS_OPEN[key];
+    btn.textContent = items.length + " absent " + (o ? "▾" : "▸"); list.style.display = o ? "" : "none"; };
+  btn.onclick = function(ev){ ev.stopPropagation(); ABS_OPEN[key] = !ABS_OPEN[key]; paint(); };
+  items.forEach(function(it){ list.appendChild(absChip(it)); });
+  wrap.appendChild(btn); wrap.appendChild(list); paint();
+  host.appendChild(wrap);
+}
 function absChip(it){
   var v = it.v, wd = v.status === "withdrawn";
   var ch = el("span","chip lv abs" + (wd ? " decl" : ""));
@@ -3950,7 +4033,8 @@ function postingEditor(key, wantSlot, onClose){
     Object.keys(q).forEach(function(a){
       var need = q[a] - (c[a] || 0);
       if (need <= 0) return;
-      var pool = Object.keys(sels).filter(function(x){ return !sels[x].value || sels[x].value === "Green"; });
+      /* PG CMOs from other departments are posted in Green, not to the fixed places */
+      var pool = Object.keys(sels).filter(function(x){ return (!sels[x].value || sels[x].value === "Green") && !visitorOf(x); });
       pool.sort(function(x, y){
         var lx = lastIn(x, a, key), ly = lastIn(y, a, key);
         return lx === ly ? (x < y ? -1 : 1) : (lx < ly ? -1 : 1);
@@ -4082,7 +4166,7 @@ function renderCards(){
       row.appendChild(lbl);
       var val = el("div","val");
       var nWho = fillSlot(val, eff, s.k, ms, true);
-      if (hasTeams() && s.k !== "OFF"){ var cl2 = cmoLine(key, s.k); if (cl2) val.appendChild(cl2); }
+      if (hasTeams() && s.k !== "OFF"){ var cl2 = cmoLine(key, s.k); if (cl2) val.insertBefore(cl2, val.firstChild); }
       if (s.k==="OFF" && !nWho) val.appendChild(el("span","nm","—"));
       row.appendChild(val);
       card.appendChild(row);
@@ -4092,7 +4176,7 @@ function renderCards(){
        that opens the choices (leave, exchange, move, cover...). */
     var la = el("div","dact noprint");
     leavesOn(key).forEach(function(it){ la.appendChild(chipFor("leave",it)); });
-    absencesOn(key).concat(autoAbsOn(key)).forEach(function(it){ la.appendChild(absChip(it)); });
+    absFold(la, key, absencesOn(key).concat(autoAbsOn(key)));
     swapsOn(key).forEach(function(it){ la.appendChild(chipFor("swap",it)); });
     movesOn(key).forEach(function(it){ la.appendChild(chipFor("move",it)); });
     coversOn(key).forEach(function(it){ la.appendChild(chipFor("newcover",it)); });
