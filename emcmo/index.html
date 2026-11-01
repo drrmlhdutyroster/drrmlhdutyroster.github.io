@@ -611,6 +611,55 @@ button.acadstrip:active{opacity:.7}
 .reasonbox p{margin:0 0 8px}
 .sharewrap{margin-top:10px}
 .sharewrap #tdShare{margin-top:8px}
+.cmocard{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+.cmohead{font-size:15px;font-weight:700;margin-bottom:8px}
+.cmogrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:10px}
+.cmogrid .pf.wide{grid-column:1/-1}
+.cmogrid input,.cmogrid select{width:100%}
+#cmoOn{width:100%}
+.cmodone{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cmook{font-weight:700;color:var(--green-ink)}
+.cmoname{flex:1 1 auto;font-size:15px}
+.cmodone button{min-height:36px;padding:6px 12px;font-size:14px}
+.posttop{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+.posttop button{flex:1 1 140px}
+.arealist{width:100%;margin-top:8px;border-top:1px solid var(--rule);padding-top:6px;font-size:14px}
+.arow{display:grid;grid-template-columns:78px 1fr;gap:8px;padding:3px 0;align-items:baseline}
+.aname{font-weight:600;color:var(--muted);font-size:13px}
+.awho{min-width:0;overflow-wrap:anywhere;line-height:1.45}
+a.aperson{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--muted)}
+.addmenu{min-height:34px;padding:4px 12px;font-size:13px;font-weight:600;border-radius:999px;background:transparent;border:1px dashed var(--rule);color:var(--accent)}
+.addmenu.open{border-style:solid}
+.addopts{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:4px}
+.daycard .dact{gap:6px}
+.unitstrip{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--rule);border-radius:0;background:transparent;
+  padding:9px 14px;min-height:0;font-size:14px;font-weight:400;color:var(--ink);line-height:1.4}
+.unitstrip b{font-weight:600;color:var(--muted)}
+.unitmore{margin-left:auto;font-size:13px;font-weight:600;color:var(--accent);white-space:nowrap}
+.dirbox h4{margin:16px 0 6px;font-size:13px;color:var(--muted);font-weight:700}
+.dirbox h4:first-child{margin-top:0}
+.dirrow{padding:6px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.dirrow.phone{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dirname{min-width:0}
+.dirnums{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+a.dircall{display:inline-block;padding:5px 10px;border-radius:999px;background:var(--green-bg);color:var(--green-ink);font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
+table.dirweek{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+table.dirweek th,table.dirweek td{padding:5px 4px;text-align:center;border-bottom:1px solid var(--rule)}
+table.dirweek th:first-child{text-align:left}
+h4.setsub{margin:10px 0 4px;font-size:14px}
+.anaestbl td:first-child{white-space:nowrap;font-size:13px;color:var(--muted)}
+.anaestbl input{min-width:150px}
+.unittxt{flex:1 1 auto;min-width:0}
+.dlgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.dlgrid .dlhead{grid-column:1/-1;font-size:13px;font-weight:700;color:var(--muted)}
+.dlgrid input[type=date]{width:100%;min-width:0}
+.dlgrid .dldate{min-width:0}
+.dlgrid button{width:100%;min-width:0;padding-left:8px;padding-right:8px}
+.dlgrid #absMonth,.dlgrid #pAbs,.dlgrid .dlstat{grid-column:1/-1}
+.dlgrid .dlstat:empty{display:none}
+.lrbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:12px}
+.lrbtns #applyBtn{grid-column:1/-1}
+.lrbtns button{width:100%}
 </style>
 </head>
 <body>
@@ -654,6 +703,20 @@ button.acadstrip:active{opacity:.7}
     <span class="grow"></span>
     <span class="tdate" id="tdDate"></span>
   </div>
+  <!-- the CMO: who is on duty, first; posting comes after -->
+  <div id="cmoBar" class="cmocard noprint" hidden>
+    <div id="cmoForm">
+      <div class="cmohead">CMO on duty</div>
+      <div class="cmogrid">
+        <div class="pf wide"><label for="cmoName">Your name</label><input id="cmoName" type="text" autocomplete="name" placeholder="Dr ..."></div>
+        <div class="pf"><label for="cmoPhone">Your number</label><input id="cmoPhone" type="tel" autocomplete="tel" placeholder="10-digit mobile"></div>
+        <div class="pf"><label for="cmoShift">Shift</label><select id="cmoShift"><option value="M">Morning</option><option value="E">Evening</option><option value="N">Night</option></select></div>
+      </div>
+      <button class="primary" id="cmoOn" type="button">I'm on duty</button>
+    </div>
+    <div id="cmoDone" class="cmodone" hidden></div>
+    <span class="status" id="cmoMsg"></span>
+  </div>
   <div class="todaycard" id="todayCard"></div>
   <div class="noprint sharewrap">
     <button class="ghost" id="tdShareBtn" aria-expanded="false" aria-controls="tdShare">Share</button>
@@ -670,13 +733,7 @@ button.acadstrip:active{opacity:.7}
 
 <div class="card noprint">
   <div class="inline">
-    <div><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
-    <div id="cmoBar" class="cmobar" hidden><label for="cmoName" style="width:100%">CMO on duty - your name</label>
-      <input id="cmoName" type="text" autocomplete="name" placeholder="Dr ...">
-      <input id="cmoPhone" type="tel" autocomplete="tel" placeholder="Your number (for the Call button)">
-      <select id="cmoShift" aria-label="Shift"><option value="M">Morning</option><option value="E">Evening</option><option value="N">Night</option></select>
-      <button class="primary" id="cmoOn" type="button">I'm on duty</button>
-      <span class="status" id="cmoMsg" style="width:100%"></span></div>
+    <div id="whoWrap"><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
     <div id="previewBar" hidden><label for="previewRole">Preview - try it as</label>
       <select id="previewRole" style="width:100%">
         <option value="jr">A JR</option><option value="cmo">A CMO</option>
@@ -684,18 +741,15 @@ button.acadstrip:active{opacity:.7}
         <option value="hod">HOD Sir</option></select></div>
     <div style="flex:2 1 280px" class="status" id="dbstatus"></div>
   </div>
-  <div class="inline dlrow" style="margin-top:12px;align-items:flex-end">
-    <div class="dldate"><label for="pdfFrom">Roster from</label>
-      <input type="date" id="pdfFrom"></div>
-    <div class="dldate"><label for="pdfTo">to</label>
-      <input type="date" id="pdfTo"></div>
-    <div style="flex:1 1 auto">
-      <button class="primary" id="pAll">Download PDF</button>
-      <button class="ghost" id="pReg">Register of changes</button>
-      <select id="absMonth" hidden aria-label="Month for the absence statement"></select>
-      <button class="ghost" id="pAbs" hidden>Absence statement</button>
-      <span class="status" id="dlStat"></span>
-    </div>
+  <div class="dlgrid">
+    <div class="dlhead">Roster PDF</div>
+    <div class="dldate"><label for="pdfFrom">From</label><input type="date" id="pdfFrom"></div>
+    <div class="dldate"><label for="pdfTo">To</label><input type="date" id="pdfTo"></div>
+    <button class="primary" id="pAll">Download PDF</button>
+    <button class="ghost" id="pReg">Changes register</button>
+    <select id="absMonth" hidden aria-label="Month for the absence statement"></select>
+    <button class="ghost" id="pAbs" hidden>Absence statement</button>
+    <span class="status dlstat" id="dlStat"></span>
   </div>
 </div>
 
@@ -734,7 +788,7 @@ button.acadstrip:active{opacity:.7}
   </div>
   <div class="scroller" id="tableWrap"><table id="roster"></table></div>
   <div id="cards"></div>
-  <p class="note noprint" id="rosterTip" style="margin-top:10px">Use <b>+ leave</b> or <b>+ exchange</b> in any row. An exchange swaps just those two duties on that one day. A day somebody else is named to cover is an exchange in practice, so it is not counted against leave.</p>
+  <p class="note noprint" id="rosterTip" style="margin-top:10px">Tap <b>+ Add</b> on a day to record leave, an exchange, a move or a cover. An exchange swaps just those two duties on that one day. A day somebody else is named to cover is an exchange in practice, so it is not counted against leave.</p>
 </section>
 
 <section id="indSec">
@@ -744,14 +798,13 @@ button.acadstrip:active{opacity:.7}
 </section>
 
 <section id="counterSec">
-  <div class="bar" style="margin-bottom:10px">
-    <h2 style="margin:0;border:0;padding:0">Leave record</h2>
-    <span class="grow"></span>
-    <button class="primary noprint" id="applyBtn" aria-expanded="false" aria-controls="applyBox">Apply for leave</button>
+  <h2 style="margin:0 0 10px;border:0;padding:0">Leave record</h2>
+  <div class="lrbtns noprint">
+    <button class="primary" id="applyBtn" aria-expanded="false" aria-controls="applyBox">Apply for leave</button>
     <!-- one button only: Apply for leave. The printable form is on each leave entry. -->
-    <button class="ghost noprint" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox" hidden>Leave application</button>
-    <button class="ghost noprint" id="attBtn" aria-expanded="false" aria-controls="attBox">Attendance</button>
-    <button class="ghost noprint" id="cAll" aria-pressed="false">Show everyone</button>
+    <button class="ghost" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox" hidden>Leave application</button>
+    <button class="ghost" id="attBtn" aria-expanded="false" aria-controls="attBox">Attendance</button>
+    <button class="ghost" id="cAll" aria-pressed="false">Show everyone</button>
   </div>
   <div id="attBox" class="lockbox noprint" hidden>
     <div class="inline" style="align-items:flex-end">
@@ -1663,31 +1716,96 @@ function academicBox(host){
   host.appendChild(box);
 }
 
+/* ---------- emergency units of the day, and hospital numbers ---------- */
+var UNITS = {
+  medicine:{name:"Medicine", byDay:{1:"M3",2:"M4",3:"M6",4:"M1",5:"M2",6:"M5"},
+    heads:{M1:"Dr Ratnakar Sahoo",M2:"Dr Nagina Aggarwal",M3:"Dr M.P.S. Chawla",M4:"Dr Brijesh Sharma",M5:"Dr Subhash Giri",M6:"Dr Geeta Kampani"}},
+  surgery:{name:"Surgery", byDay:{1:"S4",2:"S5",3:"S6",4:"S1",5:"S2",6:"S3"}, heads:{}}
+};
+function unitsFor(key){
+  var d = new Date(msOf(key)).getUTCDay(), out = [];
+  Object.keys(UNITS).forEach(function(k){ var u = UNITS[k], code = u.byDay[d]; if (code) out.push({dept:u.name, code:code, head:u.heads[code] || ""}); });
+  return out;
+}
+/* RML extensions: 011 2340 + the four digits */
+var PHONEBOOK = [
+  ["Emergency & triage", [["CMO room","4903/4902"],["Triage","4420"],["ECS RR","4005"],["ECRO","4446"],["Disaster","4662"],["Room no. 10","4001"],["SE 12","4011"],["Paeds","4008"],["Labour room","4215"],["ME4 (doctors)","4016"],["ME4 (nursing office)","4032"],["Nursing Home A","4204"],["Nursing Home B","4216"]]],
+  ["ICUs", [["CCU","4448"],["MICU","4019"],["MICU (NH)","4653"],["NICU","4023"],["NTPR ICU","4924"],["PICU","4033"],["SICU","4013"],["Swine flu ICU","4245"],["TICU","4697/4698"],["TRR","4661"],["Dialysis","4554"]]],
+  ["Wards", [["Ward 2 (Burns/Plastic)","4319"],["Ward 3 (Paeds Med)","4340"],["Ward 4 (Paeds Surg)","4288"],["Ward 5 (M6)","4328"],["Ward 6 (ENT & CTVS)","4253"],["Ward 7 (Cardio)","4342"],["Ward 8 (M5)","4247"],["Ward 9 (M1)","4281"],["Ward 10 (M2)","4327"],["Ward 11 (M3)","4231"],["Ward 12 (M4)","4254"],["Ward 13 (Neuro)","4393"],["Ward 14 (Ortho)","4241"],["Ward 16 (Fem Surg)","4242"],["Ward 17 (M Surg)","4243"],["Ward 18 (M Surg)","4244"],["Ward 21 (Super Spec)","4805"],["Ward 22 (Paeds 1)","4212"],["C2F","4015"],["Neuro T (3rd floor)","4679"],["Urology ward","4386"]]],
+  ["Labs & imaging", [["Blood bank","4298"],["CT room (Nsg Home)","4657"],["CT trauma","4627"],["ECG room","4382"],["MRI (Blood bank)","4534"],["MRI (Nsg Home)","4497"],["USG room","4473"]]],
+  ["OTs", [["Cath lab","4507"],["ECS 5th floor","4028"],["Gynae","4823/4426"],["GFOT","4429"]]]
+];
+function extNumbers(s){ return String(s).split("/").map(function(x){ x = x.trim(); return x.length === 4 ? "0112340" + x : x; }); }
+function unitsLine(host){
+  var key = todayKey(), u = unitsFor(key);
+  var line = el("button","unitstrip"); line.type = "button";
+  line.appendChild(el("b", null, "Units"));
+  line.appendChild(el("span","unittxt", u.length ? u.map(function(x){ return x.dept + " " + x.code; }).join(" \u00B7 ") : "none listed today"));
+  line.appendChild(el("span","unitmore","Numbers \u25B8"));
+  line.onclick = openDirectory;
+  host.appendChild(line);
+}
+function openDirectory(){
+  var box = el("div","dirbox"), key = todayKey(), u = unitsFor(key);
+  box.appendChild(el("h4", null, "Emergency units today"));
+  if (u.length) u.forEach(function(x){ box.appendChild(el("div","dirrow", x.dept + " \u00B7 " + x.code + (x.head ? " \u00B7 " + x.head : ""))); });
+  else box.appendChild(el("div","dirrow","None listed for today."));
+  var wk = el("table","dirweek"), hr = el("tr"); hr.appendChild(el("th", null, ""));
+  ["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(d){ hr.appendChild(el("th", null, d)); }); wk.appendChild(hr);
+  Object.keys(UNITS).forEach(function(k){ var tr = el("tr"); tr.appendChild(el("th", null, UNITS[k].name));
+    [1,2,3,4,5,6].forEach(function(d){ tr.appendChild(el("td", null, UNITS[k].byDay[d] || "")); }); wk.appendChild(tr); });
+  box.appendChild(wk);
+  PHONEBOOK.forEach(function(sec){
+    box.appendChild(el("h4", null, sec[0]));
+    sec[1].forEach(function(r){
+      var row = el("div","dirrow phone");
+      row.appendChild(el("span","dirname", r[0]));
+      var nums = el("span","dirnums");
+      extNumbers(r[1]).forEach(function(n){ var a = document.createElement("a"); a.className = "dircall"; a.href = "tel:" + n; a.textContent = "\u260E " + n.slice(-4); a.title = "Call " + r[0] + " (" + n + ")"; nums.appendChild(a); });
+      row.appendChild(nums); box.appendChild(row);
+    });
+  });
+  openSheet("Units and hospital numbers", box);
+}
+
 /* ---------- anaesthesia PGs in ECSRR (PG roster) ----------
    Posted month by month, 9 am-4 pm or 4 pm-9 pm; set in Setup. */
 var ANAES_TIMES = [["9-4","9 am - 4 pm"],["4-9","4 pm - 9 pm"]];
 function anaesOn(key){
   return (CFG.anaes || []).filter(function(a){ return a && a.name && (!a.from || a.from <= key) && (!a.to || a.to >= key); });
 }
+/* Who is on now: day 9 am - 4 pm, night 4 pm - 9 am (after midnight it is
+   still the night that began the day before). */
 function anaesNow(){
-  var h = new Date().getHours(), t = h >= 9 && h < 16 ? "9-4" : h >= 16 && h < 21 ? "4-9" : null;
-  if (!t) return null;
-  return {time:t, list:anaesOn(todayKey()).filter(function(a){ return a.time === t; })};
+  var now = new Date(), h = now.getHours(), key = todayKey(), part;
+  if (h >= 9 && h < 16) part = "day";
+  else { part = "night"; if (h < 9) key = iso(msOf(key) - DAY); }
+  var r = (CFG.anaesRoster || {})[key], names = (r && r[part]) || [];
+  if (!names.length){       /* the older list, by timing and dates */
+    var t = part === "day" ? "9-4" : "4-9";
+    names = anaesOn(key).filter(function(a){ return a.time === t; }).map(function(a){ return a.name; });
+  }
+  return {part:part, names:names};
 }
-/* a shift-style row on Today, only during 9 am - 9 pm and only whoever's timing it is */
+function anaesPhone(n){
+  var ph = (CFG.anaesPhones || {})[n];
+  if (!ph) (CFG.anaes || []).forEach(function(a){ if (a.name === n && a.phone) ph = a.phone; });
+  return ph || "";
+}
+/* a shift-style row on Today: the anaesthesia PGs in ECSRR right now */
 function anaesRow(host){
   if (hasTeams() || CADRE !== "pg") return;
   var now = anaesNow();
-  if (!now || !now.list.length) return;
-  var row = el("div","trow other"), tl = el("div","tl");
+  if (!now.names.length) return;
+  var row = el("div","trow red"), tl = el("div","tl");
   tl.appendChild(el("b", null, "Anaesthesia (ECSRR)"));
-  tl.appendChild(document.createTextNode(now.time === "9-4" ? "09:00-16:00" : "16:00-21:00"));
+  tl.appendChild(document.createTextNode(now.part === "day" ? "09:00-16:00" : "16:00-09:00"));
   row.appendChild(tl);
   var tv = el("div","tv");
-  now.list.forEach(function(a){
-    var c = el("span","nm", "Dr " + title(a.name));
-    if (a.phone){ var k = document.createElement("a"); k.className = "callbtn small noprint"; k.href = telHref(a.phone);
-      k.textContent = "\u260E"; k.title = "Call Dr " + title(a.name); c.appendChild(k); }
+  now.names.forEach(function(n){
+    var c = el("span","nm", "Dr " + title(n)), ph = anaesPhone(n);
+    if (ph){ var k = document.createElement("a"); k.className = "callbtn small noprint"; k.href = telHref(ph);
+      k.textContent = "\u260E"; k.title = "Call Dr " + title(n); c.appendChild(k); }
     tv.appendChild(c);
   });
   row.appendChild(tv); host.appendChild(row);
@@ -2164,6 +2282,9 @@ function applyLock(){
   b.className = (b.className.replace(/\b(un)?locked\b/g,"").trim() + " " + (UNLOCKED?"unlocked":"locked")).trim();
   var cb = document.getElementById("cmoBar");
   if (cb) cb.hidden = !CMO;
+  var ww = document.getElementById("whoWrap");
+  if (ww) ww.hidden = !!CMO;              /* a CMO has no duties of their own here */
+  cmoState();
   var cn = document.getElementById("cmoName");
   if (cn && document.activeElement !== cn) cn.value = CMONAME;
   var pv = document.getElementById("previewBar");
@@ -2740,6 +2861,7 @@ function todayMs(){ var ms = msOf(todayKey()); return ms < epochMs() ? null : ms
 var TODAY_POST = false;
 function todayPostBox(host){
   if (!hasTeams() || !can("post")) return;
+  if (CMO && !cmoOnNow()) return;           /* the CMO marks themselves on duty first */
   var sd = shiftAndDate(), key = sd.key, slot = sd.slot;
   if (msOf(key) < epochMs()){ key = iso(epochMs()); slot = "M"; }
   var wrap = el("div","postnow noprint");
@@ -2757,6 +2879,7 @@ function renderToday(){
   host.innerHTML = "";
   todayPostBox(host);
   academicBox(host);
+  unitsLine(host);
   var ms = todayMs();
   if (ms === null){
     if (lbl) lbl.textContent = "";
@@ -2782,17 +2905,21 @@ function renderToday(){
       fillSlot(tv, eff, s.k, ms, true);
       var cl = cmoLine(iso(ms), s.k);
       if (cl) tv.appendChild(cl);
-      var ar = slotAreas(eff, s.k, ms);
+      var ar = slotAreas(eff, s.k, ms).filter(function(a){ return a.area !== "Not posted"; });
       if (ar.length){
-        var ad = el("div","areas");
-        ar.forEach(function(a, i){
-          if (i) ad.appendChild(el("br"));
-          ad.appendChild(el("span","a", a.area + ": "));
+        var ad = el("div","arealist");
+        ar.forEach(function(a){
+          var r = el("div","arow");
+          r.appendChild(el("span","aname", a.area));
+          var who = el("span","awho");
           a.names.forEach(function(n, j){
-            if (j) ad.appendChild(document.createTextNode(", "));
-            ad.appendChild(document.createTextNode(title(n)));
-            ad.appendChild(callBtn(n, true));
+            if (j) who.appendChild(document.createTextNode(", "));
+            var ph = phoneOf(n), x = document.createElement(ph ? "a" : "span");
+            x.className = "aperson"; x.textContent = title(n);
+            if (ph){ x.href = telHref(ph); x.title = "Call Dr " + title(n); }
+            who.appendChild(x);
           });
+          r.appendChild(who); ad.appendChild(r);
         });
         tv.appendChild(ad);
       }
@@ -2847,7 +2974,7 @@ function todayMessage(){
       L.push(s.label.toUpperCase() + " " + s.time + ": " + (slotText(eff, s.k, ms) || "-"));
       var cm = cmosOn(iso(ms), s.k);
       if (cm.length) L.push("  CMO: " + cm.map(function(it){ return "Dr " + title(it.v.name); }).join(", "));
-      slotAreas(eff, s.k, ms).forEach(function(a){ L.push("  " + areaText(a)); });
+      slotAreas(eff, s.k, ms).forEach(function(a){ if (a.area !== "Not posted") L.push("  " + areaText(a)); });
       return;
     }
     var who = inSlot(eff,s.k).map(function(n){
@@ -3027,7 +3154,7 @@ function groupPanel(teamName, eff, slotK, ms){
   var visitors = slotEntries(eff, slotK, ms).people;
   var posted = Object.keys(post).length;
   if (posted){
-    areasList().concat(["Not posted"]).forEach(function(a){
+    areasList().concat(HOD ? ["Not posted"] : []).forEach(function(a){
       var ns = on.concat(visitors).filter(function(n){ return a === "Not posted" ? !post[n] : post[n] === a; });
       if (!ns.length) return;
       box.appendChild(el("b", null, a));
@@ -3061,6 +3188,7 @@ function overlapH(a, b){
 }
 function ecsrrFor(ms, pgSlotK){
   if (CADRE !== "pg" || !OTHER || !OTHER.config.groups) return [];
+  if (slotMeta(pgSlotK).zone !== "red") return [];        /* ECSRR is red zone */
   var mine = slotHours(pgSlotK), out = [];
   if (!mine) return out;
   withRoster(OTHER.config, OTHER.data, function(){
@@ -3676,6 +3804,7 @@ function postingEditor(key, wantSlot, onClose){
   if (wantSlot && slots.some(function(s){ return s.k === wantSlot; })) shiftSel.value = wantSlot;
   else if (key === todayKey() && slots.some(function(s){ return s.k === shiftNow(); })) shiftSel.value = shiftNow();
   var top = el("div","inline"); top.appendChild(field("Shift", shiftSel)); box.appendChild(top);
+  var topbar = el("div","posttop"); box.appendChild(topbar);
   var tally = el("div","posttally"); box.appendChild(tally);
   var list = el("div","postlist"); box.appendChild(list);
   var sels = {};
@@ -3768,7 +3897,8 @@ function postingEditor(key, wantSlot, onClose){
       if (onClose && !(r.refused || r.failed || r.decided || r.offline)) setStatus("Postings saved for " + slotMeta(k).label + ", " + fmt(ms) + ".");
     });
   };
-  actions.appendChild(auto); actions.appendChild(same); actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
+  auto.className = "primary"; topbar.appendChild(auto); topbar.appendChild(same);
+  actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
   box.appendChild(actions);
   return box;
 }
@@ -3806,6 +3936,7 @@ function editorFor(key){
 function needFor(kind){
   return kind==="leave" ? "leave" : kind==="absent" ? "absent" : kind==="post" ? "post" : "change";
 }
+var ADD_OPEN = null;     /* the day whose "+ Add" choices are open (phone view) */
 function addBtn(key, kind){
   if (UNLOCKED && !can(needFor(kind))) return document.createTextNode("");
   if (!UNLOCKED && (FAC || CADRE === "jr")) return document.createTextNode("");
@@ -3854,25 +3985,25 @@ function renderCards(){
       card.appendChild(row);
     });
 
+    /* One quiet row: what has been entered for the day, and a single "+ Add"
+       that opens the choices (leave, exchange, move, cover...). */
     var la = el("div","dact noprint");
-    la.appendChild(el("span","k", hasTeams() ? "Off duty" : "Leave"));
     leavesOn(key).forEach(function(it){ la.appendChild(chipFor("leave",it)); });
     absencesOn(key).concat(autoAbsOn(key)).forEach(function(it){ la.appendChild(absChip(it)); });
-    la.appendChild(addBtn(key,"leave"));
-    if (hasTeams()) la.appendChild(addBtn(key,"absent"));
-    card.appendChild(la);
-
-    var ea = el("div","dact noprint");
-    ea.appendChild(el("span","k","Change"));
-    swapsOn(key).forEach(function(it){ ea.appendChild(chipFor("swap",it)); });
-    movesOn(key).forEach(function(it){ ea.appendChild(chipFor("move",it)); });
-    coversOn(key).forEach(function(it){ ea.appendChild(chipFor("newcover",it)); });
-    ea.appendChild(addBtn(key,"swap"));
-    ea.appendChild(addBtn(key,"move"));
-    ea.appendChild(addBtn(key,"newcover"));
-    if (hasTeams()) ea.appendChild(addBtn(key,"post"));
-    /* nothing to show or do here (a JR, say): leave the row out */
-    if (ea.querySelector(".chip,button")) card.appendChild(ea);
+    swapsOn(key).forEach(function(it){ la.appendChild(chipFor("swap",it)); });
+    movesOn(key).forEach(function(it){ la.appendChild(chipFor("move",it)); });
+    coversOn(key).forEach(function(it){ la.appendChild(chipFor("newcover",it)); });
+    var opts = ["leave"].concat(hasTeams() ? ["absent"] : []).concat(["swap","move","newcover"])
+      .map(function(k){ return addBtn(key, k); }).filter(function(x){ return x.nodeType === 1; });
+    var real = opts.filter(function(x){ return /\baddbtn\b/.test(x.className); });
+    if (real.length){
+      var mb = el("button","addmenu" + (ADD_OPEN === key ? " open" : ""), ADD_OPEN === key ? "Close" : "+ Add");
+      mb.type = "button";
+      mb.onclick = function(){ ADD_OPEN = ADD_OPEN === key ? null : key; renderViews(); };
+      la.appendChild(mb);
+      if (ADD_OPEN === key){ var box = el("span","addopts"); real.forEach(function(x){ box.appendChild(x); }); la.appendChild(box); }
+    } else opts.forEach(function(x){ la.appendChild(x); });   /* e.g. the "unlock editing" hint */
+    if (la.childNodes.length) card.appendChild(la);
 
     if (editing && editing.date===key && isCardView()){
       var ed = el("div","dedit noprint");
@@ -5004,40 +5135,54 @@ function renderPgSetup(host){
   }
   drawGroups();
 
-  /* ---- anaesthesia PGs posted in ECSRR: change month by month ---- */
+  /* ---- anaesthesia PGs in ECSRR: day (9 am - 4 pm) and night (4 pm - 9 am), by date ---- */
   host.appendChild(el("h3", "sethead", "Anaesthesia PGs in ECSRR"));
-  host.appendChild(el("p","note","They change every month. Name, number, timing and dates - they show on Today, with a Call button, for the days given."));
-  var arows = (CFG.anaes || []).map(function(a){ return JSON.parse(JSON.stringify(a)); });
-  var alist = el("div","plist2"); host.appendChild(alist);
-  function drawAnaes(){
-    alist.innerHTML = "";
-    if (!arows.length) alist.appendChild(el("p","status","None added."));
-    arows.forEach(function(a){
-      var c = el("div","pcard anaescard"), top = el("div","pctop");
-      var ni = inputOf("text", a.name ? title(a.name) : "", "Name", function(v){ a.name = v; }); ni.className = "pname2";
-      top.appendChild(ni);
-      var rm = el("button","ghost rm","Remove"); rm.type = "button";
-      rm.onclick = function(){ arows.splice(arows.indexOf(a), 1); drawAnaes(); };
-      top.appendChild(rm); c.appendChild(top);
-      var ts = document.createElement("select"); ANAES_TIMES.forEach(function(t){ ts.appendChild(opt(t[0], t[1])); });
-      ts.value = a.time || "9-4"; a.time = ts.value; ts.onchange = function(){ a.time = ts.value; };
-      var grid = el("div","pgrid");
-      grid.appendChild(f("Phone", inputOf("tel", a.phone, "10-digit mobile", function(v){ a.phone = v; })));
-      grid.appendChild(f("Timing", ts));
-      grid.appendChild(f("From", inputOf("date", a.from, "", function(v){ a.from = v; })));
-      grid.appendChild(f("To", inputOf("date", a.to, "", function(v){ a.to = v; })));
-      c.appendChild(grid); alist.appendChild(c);
-    });
+  host.appendChild(el("p","note","From their roster: who is in ECSRR each day and night. Write the names separated by / . "
+    + "Then their numbers, for the Call button."));
+  var aros = JSON.parse(JSON.stringify(CFG.anaesRoster || {})), aph = JSON.parse(JSON.stringify(CFG.anaesPhones || {}));
+  var mIn = document.createElement("input"); mIn.type = "month";
+  var t0m = new Date(msOf(todayKey())); mIn.value = t0m.getUTCFullYear() + "-" + ("0" + (t0m.getUTCMonth() + 1)).slice(-2);
+  var mWrap = el("div","inline"); mWrap.appendChild(field("Month", mIn)); host.appendChild(mWrap);
+  var adet = el("div","plist2"); host.appendChild(adet);
+  var aphBox = el("div","plist2"); 
+  function drawAnaesMonth(){
+    adet.innerHTML = "";
+    var mv = mIn.value; if (!/^\d{4}-\d{2}$/.test(mv)) return;
+    var y = +mv.slice(0,4), m = +mv.slice(5) - 1, last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var tbl = el("table","ptable anaestbl"), tb = el("tbody"), hr = el("tr");
+    ["Date","Day 9-4","Night 4-9"].forEach(function(h){ hr.appendChild(el("th", null, h)); });
+    var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0); tbl.appendChild(tb);
+    for (var d = 1; d <= last; d++){
+      (function(k){
+        var r = aros[k] || {day:[], night:[]}, tr = el("tr");
+        tr.appendChild(el("td", null, d + " " + MON[m]));
+        ["day","night"].forEach(function(part){
+          var i = document.createElement("input"); i.type = "text"; i.value = (r[part] || []).map(title).join(" / ");
+          i.placeholder = "Name / Name";
+          i.oninput = function(){ aros[k] = aros[k] || {day:[], night:[]};
+            aros[k][part] = i.value.split("/").map(function(x){ return x.trim().replace(/^dr\.?\s+/i, "").toUpperCase(); }).filter(Boolean);
+            drawPhones(); };
+          var td = el("td"); td.appendChild(i); tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      })(y + "-" + ("0" + (m + 1)).slice(-2) + "-" + ("0" + d).slice(-2));
+    }
+    var sc = el("div","scroller"); sc.appendChild(tbl); adet.appendChild(sc);
   }
-  drawAnaes();
-  var addA = el("button","ghost","+ Add an anaesthesia PG"); addA.type = "button"; addA.style.margin = "4px 0 18px";
-  addA.onclick = function(){
-    var t0 = new Date(msOf(todayKey())), y0 = t0.getUTCFullYear(), m0 = t0.getUTCMonth();
-    arows.push({name:"", phone:"", time:"9-4", from:iso(Date.UTC(y0, m0, 1)), to:iso(Date.UTC(y0, m0 + 1, 0))});
-    drawAnaes();
-    var ins = alist.querySelectorAll("input.pname2"); if (ins.length) ins[ins.length-1].focus();
-  };
-  host.appendChild(addA);
+  function drawPhones(){
+    aphBox.innerHTML = "";
+    var names = {};
+    Object.keys(aros).forEach(function(k){ ["day","night"].forEach(function(p2){ (aros[k][p2] || []).forEach(function(n){ names[n] = 1; }); }); });
+    var list = Object.keys(names).sort();
+    if (!list.length){ aphBox.appendChild(el("p","status","No names yet.")); return; }
+    var g = el("div","pgrid");
+    list.forEach(function(n){ g.appendChild(f("Dr " + title(n), inputOf("tel", aph[n] || "", "10-digit mobile", function(v){ aph[n] = v; }))); });
+    aphBox.appendChild(g);
+  }
+  mIn.onchange = drawAnaesMonth; drawAnaesMonth();
+  host.appendChild(el("h4", "setsub", "Their numbers"));
+  host.appendChild(aphBox); drawPhones();
+  var arows = [];
 
   /* ---- the rest ---- */
   var w2 = el("div","inline"); w2.style.marginTop = "12px";
@@ -5115,6 +5260,9 @@ function renderPgSetup(host){
         else lv[n] = r.leave;
       }
     });
+    var anPh = {};
+    Object.keys(aph).forEach(function(n){ var ph = String(aph[n]||"").replace(/[\s\-()]/g, "");
+      if (!ph) return; if (!/^\+?\d{10,13}$/.test(ph)) problems.push("Dr " + title(n) + "'s number does not look right"); anPh[n] = ph; });
     var anOut = [];
     arows.forEach(function(a){
       var n = String(a.name||"").trim().replace(/^dr\.?\s+/i, "").replace(/\s+/g, " ").toUpperCase();
@@ -5126,7 +5274,9 @@ function renderPgSetup(host){
     });
     if (problems.length){ msg.textContent = "Not saved: " + problems.join("; ") + "."; return; }
 
-    next.anaes = anOut;
+    next.anaes = CFG.anaes || [];
+    next.anaesRoster = aros;
+    next.anaesPhones = anPh;
     next.annualLeave = al;
     next.slots = slots;
     next.leaving = lv;
@@ -6624,6 +6774,30 @@ function wireNav(){
   window.addEventListener("scroll", mark, {passive:true});
   mark();
 }
+/* The CMO card: the form until this CMO is on duty for the shift running
+   now; then one line, and the posting below it. */
+function cmoOnNow(){
+  if (!CMO || !CMONAME) return null;
+  var sd = shiftAndDate(), me = CMONAME.replace(/^dr\.?\s+/i, "").trim().toUpperCase();
+  var hit = cmosOn(sd.key, sd.slot).filter(function(x){ return x.v.name === me; });
+  return hit.length ? {slot:sd.slot, key:sd.key} : null;
+}
+var CMO_EDIT = false;
+function cmoState(){
+  var form = document.getElementById("cmoForm"), done = document.getElementById("cmoDone");
+  if (!form || !done) return;
+  var on = cmoOnNow();
+  form.hidden = !!on && !CMO_EDIT;
+  done.hidden = !on || CMO_EDIT;
+  if (on && !CMO_EDIT){
+    done.innerHTML = "";
+    done.appendChild(el("span", "cmook", "\u2713 On duty"));
+    done.appendChild(el("span", "cmoname", "Dr " + title(CMONAME.replace(/^dr\.?\s+/i, "")) + " \u00B7 " + slotMeta(on.slot).label));
+    var ch = el("button", "ghost small", "Change"); ch.type = "button";
+    ch.onclick = function(){ CMO_EDIT = true; cmoState(); };
+    done.appendChild(ch);
+  }
+}
 function renderAll(){
   EXCESS = null;
   var swl = document.getElementById("switchLine");
@@ -6711,8 +6885,8 @@ function wire(){
     runSeq([function(){ return STORE.put("cmos", id, {date:key, slot:slot, name:nm.toUpperCase(),
         phone:/^\+?\d{10,13}$/.test(ph) ? ph : "", createdAt:Date.now()}); }]).then(function(r){
       if (r.refused || r.failed){ cmsg.className = "status bad"; cmsg.textContent = "Could not save. Please try again."; return; }
-      renderAll();
-      cmsg.className = "status"; cmsg.textContent = "You show as CMO on duty: " + slotMeta(slot).label + ", " + fmt(msOf(key)) + ".";
+      CMO_EDIT = false; renderAll(); applyLock();
+      cmsg.className = "status"; cmsg.textContent = "";
     });
   };
   if (cs){ var sd0 = shiftAndDate(); cs.value = sd0.slot; }
