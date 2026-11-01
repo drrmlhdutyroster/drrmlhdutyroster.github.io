@@ -591,7 +591,7 @@ td.overcell{background:var(--warn-bg);color:var(--warn-ink)}
 .acadline b{color:var(--accent)}
 .acadline.unset{color:var(--muted)}
 .daycard > .acadline{padding:8px 13px;border-top:1px solid var(--rule);background:var(--today-wash);margin:0}
-th .acadline.small{display:block;font-weight:400;max-width:160px}
+th .acadline.small{display:block;font-weight:400;max-width:150px;white-space:normal;overflow-wrap:anywhere;font-size:12px;line-height:1.35}
 .anaeshead{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px}
 .anaesrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:3px 0;font-size:15px}
 .anaestime{font-size:13px;color:var(--muted);min-width:92px}
@@ -672,6 +672,13 @@ body.nurse #mnav [data-go=counterSec], body.nurse #mnav [data-go=indSec], body.n
 .daycard .dact{display:flex;flex-wrap:wrap;align-items:center}
 .daycard .dact .chip{display:flex;width:100%;box-sizing:border-box;padding:5px 6px 5px 8px;line-height:1.35}
 .daycard .dact .chip .sttag,.daycard .dact .chip .formbtn{white-space:nowrap}
+.acadmove{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
+.acadsub{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.acadmove > button{width:100%}
+.acadmove input[type=date]{flex:1 1 150px}
+.grpbtn.ecsrr{min-height:0;padding:2px 8px;font-size:12px;border-radius:999px;margin-left:4px;vertical-align:1px}
+.grpbtn.ecsrr .team{font-size:12px;font-weight:600}
+.grpbtn.ecsrr small{font-size:11px;margin-left:3px}
 </style>
 </head>
 <body>
@@ -1675,12 +1682,51 @@ function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
    A class every Tuesday and Thursday and a case presentation every Friday,
    except on a gazetted holiday. Anyone on the PG roster can fill in the topic
    and who presents. */
-function academicKind(key){
-  if (hasTeams() || CADRE !== "pg" || holidayOn(key)) return null;
-  var d = new Date(msOf(key)).getUTCDay();
-  return d === 2 || d === 4 ? "Class" : d === 5 ? "Case presentation" : null;
+/* The class series (e.g. Paediatrics): topics in order, one per class day
+   (Tue/Thu, not a holiday) from its start. A postponed day has no class and
+   everything after moves on one; a class moved to another date leaves its
+   own day empty and the rest where they were. */
+function seriesRec(){ return (DATA.academics || {})["series_class"] || null; }
+function isClassDay(key){ var d = new Date(msOf(key)).getUTCDay(); return (d === 2 || d === 4) && !holidayOn(key); }
+var PLAN = null, PLAN_SIG = "";
+function seriesPlan(){
+  var r = seriesRec();
+  if (!r || !r.items || !r.start) return {};
+  var sig = JSON.stringify([r.start, r.skips, r.moved, r.items.length]);
+  if (PLAN && sig === PLAN_SIG) return PLAN;
+  var plan = {}, moved = r.moved || {}, skips = r.skips || [], queue = [], i;
+  for (i = 0; i < r.items.length; i++) if (!moved[i]) queue.push(i);
+  var t = msOf(r.start), guard = 0;
+  while (queue.length && guard++ < 400){
+    var k = iso(t);
+    if (isClassDay(k) && skips.indexOf(k) < 0){ var idx = queue.shift(); plan[k] = {idx:idx, item:r.items[idx]}; }
+    t += DAY;
+  }
+  Object.keys(moved).forEach(function(ix){ if (r.items[ix]) plan[moved[ix]] = {idx:+ix, item:r.items[ix], moved:true}; });
+  PLAN = plan; PLAN_SIG = sig;
+  return plan;
 }
-function academicOn(key){ return (DATA.academics || {})[safeId("acad", key)] || null; }
+function academicKind(key){
+  if (hasTeams() || CADRE !== "pg") return null;
+  var own0 = (DATA.academics || {})[safeId("acad", key)];
+  if (own0 && own0.extra && own0.kind) return own0.kind;      /* one held on another day */
+  if (seriesPlan()[key]) return "Class";
+  if (holidayOn(key)) return null;
+  var d = new Date(msOf(key)).getUTCDay(), r = seriesRec();
+  if (d === 5) return "Case presentation";
+  if (d === 2 || d === 4){
+    if (r && (r.skips || []).indexOf(key) >= 0 && !((DATA.academics || {})[safeId("acad", key)] || {}).topic) return null;  /* postponed */
+    return "Class";
+  }
+  return null;
+}
+function academicOn(key){
+  var own = (DATA.academics || {})[safeId("acad", key)];
+  if (own && own.topic) return own;
+  var p = seriesPlan()[key];
+  if (p) return {date:key, kind:"Class", topic:(p.item.ch ? p.item.ch + " \u00B7 " : "") + p.item.topic, by:p.item.by, series:true};
+  return own || null;
+}
 function nextAcademic(fromKey){
   for (var i = 0; i < 14; i++){
     var k = iso(msOf(fromKey) + i * DAY);
@@ -1740,6 +1786,35 @@ function academicBox(host){
     });
   };
   var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(cn); row.appendChild(st); box.appendChild(row);
+  var plan = seriesPlan()[key], rec = seriesRec();
+  if (plan && rec){
+    var mv = el("div","acadmove");
+    mv.appendChild(el("div","acadsub","Can't hold it today?"));
+    var pp = el("button","ghost","Postpone to the next class day"); pp.type = "button";
+    var di = document.createElement("input"); di.type = "date"; di.min = iso(msOf(key) + DAY);
+    var mb = el("button","ghost","Move to this date"); mb.type = "button";
+    var st2 = el("span","status");
+    function saveRec(r2, msg){
+      st2.className = "status"; st2.textContent = "Saving\u2026";
+      runSeq([function(){ return STORE.put("academics", "series_class", r2); }]).then(function(r){
+        if (r.refused || r.failed){ st2.className = "status bad"; st2.textContent = "Could not save. Please try again."; return; }
+        PLAN = null; ACAD_EDIT = false; renderAll(); setStatus(msg);
+      });
+    }
+    pp.onclick = function(){
+      var r2 = JSON.parse(JSON.stringify(rec)); r2.skips = (r2.skips || []).concat([key]);
+      saveRec(r2, "Postponed - this class and the ones after it move to the next class days.");
+    };
+    mb.onclick = function(){
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(di.value) || di.value <= key){ st2.className = "status bad"; st2.textContent = "Choose a later date."; return; }
+      var r2 = JSON.parse(JSON.stringify(rec)); r2.moved = r2.moved || {}; r2.moved[plan.idx] = di.value;
+      if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
+      saveRec(r2, "Moved to " + fmt(msOf(di.value)) + ".");
+    };
+    mv.appendChild(pp);
+    var mr = el("div","acadbtns"); mr.appendChild(di); mr.appendChild(mb); mv.appendChild(mr); mv.appendChild(st2);
+    box.appendChild(mv);
+  }
   host.appendChild(box);
 }
 
@@ -3259,7 +3334,8 @@ function ecsrrBox(ms, slotK){
   var list = ecsrrFor(ms, slotK);
   if (!list.length) return document.createTextNode("");
   var det = el("button","grpbtn ecsrr"); det.type = "button";
-  var c = el("span","team", "JRs in " + ECSRR); c.appendChild(el("small", null, String(list.length)));
+  var c = el("span","team", "JR"); c.appendChild(el("small", null, String(list.length)));
+  det.title = "JRs in " + ECSRR + " - tap for names and Call";
   det.appendChild(c);
   var box = el("div","grplist"), wrap = el("ol","plist");
   list.forEach(function(o){
