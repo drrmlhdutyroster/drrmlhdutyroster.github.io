@@ -591,7 +591,7 @@ td.overcell{background:var(--warn-bg);color:var(--warn-ink)}
 .acadline b{color:var(--accent)}
 .acadline.unset{color:var(--muted)}
 .daycard > .acadline{padding:8px 13px;border-top:1px solid var(--rule);background:var(--today-wash);margin:0}
-th .acadline.small{display:block;font-weight:400;max-width:160px}
+th .acadline.small{display:block;font-weight:400;max-width:150px;white-space:normal;overflow-wrap:anywhere;font-size:12px;line-height:1.35}
 .anaeshead{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px}
 .anaesrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:3px 0;font-size:15px}
 .anaestime{font-size:13px;color:var(--muted);min-width:92px}
@@ -660,6 +660,25 @@ h4.setsub{margin:10px 0 4px;font-size:14px}
 .lrbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:12px}
 .lrbtns #applyBtn{grid-column:1/-1}
 .lrbtns button{width:100%}
+/* nursing staff: on duty, the roster and numbers - nothing personal */
+body.nurse #counterSec, body.nurse #indSec, body.nurse #apprSec, body.nurse #mineSec, body.nurse .dact,
+body.nurse #whoWrap, body.nurse .dlgrid, body.nurse .sharewrap, body.nurse #rosterTip, body.nurse .adminbar,
+body.nurse #specSec, body.nurse .z-act, body.nurse #counterNote{display:none !important}
+body.nurse #mnav [data-go=counterSec], body.nurse #mnav [data-go=indSec], body.nurse #mnav [data-go=mineSec]{display:none !important}
+#myDetails .cmogrid{grid-template-columns:1fr}
+/* entries on a day: wrap inside the card, never past its edge */
+.chip{flex-wrap:wrap;max-width:100%;white-space:normal;row-gap:3px}
+.chip > *{max-width:100%}
+.daycard .dact{display:flex;flex-wrap:wrap;align-items:center}
+.daycard .dact .chip{display:flex;width:100%;box-sizing:border-box;padding:5px 6px 5px 8px;line-height:1.35}
+.daycard .dact .chip .sttag,.daycard .dact .chip .formbtn{white-space:nowrap}
+.acadmove{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
+.acadsub{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.acadmove > button{width:100%}
+.acadmove input[type=date]{flex:1 1 150px}
+.grpbtn.ecsrr{min-height:0;padding:2px 8px;font-size:12px;border-radius:999px;margin-left:4px;vertical-align:1px}
+.grpbtn.ecsrr .team{font-size:12px;font-weight:600}
+.grpbtn.ecsrr small{font-size:11px;margin-left:3px}
 </style>
 </head>
 <body>
@@ -731,6 +750,7 @@ h4.setsub{margin:10px 0 4px;font-size:14px}
     aria-label="Today's duty message, ready to copy"></textarea>
 </section>
 
+<div id="myDetails" class="cmocard noprint" hidden></div>
 <div class="card noprint">
   <div class="inline">
     <div id="whoWrap"><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
@@ -1080,7 +1100,7 @@ function safeId(){
    older ?r=jr and ?hod still work. */
 var LINK = (function(){
   try {
-    var m = /\/([a-z]+?)(pg|jr|cmo|hod|faculty)\/?(index\.html)?$/i.exec(window.location.pathname || "");
+    var m = /\/([a-z]+?)(pg|jr|cmo|hod|faculty|nursing)\/?(index\.html)?$/i.exec(window.location.pathname || "");
     return m ? {dept:m[1].toLowerCase(), who:m[2].toLowerCase()} : null;
   } catch(e){ return null; }
 })();
@@ -1175,7 +1195,7 @@ function teamsOn(g, ms, raw){
   var vs = raw ? [] : visitorsOn(ms);
   if (!vs.length) return ts;
   return ts.map(function(t){
-    var add = vs.filter(function(v){ return v.group === t.name; }).map(function(v){ return v.name; });
+    var add = vs.filter(function(v){ return !v.roster && v.group === t.name; }).map(function(v){ return v.name; });
     return add.length ? {name:t.name, members:(t.members||[]).concat(add)} : t;
   });
 }
@@ -1219,7 +1239,19 @@ function cycleDuty(g, idx, ms){
 }
 /* What a team is due to do that day, before any leave or exchange. */
 function teamDuty(g, idx, ms){ return cycleDuty(g, idx, ms); }
+/* A PG CMO with their own day-by-day shifts (not tied to a JR group). */
+function rosterVisitorDuty(name, ms){
+  var v = hasTeams() && visitorOf(name);
+  if (!v || !v.roster) return undefined;
+  var k = iso(ms);
+  if (k < v.from || (v.to && k > v.to)) return null;
+  var r = (CFG.visitorRoster || {})[k] || {};
+  for (var s in r) if ((r[s] || []).indexOf(name) >= 0 && slotExists(s)) return s;
+  return "OFF";
+}
 function baseDuty(name, ms){
+  var rv = rosterVisitorDuty(name, ms);
+  if (rv !== undefined) return rv;
   var k,g,idx;
   for(k=0;k<CFG.groups.length;k++){
     g=CFG.groups[k];
@@ -1238,6 +1270,7 @@ function everyone(ms){
     m=peopleOf(CFG.groups[k],ms);
     for(i=0;i<m.length;i++) if(out.indexOf(m[i])<0) out.push(m[i]);
   }
+  if (hasTeams()) visitorsOn(ms).forEach(function(v){ if (v.roster && out.indexOf(v.name) < 0) out.push(v.name); });
   return out;
 }
 /* every person a group has ever had, across all its dated lists */
@@ -1271,6 +1304,7 @@ function groupOf(name, ms){
   return null;
 }
 function groupLabel(n, ms){
+  var rv = hasTeams() && visitorOf(n); if (rv && rv.roster) return visLabel(rv);
   var t=teamOf(n,ms); if (t) return t.team.name;
   var g=groupOf(n,ms); return g? g.label : "";
 }
@@ -1648,12 +1682,51 @@ function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
    A class every Tuesday and Thursday and a case presentation every Friday,
    except on a gazetted holiday. Anyone on the PG roster can fill in the topic
    and who presents. */
-function academicKind(key){
-  if (hasTeams() || CADRE !== "pg" || holidayOn(key)) return null;
-  var d = new Date(msOf(key)).getUTCDay();
-  return d === 2 || d === 4 ? "Class" : d === 5 ? "Case presentation" : null;
+/* The class series (e.g. Paediatrics): topics in order, one per class day
+   (Tue/Thu, not a holiday) from its start. A postponed day has no class and
+   everything after moves on one; a class moved to another date leaves its
+   own day empty and the rest where they were. */
+function seriesRec(){ return (DATA.academics || {})["series_class"] || null; }
+function isClassDay(key){ var d = new Date(msOf(key)).getUTCDay(); return (d === 2 || d === 4) && !holidayOn(key); }
+var PLAN = null, PLAN_SIG = "";
+function seriesPlan(){
+  var r = seriesRec();
+  if (!r || !r.items || !r.start) return {};
+  var sig = JSON.stringify([r.start, r.skips, r.moved, r.items.length]);
+  if (PLAN && sig === PLAN_SIG) return PLAN;
+  var plan = {}, moved = r.moved || {}, skips = r.skips || [], queue = [], i;
+  for (i = 0; i < r.items.length; i++) if (!moved[i]) queue.push(i);
+  var t = msOf(r.start), guard = 0;
+  while (queue.length && guard++ < 400){
+    var k = iso(t);
+    if (isClassDay(k) && skips.indexOf(k) < 0){ var idx = queue.shift(); plan[k] = {idx:idx, item:r.items[idx]}; }
+    t += DAY;
+  }
+  Object.keys(moved).forEach(function(ix){ if (r.items[ix]) plan[moved[ix]] = {idx:+ix, item:r.items[ix], moved:true}; });
+  PLAN = plan; PLAN_SIG = sig;
+  return plan;
 }
-function academicOn(key){ return (DATA.academics || {})[safeId("acad", key)] || null; }
+function academicKind(key){
+  if (hasTeams() || CADRE !== "pg") return null;
+  var own0 = (DATA.academics || {})[safeId("acad", key)];
+  if (own0 && own0.extra && own0.kind) return own0.kind;      /* one held on another day */
+  if (seriesPlan()[key]) return "Class";
+  if (holidayOn(key)) return null;
+  var d = new Date(msOf(key)).getUTCDay(), r = seriesRec();
+  if (d === 5) return "Case presentation";
+  if (d === 2 || d === 4){
+    if (r && (r.skips || []).indexOf(key) >= 0 && !((DATA.academics || {})[safeId("acad", key)] || {}).topic) return null;  /* postponed */
+    return "Class";
+  }
+  return null;
+}
+function academicOn(key){
+  var own = (DATA.academics || {})[safeId("acad", key)];
+  if (own && own.topic) return own;
+  var p = seriesPlan()[key];
+  if (p) return {date:key, kind:"Class", topic:(p.item.ch ? p.item.ch + " \u00B7 " : "") + p.item.topic, by:p.item.by, series:true};
+  return own || null;
+}
 function nextAcademic(fromKey){
   for (var i = 0; i < 14; i++){
     var k = iso(msOf(fromKey) + i * DAY);
@@ -1713,6 +1786,35 @@ function academicBox(host){
     });
   };
   var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(cn); row.appendChild(st); box.appendChild(row);
+  var plan = seriesPlan()[key], rec = seriesRec();
+  if (plan && rec){
+    var mv = el("div","acadmove");
+    mv.appendChild(el("div","acadsub","Can't hold it today?"));
+    var pp = el("button","ghost","Postpone to the next class day"); pp.type = "button";
+    var di = document.createElement("input"); di.type = "date"; di.min = iso(msOf(key) + DAY);
+    var mb = el("button","ghost","Move to this date"); mb.type = "button";
+    var st2 = el("span","status");
+    function saveRec(r2, msg){
+      st2.className = "status"; st2.textContent = "Saving\u2026";
+      runSeq([function(){ return STORE.put("academics", "series_class", r2); }]).then(function(r){
+        if (r.refused || r.failed){ st2.className = "status bad"; st2.textContent = "Could not save. Please try again."; return; }
+        PLAN = null; ACAD_EDIT = false; renderAll(); setStatus(msg);
+      });
+    }
+    pp.onclick = function(){
+      var r2 = JSON.parse(JSON.stringify(rec)); r2.skips = (r2.skips || []).concat([key]);
+      saveRec(r2, "Postponed - this class and the ones after it move to the next class days.");
+    };
+    mb.onclick = function(){
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(di.value) || di.value <= key){ st2.className = "status bad"; st2.textContent = "Choose a later date."; return; }
+      var r2 = JSON.parse(JSON.stringify(rec)); r2.moved = r2.moved || {}; r2.moved[plan.idx] = di.value;
+      if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
+      saveRec(r2, "Moved to " + fmt(msOf(di.value)) + ".");
+    };
+    mv.appendChild(pp);
+    var mr = el("div","acadbtns"); mr.appendChild(di); mr.appendChild(mb); mv.appendChild(mr); mv.appendChild(st2);
+    box.appendChild(mv);
+  }
   host.appendChild(box);
 }
 
@@ -1863,7 +1965,7 @@ try { HODKEY = localStorage.getItem("rml_hod") || ""; } catch(e){}
    HOD's it is kept once for the whole site, not per roster. */
 var FACKEY = "";
 try { FACKEY = localStorage.getItem("rml_fac") || ""; } catch(e){}
-var CMO = false, FAC = false;
+var CMO = false, FAC = false, NURSE = false;   /* NURSE: nursing staff - on duty, roster and numbers only */
 /* The CMO passphrase is shared, so each CMO types their own name; it is
    written on every absence and posting they enter. */
 var CMONAME = "";
@@ -2803,7 +2905,7 @@ function withRoster(cfg, data, fn){
   CFG = cfg; DATA = data;
   try { return fn(); } finally { CFG = c; DATA = d; }
 }
-function seesOther(){ return HOD || FAC || MAAM || (CADRE === "pg" && ROLE === "pg"); }
+function seesOther(){ return HOD || FAC || MAAM || NURSE || (CADRE === "pg" && ROLE === "pg"); }
 var OTHER_OPEN = false;     /* a PG opens the JR panel with a button */
 function loadOther(){
   if (!seesOther()) return;
@@ -2927,7 +3029,7 @@ function renderToday(){
     else inSlot(eff, s.k).forEach(function(n){
       var c = el("span","nm", "Dr " + title(n));
       c.style.color = s.zone==="red" ? "var(--red-ink)" : s.zone==="green" ? "var(--green-ink)" : "var(--muted)";
-      if (eff.changed[n]){
+      if (eff.changed[n] && !NURSE){
         c.className += " changed"; c.setAttribute("role","button"); c.tabIndex = 0; c.title = "Tap to see why";
         (function(nn){ c.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a")) return; showReason(nn, iso(ms)); }; })(n);
       }
@@ -2949,7 +3051,7 @@ function renderToday(){
       orow.appendChild(otl); orow.appendChild(el("div","tv", offTeams.join(", "))); host.appendChild(orow);
     }
   }
-  offRow.concat([["On leave", inSlot(eff,"LEAVE")], ["Absent", inSlot(eff,"ABSENT")], ["Relieved", inSlot(eff,"RELIEVED")]]).forEach(function(p){
+  offRow.concat(NURSE ? [] : [["On leave", inSlot(eff,"LEAVE")], ["Absent", inSlot(eff,"ABSENT")], ["Relieved", inSlot(eff,"RELIEVED")]]).forEach(function(p){
     if (!p[1].length) return;
     var row = el("div","trow away");
     var tl = el("div","tl"); tl.appendChild(el("b",null,p[0]));
@@ -3084,7 +3186,7 @@ function nameChip(n, ms, eff, slotK, tinted){
   var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), title(n));
   var vis = hasTeams() && visitorOf(n);
   if (vis) c.appendChild(el("span","vistag", visLabel(vis, " · ")));
-  if (eff.changed[n]){
+  if (eff.changed[n] && !NURSE){
     c.className += " changed"; c.setAttribute("role","button"); c.tabIndex = 0;
     c.title = "Tap to see why";
     c.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a")) return; ev.stopPropagation(); showReason(n, iso(ms)); };
@@ -3232,7 +3334,8 @@ function ecsrrBox(ms, slotK){
   var list = ecsrrFor(ms, slotK);
   if (!list.length) return document.createTextNode("");
   var det = el("button","grpbtn ecsrr"); det.type = "button";
-  var c = el("span","team", "JRs in " + ECSRR); c.appendChild(el("small", null, String(list.length)));
+  var c = el("span","team", "JR"); c.appendChild(el("small", null, String(list.length)));
+  det.title = "JRs in " + ECSRR + " - tap for names and Call";
   det.appendChild(c);
   var box = el("div","grplist"), wrap = el("ol","plist");
   list.forEach(function(o){
@@ -4909,6 +5012,7 @@ function renderJrSetup(host){
       if (ph && !/^\+?\d{10,13}$/.test(ph)) vBad.push(title(n) + "'s number does not look right");
       var vo = {name:n, dept:v.kind === "intern" ? "" : String(v.dept||"").trim(), phone:ph, group:v.group, from:v.from, to:v.to || ""};
       if (v.kind === "intern") vo.kind = "intern";
+      if (v.roster) vo.roster = true;
       vOut.push(vo);
     });
     if (vBad.length){ msg.className = "status bad"; msg.textContent = "Not saved: " + vBad.join("; ") + "."; return; }
@@ -6774,6 +6878,50 @@ function wireNav(){
   window.addEventListener("scroll", mark, {passive:true});
   mark();
 }
+/* A JR fills in their own joining date and the leave they had already taken
+   before the roster began - once. After that only the in-charge or the HOD
+   can change it. */
+function myDetailsBox(){
+  var host = document.getElementById("myDetails");
+  if (!host) return;
+  host.innerHTML = ""; host.hidden = true;
+  if (!(hasTeams() && ROLE === "jr" && ME && UNLOCKED)) return;
+  var j = recOf("joining", ME), o = recOf("opening", ME);
+  var needJ = !(j && j.date), needO = !(o && o.days != null);
+  if (!needJ && !needO) return;
+  host.hidden = false;
+  host.appendChild(el("div","cmohead","Your details - Dr " + title(ME)));
+  host.appendChild(el("p","note","Fill these in once so your leave balance is right. After saving, only Dr Praveen Singh Sir or HOD Sir can change them."));
+  var g = el("div","cmogrid"), ji, oi;
+  if (needJ){ ji = document.createElement("input"); ji.type = "date"; ji.id = "myJoin";
+    var f1 = el("div","pf"); f1.appendChild(el("label", null, "Joining date")); f1.appendChild(ji); g.appendChild(f1); }
+  if (needO){ oi = document.createElement("input"); oi.type = "number"; oi.min = "0"; oi.max = String(CFG.annualLeave); oi.inputMode = "decimal"; oi.step = "0.5"; oi.id = "myBefore"; oi.placeholder = "0";
+    var f2 = el("div","pf"); f2.appendChild(el("label", null, "Leave already taken before " + fmt(epochMs()))); f2.appendChild(oi); g.appendChild(f2); }
+  host.appendChild(g);
+  var sv = el("button","primary","Save"), st = el("span","status"); sv.type = "button"; sv.id = "mySave";
+  sv.onclick = function(){
+    st.className = "status bad";
+    var jobs = [];
+    if (needJ){
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ji.value)){ st.textContent = "Choose your joining date."; return; }
+      if (ji.value > todayKey()){ st.textContent = "The joining date cannot be in the future."; return; }
+      jobs.push(function(){ return STORE.put("joining", rid(ME), {resident:ME, date:ji.value}); });
+    }
+    if (needO){
+      var dv = parseFloat(oi.value);
+      if (oi.value === "" ) dv = 0;
+      if (isNaN(dv) || dv < 0 || dv > CFG.annualLeave){ st.textContent = "Leave taken before should be 0 to " + CFG.annualLeave + "."; return; }
+      jobs.push(function(){ return STORE.put("opening", rid(ME), {resident:ME, days:dv, asOf:CFG.epoch}); });
+    }
+    st.className = "status"; st.textContent = "Saving\u2026";
+    runSeq(jobs).then(function(r){
+      if (r.decided){ st.className = "status bad"; st.textContent = "Already filled in - ask Dr Praveen Singh Sir to change it."; renderAll(); return; }
+      if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
+      renderAll(); setStatus("Saved - thank you.");
+    });
+  };
+  var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(st); host.appendChild(row);
+}
 /* The CMO card: the form until this CMO is on duty for the shift running
    now; then one line, and the posting below it. */
 function cmoOnNow(){
@@ -6800,6 +6948,7 @@ function cmoState(){
 }
 function renderAll(){
   EXCESS = null;
+  try { myDetailsBox(); } catch(e){}
   var swl = document.getElementById("switchLine");
   if (swl) swl.hidden = !(LINK && ENDPOINT && !GATED);
   fillAbsMonths();
@@ -6904,7 +7053,7 @@ function wire(){
   w.onchange = function(){
     ME = w.value || null;
     try { localStorage.setItem("rml_me", w.value); } catch(e){}
-    renderMine(); renderCounter(); idleStatus();
+    renderMine(); renderCounter(); myDetailsBox(); idleStatus();
   };
   function shift(by){
     if (by<0 && atEarliest()) return;
@@ -6986,6 +7135,7 @@ function applyGate(){
   var who = LINK ? LINK.who : null;
   if (h) h.textContent = who === "cmo" ? "Junior Resident Duty Roster - enter the CMO passphrase"
     : who === "faculty" ? "Duty rosters - enter the faculty passphrase"
+    : who === "nursing" ? "Duty rosters - enter the nursing passphrase"
     : CADRE === "jr" ? "Junior Resident Duty Roster - enter your passphrase"
     : (hodRequested() ? "Enter your passphrase" : "PG Duty Roster - enter the PG passphrase");
   var t = document.getElementById("hTitle");
@@ -6996,7 +7146,9 @@ function setRole(r){
   MAAM = (ROLE === "maam" && CADRE === "jr");
   CMO  = (ROLE === "cmo"  && CADRE === "jr");
   /* on the PG roster the JR in-charge is simply faculty: look only */
-  FAC  = (ROLE === "faculty") || (ROLE === "maam" && CADRE === "pg");
+  NURSE = (ROLE === "nursing");
+  FAC  = (ROLE === "faculty") || (ROLE === "maam" && CADRE === "pg") || NURSE;
+  document.body.className = document.body.className.replace(/\bnurse\b/g, "").trim() + (NURSE ? " nurse" : "");
   if (MAAM && PASSKEY){ try { localStorage.setItem("rml_maam", PASSKEY); } catch(e){} }
   if (CMO){ try { CMONAME = localStorage.getItem(lsName("rml_cmo_name")) || ""; } catch(e){} }
 }
@@ -7026,10 +7178,10 @@ function wireGate(){
           return;
         }
         inp.value = ""; say("");
-        UNLOCKED = (r !== "faculty"); setRole(r);
+        UNLOCKED = (r !== "faculty" && r !== "nursing"); setRole(r);
         afterOpen();
         try { localStorage.setItem(lsName("rml_role"), r); } catch(e){}
-        if (r === "hod" || r === "faculty" || r === "pg" || r === "maam"){
+        if (r === "hod" || r === "faculty" || r === "pg" || r === "maam" || r === "nursing"){
           if (STORE.lastOther){ useOther(STORE.lastOther); renderAll(); } else loadOther();
         }
       });
@@ -7077,7 +7229,7 @@ function checkHodLater(){
 }
 function useRole(r){
   if (r === "hod"){ HODAUTH = true; UNLOCKED = true; syncHod(); }
-  else UNLOCKED = (r !== "faculty");
+  else UNLOCKED = (r !== "faculty" && r !== "nursing");
   setRole(r);
 }
 function useOther(o){
@@ -7107,6 +7259,7 @@ function useOther(o){
   STORE.load().then(function(){
     document.body.className = document.body.className.replace(/\bbooting\b/g, "").trim();
     applyGate();
+    refreshWho();                       /* the names list, now that the roster is here */
     if (GATED){ applyLock(); renderAll(); idleStatus(); return; }
     var r = STORE.lastRole;
     if (!r){ applyLock(); renderAll(); idleStatus(); fallbackStart(); return; }
