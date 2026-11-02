@@ -746,6 +746,15 @@ button.acadline{display:block;width:100%;text-align:left;border:0;font:inherit;c
 .posttop .autobox .autobtn{flex:none;width:100%;font-size:16px;padding:12px;font-weight:700}
 .autowhat{font-size:12.5px;line-height:1.45;color:var(--ink)}
 .posttop .samebtn{flex:1 1 100%}
+.dirsearch{width:100%;box-sizing:border-box;font-size:16px;padding:10px 12px;margin:0 0 10px;border-radius:10px}
+.dirname small.dirsub{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:1px}
+.dirsec{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);padding:10px 2px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.dirseclist{padding:2px 0 8px 6px}
+.dirnote{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.dirnums{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.nightcont{color:var(--red-ink);font-weight:600}
+.dirsearchwrap{position:sticky;top:-6px;z-index:2;background:var(--panel,#fff);padding:8px 0 8px;margin:-6px 0 4px}
+.dirsearchwrap .dirsearch{margin:0;border:1.5px solid var(--accent,#0b6b6b)}
 </style>
 </head>
 <body>
@@ -2004,9 +2013,25 @@ var PHONEBOOK = [
   ["Labs & imaging", [["Blood bank","4298"],["CT room (Nsg Home)","4657"],["CT trauma","4627"],["ECG room","4382"],["MRI (Blood bank)","4534"],["MRI (Nsg Home)","4497"],["USG room","4473"]]],
   ["OTs", [["Cath lab","4507"],["ECS 5th floor","4028"],["Gynae","4823/4426"],["GFOT","4429"]]]
 ];
+/* the hospital's telephone directory (2024): office landlines and extensions
+   only, listed by post (names change, posts and numbers stay) - no names,
+   personal mobiles, addresses or emails. {secs:[...], rows:[[sec, post, "nums"]]} */
+var DIRECTORY = {"secs":["Administration - RML Hospital","Administration - ABVIMS","Administration - Nursing","Ayurveda Research Centre","Unani Medicine","Yoga Clinic","College Of Nursing","Nurses (Hostel)","Accident & Emergency Department","Emergency Services","ECS Building","Trauma Care Centre","Anaesthesia Department","Anatomy","Bio –Chemistry","Bio Medical Waste Department","Burns & Plastic Department","Cardiology","Cath Lab","Cardiac Anesthesia","Cardiothoracic Vascular Surgery","CSSD","Community Medicine","Anti Rabies Clinic And Yellow Fever Clinic","Dental Surgery","Dietetics Department","ENT Department","Endocrinology Department","Eye Department","Family Welfare Department","Forensic Medicine","Mortuary","Gastroenterology","Microbiology Department","Medicine","Nephrology Department","Neurology Department","Neuro Surgery","Neonatology","Orthopaedics Department","Pathology","Physiotherapy Department","Pediatrics Department","Pediatric Surgery","Physiology","PMR Department","Radiology Department","Respiratory Medicine","Skin Department","Sr. Cmo (Sag)","Surgery Department","Transfusion Medicine","Intensive Care Units","Operation Theatres","Super Speciality OPD","ABVIMS - Administration Sections","Account Section I","Account Section II","Apar Cell","Central Standing Medical Board","Dy. Labour Welfare Commissioner","Establishment Section–II","H.A. –I Section","H.A. –II Section","Hindi Section","Inventory Management Section","Legal Cell (ABVIMS)","Maintenance & Repair","Medical Social Service Departmemt","Medical Examination-I","Medical Examination – II & Disability Board","Medical Record Department","Nursing Home","Nursing Section","Pay & Account Office","Procurement Section","RTI Cell","Security Department","Telephone Exchange","Technical Section","Vigilance Cell","ART Clinic","Canteen","CPWD (Civil)","Ae Iv","Dispensary","DOTS Centre","Library (ABVIMS)","(Alio)","Laundry","P. I. A. R.O","Sanitation Department","Server Room / IT Department","Transport Department","Wards","Miscellaneous Numbers (Hospital)"],"rows":[[0,"Director & Medical Superintendent","23747027 4470 4570"],[0,"PS to MS","23747027 4470"],[0,"Addl.Medical Superientendent","23346441 4451"],[0,"PS to MS","23346441 4451"],[0,"Addl.Medical Superientendent","23741651 4542"],[0,"PS to Addl. MS","4542 4417"],[0,"Addl.Medical Superientendent","4652"],[0,"PS to Addl. MS","4652"],[0,"Addl.Medical Superientendent","23745443 4433"],[0,"PS to Addl. MS","23745443 4433"],[0,"Dy. Director (Admin)","23365743 4631 4402"],[0,"UDC","4402"],[1,"Director & Medical Superintendent","23365552 4801 4802"],[1,"Assistant PA to Director","23365552 4801 4802"],[1,"Dean","23365553 4804"],[1,"Registrar","23345305 4752"],[1,"PS to Registrar","4752"],[1,"Dy. Registrar","4849"],[1,"PS to Dy Registrar","4849"],[1,"C.O.E","4825"],[1,"Sr. Administrative Officer","23365516 4658"],[1,"Account Officer, ABVIMS","23355506 4750"],[2,"Nursing Superintendent","23404252 23404616"],[2,"ANS (New Building)","23404463 23404290 23404842"],[2,"ANS (Trauma Center)","23404674"],[2,"ANS (Nursing Home)","23404513"],[2,"ANS (ECS)","23404024"],[3,"Officer I/C Of the Department","4845"],[3,"Ayurveda Department","4844"],[4,"HOD unani","4594"],[4,"Unani Clinic","4594"],[5,"Yoga Clinic","4589 4481"],[6,"Vice Principal","4518 23355527 4329"],[6,"Tutor College of Nursing","4833 4835 4637 4851 4853 4329 4834 4636 4638 4852 4854"],[7,"Nurses Hostel","4223"],[8,"PA to Head (Accident & Emergency)","4478 4308"],[8,"Sr. Consultant & Faculty HAG","4479"],[8,"Chief Medical Officer/NFSG","4000"],[8,"Specialist, I/C HH&S L/O Security Assistant Warden","4478 4019"],[8,"SMO(CHS)","4903"],[8,"Medical Officer (CHS)","4903"],[8,"Medical Officer","4903"],[8,"A-101, 1st floor, Park facing, sharda puri, Rame","4903"],[9,"Emergency Enquiry","4286"],[9,"Emergency E.C.G","4382"],[9,"Complaint cell","4308"],[9,"Security Superintendent","4492"],[9,"Emergency OT Ist Floor","4426 4622"],[9,"MAT O.T","4606"],[9,"Gynae. Mat. Ward (R. No. 20B)","4823"],[9,"Emergency Labour Room","5071"],[9,"Emergency IIIrd Floor","4212"],[9,"Doctor’s Duty Room IIIrd Floor","4509"],[9,"Nursery Casualty IIIrd Floor","4721 4722"],[9,"Senior Doctor Room","4592"],[9,"COVID ASSISTANT","4935"],[9,"Screening center","4038 4017"],[10,"ECRO","23404446 23404000 23348200"],[10,"Reception","23404903"],[10,"CMO","23404903"],[10,"CMO (Sister’s Duty Room)","23404902"],[10,"R.R","23404005"],[10,"R.R. (Sister’s Duty Room)","23404007"],[10,"Procedure Room( R. No. 10)","23404001"],[10,"Ist Floor","23404032 23404016 23404015 23404022"],[10,"II Floor","23404014"],[10,"Surgical Emergency No. 12","23404011"],[10,"IIIrd Floor","23404008"],[10,"Sister’s Duty Room","23404009"],[10,"Sister Incharge","23404025"],[10,"PICU","4033"],[10,"PICU (Sister’s Duty Room)","4006"],[10,"NICU","4023"],[10,"NICU (Sister’s Duty Room)","4010"],[10,"MICU","4019"],[10,"ECS O.T","4027"],[10,"ECS O.T. (Sister’s Duty Room)","4012"],[10,"ECS O.T. (Doctor’s Duty Room)","4026"],[10,"ECS O.T. (doctor’s Duty Surgeon)","4018"],[10,"SICU Sister Duty Room","4013"],[10,"SICU","4029"],[11,"Triage Room","4661 4672 4420"],[11,"Disaster (Trauma)","4662 4806"],[11,"Plaster Room","4665"],[11,"Ortho Emergency R. No. 5","4206"],[11,"Sister’s Duty Room","4680"],[11,"Minor O.T","4664"],[11,"Fire Control Room","4667"],[11,"Electrical Complaints","4690"],[11,"Manifold Trauma","4812"],[11,"C.T. Scan Room","4627"],[11,"X-Ray Room No.1","4669"],[11,"E-Ray Room No. 2","4660"],[11,"Ultrasound","4683 4405"],[11,"Laboratory","4666"],[11,"Caretaker","4583"],[11,"CCTV","4706"],[11,"CMO (NFSG)(Bio-Chemistry)","4668"],[11,"I.C.U. Main Counter","4697 4698"],[11,"Doctor’s Duty Room","4699"],[11,"Sister’s Duty Room","4701"],[11,"Neuro surgery","4679"],[11,"Sister’s Duty Room","4678"],[11,"Doctor’s Duty Room","4696"],[11,"Sister’s Incharge (Ortho)","4688 4675"],[11,"Doctor’s Duty Room","4671"],[11,"National Injury Survillence Centre","4815 23741688"],[11,"Doctor’s Duty Room (Main O.T)","4702"],[11,"Sister’s Duty Room(Main O.T)","4691"],[11,"Ortho O.T. Corridor (Post Operative)","4695"],[11,"ATLS Officer","23365509 4707"],[12,"HOD & Professor","4786"],[12,"Professor","23340724"],[12,"PAC Clinic (OPD)","4462"],[12,"Hyperbaric (OPD)","4358"],[13,"Dir Prof & Head","4886"],[13,"Professor","5064"],[14,"Head of the Department","4668"],[14,"Consultant","4440 4398 4871"],[14,"Professor","4890 4873"],[14,"Professor","4855"],[14,"Cosultant","4361"],[14,"Resident’s Room","4361"],[14,"Trauma Emergency Lab","4666"],[14,"UG Lab (ABVIMS)","4728"],[14,"Bio-chemistry Lab (R. No.-250)","4240 4398"],[14,"Blood Collection Center","4613"],[15,"Officer Incharge BMWC","4569"],[15,"SNO","4840"],[15,"LDC","4840"],[16,"Professor & HOD","4623"],[16,"Consultant Professor & Addl M.S","4451"],[16,"Professor","4773"],[16,"Professor","4416"],[16,"Professor","5074"],[16,"Burns & Plastic OPD","4607"],[16,"Burns Ward (Ward No 2)","4319"],[16,"Burn Ward (Doctor’s Duty Room)","4421"],[16,"Burn Dressing Room (II)","4332"],[16,"Laser Room Burn & Plastic","4416"],[17,"Professor & HOD","4491 4861"],[17,"PA to HOD","4491"],[17,"Professor","4799"],[17,"Sr. Physician & Associate Professor","4655"],[17,"Technical Supervisor","4469"],[18,"Technical STA","4507"],[18,"Cath Lab (Sister’s Duty Room)","5072"],[18,"Coronary Care Unit (C.C.U.) Ward-I","4448 4449"],[18,"E.C.G. Room (CCU)","4469"],[18,"NIC Lab","4321"],[18,"CCU (Sister)","4454"],[19,"Professor Consultant & HOD","23365525 4304"],[19,"Assistant Professor","4304"],[20,"Consultant & HOD","23744782 4562 4864"],[20,"Professor","4893 4562"],[20,"Professor","4562"],[20,"CTVS OT","4480"],[20,"CTVS ICU","4609 4510"],[20,"CTVS Anesthesia","4304"],[21,"I/C CSSD, Consultant & HOD","23365508 4567"],[21,"Consultant (Microbiology)","4879"],[21,"Technical Supervisor (CSSD), Store","5069"],[21,"CSSD (CSR)","4270"],[22,"Director Professor & Head","4938"],[23,"Professor & I/C Anti-Rabies Clinic","4349"],[23,"Professor & I/C Yellow Fever Vaccination","4820"],[24,"Consultant & HOD","4461 23364422"],[24,"Staff Surgeon (NFSG)","4489"],[24,"Staff Surgon (NFSG)","4396"],[24,"Staff Surgeon (NFSG)","4582"],[24,"Junior Staff Surgeon","4412"],[24,"Consultant","4578"],[24,"Denatl Hygienist","4717"],[24,"Staff Surgeon (NFSG)","4373"],[24,"Dental Surgeon Room","4578 4412 4489"],[24,"Storekeeper","4239"],[25,"Dietician","4498"],[25,"Nursing Home","4354 4496"],[25,"General Kitchen","4267"],[25,"General Kitchen Store","4619"],[26,"Consultant & HOD","4436 23747592"],[26,"Consultant","4726"],[26,"Consultant","4513"],[26,"Assistant Professor","4299"],[26,"CMO(SAG)","4593"],[26,"CMO(NFSG)","4299"],[26,"Sister in Charge Room/ Doctor Room","4234"],[26,"DHLS Study Center (ABVIMS)","4743"],[26,"ENT (SR)","4710"],[26,"ENT Surgeon’s Room","4511"],[27,"Professor & HOD","4789"],[27,"Endo Ward 21","4895"],[27,"Nursing Home","4341"],[28,"Consul.Prof. & HOD","4444"],[28,"CMO (NFSG)","4466"],[28,"Assistant Professor","4365"],[28,"SMO","4508"],[28,"SMO","4536"],[28,"Senior Medical Officer","4365"],[28,"Principal Consultant","4586"],[28,"Specialist Grade-I","4508"],[28,"CMO/NFSG","4395"],[28,"CMO/NFSG","4536"],[28,"Sr. Optometrist","4727"],[29,"CMO(NFSG)","23745524 4377 4306"],[30,"Professor & Head","4813"],[30,"Associate Professor","5058"],[30,"Medical Officer","4803"],[30,"Medical Officer","5125"],[31,"Medical Officer","4803"],[31,"Mortuary","4379"],[32,"Head & Professor","4222"],[32,"Addociate Professor","4222"],[32,"Associate Professor","4222"],[32,"Assistant Professor","4222"],[32,"ENDOSCOPY ROOM","4479"],[33,"Consultant & HOD","23365508 4567"],[33,"Consultant","4881"],[33,"Consultant","4581"],[33,"Consultant","4879"],[33,"Consultant","4649"],[33,"Professor","4569"],[33,"Associate Professor","4309"],[33,"Senior Medical Officer","4569"],[33,"Assistant Professor","4309"],[33,"Infection Control (Sister’s Duty Room)","4731"],[33,"Reception (Micro ABVIMS Lab)","4883"],[33,"HIV","5112 4266 5052"],[34,"Professor & HOD","4348"],[34,"Professor & HOU M-3","4256"],[34,"Associate Professor & HOU M-7","4227"],[34,"Professor & HOU M-4","4548"],[34,"Professor & HOU M-2","4274"],[34,"Director Professor & HOU M-1","4771"],[34,"Professor","4768"],[34,"Professor","5060"],[34,"Specialist Grade-II","4289"],[34,"Specialist Grade-II","4487"],[34,"SMO","4431"],[34,"Professor","4630"],[34,"Specialist Grade-I","4471"],[34,"Assistant Professor","4391"],[34,"Professor","4505"],[34,"Assistant Professor","4767"],[34,"CMO","4559"],[34,"Assistant Professor","4281"],[34,"Associate Professor","4712"],[34,"Professor","4772"],[34,"Associate Professor","5060"],[34,"Specialist Grade-II","4439"],[34,"Assistant Professor","4453"],[34,"Professor","4424"],[34,"Associate Professor","4652"],[34,"Assistant Professor","5060"],[34,"Assistant Professor","4387"],[34,"Specialist Grade-II","4387"],[34,"Assistant Professor","4781"],[34,"Specialist Grade-II","4471"],[34,"Assistant Professor","4677"],[34,"AssociateProfessor","4251"],[34,"Medical OPD","4271"],[34,"Doctor’s Duty Room","4324 4210"],[35,"Professor & Head of the Dept","4779 4397"],[35,"Bokaro, Jharkhand","4554"],[35,"Medical Officer","4554"],[35,"Professor","4397 4783"],[35,"Associate Professor","4397"],[35,"Kidney Transplant Ward","4729 4730"],[35,"Renal ICU","4681"],[35,"Dialysis Nursing Home","4554 4311"],[35,"Transplant OPD","4397 4737"],[36,"Professor & Head","4577"],[36,"Associate Professor","4785"],[36,"Assistant Professor","4577"],[36,"EEG Room","4360"],[37,"Director Prof. & Head of the Dept","4774"],[37,"PA to HOD","23362728 4740"],[37,"Ward-13","4393 4564"],[37,"Ward-13 (Doctor’s Duty Room)","4828"],[37,"Ward - 13 (Sister’s Duty Room)","4829"],[37,"Neurosurgery Trauma Ward, 3rd Floor, Trauma Centre","4679"],[37,"Trauma Centre (Doctor’s Duty Room)","4696"],[37,"Trauma Centre (Sister’s Duty Room)","4678"],[37,"Ground Floor OT, Old Building","4429 4214"],[38,"Consultant","4217"],[38,"Neonatology OPD Reception","4931"],[38,"Director Professor & HOD, HOU-III","23364007"],[38,"Senior Consultant & HOU-I","4602"],[38,"Consultant HOU-II","4601"],[38,"Sister I/C duty Room (Maternity Nursing)","4294"],[38,"Nursing Staff Duty Room (Maternity Nursing)","4209"],[38,"Nursing Labour Room","4215"],[38,"Ultrasound Room (Maternity Nursing Home)","4435"],[38,"G Mat Ward (Ward 20)","4823"],[38,"OPD Room","4264"],[38,"OPD Room","4313"],[38,"OPD Room","4642"],[38,"OPD Room","4856"],[38,"Sister Room OPD","4287"],[39,"Consultant & HOD","23744223 4647"],[39,"Consultant","4777"],[39,"Consultant","4648"],[39,"DirectorProfessor","4529"],[39,"CMO(NFSG)","4878"],[39,"CMO (NFSG)","4246"],[39,"Assistant Professor","4232"],[39,"Ortho OPD (R.No. 58)","4394"],[39,"Ortho OPD (R. No. 57), Sister's Duty Room","4584"],[39,"Ortho OPD (R. No. 56)","4560"],[39,"Ortho OPD (R. No. 52)","4225"],[39,"Ortho OPD (R. No. 50)","4725"],[39,"Ortho OPD (R. No. 54)","4279"],[39,"Ortho Ward","4241"],[40,"Professor & HOD","4344 4356"],[40,"Professor & HOU","4539"],[40,"Professor & HOU","4885"],[40,"Consultant & HOU","4344"],[40,"Specialist Grade-I","4933"],[40,"Specialist Grade –I","4297"],[40,"Associate Professor","4824"],[40,"SMO","4824"],[40,"Clinical Pathology","4213"],[40,"Clinical Pathology (OPD)","4224"],[40,"Hematology Lab","4588"],[40,"Diagnostic Lab","4637"],[40,"Sr. Lab Technician","4574"],[40,"Hisptopath Lab","4841 4359"],[41,"Sr. Physiotherapist & HOD","4563 4273"],[41,"Physiotherapist","4563"],[41,"Physiotherapist","5048"],[41,"Physiotherapy OPD","5048"],[42,"Professor & Head","4555"],[42,"Consultant","4218"],[42,"Professor (Pediatrics)","4474"],[42,"Professor","4218"],[42,"Professor","4784"],[42,"CMO(SAG)","4445"],[42,"Dr, Karan Singh","4445"],[42,"Associate Professor","4360"],[42,"Sr. Specialist","4740"],[42,"Professor","4774"],[42,"Assistant Professor","4360"],[42,"Professor","4829"],[42,"Assistant Professor","4717"],[42,"Assistant Professor, Pediatrics Cardiology","4564"],[42,"Associate Professor","4519"],[42,"Pediatrics OPD","4205"],[42,"Sister’s Duty Room","4827"],[42,"Pediatric Seminar Room","4591"],[42,"Nursery (NICU) Ward-22","4212 4509"],[42,"Doctor’s Duty Room (C3F) Ward-22","4509"],[42,"Cath Lab","4937 5119"],[42,"Endoscopy","5118"],[43,"Professor & HOD","4754"],[43,"Professor","4953"],[43,"Associate Professor","4754"],[43,"Assistant Professor","4295"],[44,"Professor & Head","4867"],[45,"Professor & HOD","4484"],[45,"PA to HOD","4727"],[45,"Assistant Professor","4459"],[45,"CMO/SAG","4459"],[45,"PMR OPD Sister’s Duty Room (R.No. 302)","4724"],[46,"Consultant & HOD","4280"],[46,"Consultant","23363857 4280"],[46,"Consultant","4338"],[46,"Consultant","4624"],[46,"Consultant","4280"],[46,"Professor","4386"],[46,"Professor","4686"],[46,"Professor","4345"],[46,"Associate Professor","4944"],[46,"CMO(NFSG)","4944"],[46,"Technical Supervisor","4338"],[46,"Store I/C X-Ray","4367"],[46,"Sister Room X-Ray","4628"],[46,"OPD X-Ray","4285"],[46,"Blood Bank MRI","4534"],[46,"Blood Bank CT","4533"],[46,"Blood Bank Ultrasound / Colour Doppler","4572"],[46,"Old Nursing Home USG (Ultrasound)","4657"],[46,"Old Nursing Home New MRI","4497"],[46,"Trauma Centre Ultrasound","4683"],[46,"Trauma Centre C.T","4627"],[47,"CMO (SAG) & HOD","4558"],[47,"CMO (NFSG)","4317"],[47,"CMO (NFSG)","4316"],[47,"Medical Officer","4431"],[47,"Medical Officer","4467"],[47,"Sleep Lab","4863"],[47,"Respiratory Lab","4467"],[47,"Bronchoscopy","4659"],[48,"Professor Consultant & HOD","4380"],[48,"SMO","4296"],[48,"Associate Professor","4322"],[48,"Professor","4406 4780"],[48,"Consultant","4995"],[49,"Director Professor","4283"],[49,"Assistant professor","4322"],[49,"SKIN OPD","4368"],[49,"STD Clinic","4374"],[50,"Consult.& HOD surgery, HOU-IV","23747880 4410"],[50,"Consultant & HOU -II","4880"],[50,"CMO(SAG) & HOU-III","4455"],[50,"Director Professor & HOU-V","23342335 4808"],[50,"Consultant & HOU-1","4401"],[50,"Consultant Surgeon","4781"],[50,"Director Professor","4781"],[50,"Professor","4716"],[50,"Professor","4458"],[50,"Professor","5066"],[50,"Specialist Grade-I","4529"],[50,"Specialist Grade-II","4808"],[50,"Assistant Professor","4460"],[50,"Assistant Professor","4808"],[50,"Assistant Professor","5113"],[50,"Assistant Professor","4716"],[50,"Specialist Grade-III","4617"],[50,"Medical Officer","4617"],[50,"Surgery OPD","4268 4318"],[50,"Surgery Room","4465"],[50,"Minor O.T","4277"],[51,"CMO & HOD","4291"],[51,"SMO(SAG)","4291"],[51,"Blood Bank","4298 4611"],[52,"Main ICU (1st Floor) Trauma","4698 4697"],[52,"Sister Incharge","4701"],[52,"Doctor’s Duty Anesthesia","4699"],[52,"Swine Flu ICU","4245 4310 4535"],[52,"Renal ICU (Nursing Home)","4681"],[52,"MICU ICU (Sister Incharge)","4653"],[52,"ICU (Sister Incharge)","4427"],[52,"PICU 3rd Floor","4721 4722"],[52,"CTVS ICU 2nd Floor (Blood Bank)","4510 4604 4304 4480"],[52,"ICU 1st Floor (Old Building)","4245 4535"],[52,"ICU 2nd Floor (Old Building) (K.T.W)","4729 4730"],[52,"Renal Transplant","4730"],[52,"Doctor’s Duty Room","4689"],[52,"Renal ICU Old Bldg 1stflr","4644"],[52,"PICU (4rth Floor ECS)","4033 4023"],[53,"Ist Floor O.T","4249"],[53,"Doctor’s Duty Room (Surgeon)","4314"],[53,"Doctor’s Duty Room (Anesthesia)","4736"],[53,"Sister Duty Room","4503"],[53,"IInd Floor O.T","4228"],[53,"Doctor’s Duty Room","4552"],[53,"Doctor’s Duty Room (Surgeon)","4814"],[53,"Sister’s Duty Room","4544"],[53,"Emergency O.T","4426"],[53,"Maternity O.T","4606"],[53,"Ground Floor O.T","4429"],[53,"Doctor’s Duty Room","4214"],[53,"I.C.U. (Ground Floor O.T)","4587"],[53,"Minor O.T","4277"],[53,"C.T.V.S OT","4480"],[53,"Trauma O.T. (Doctor’s Duty Room)","4702"],[53,"Ortho OT (Sister’s Duty Room)","4602"],[53,"Ortho OT (Corridor)","4695"],[53,"Uro. OT","4865"],[53,"E.C.S. OT","4013 4027"],[53,"Doctor’s Duty Room (Anesthesia)","4026"],[53,"Doctor’s Duty Room (Surgeon)","4018"],[53,"Sister's Duty Room","4012"],[53,"CMO (SAG), Officer I/C OPD","4316"],[54,"Sister Incharge","4897"],[54,"Room No- S1","4911"],[54,"Room No- S2","4912"],[54,"Room No- S3","4913"],[54,"Room No- S4","4904"],[54,"Room No- S5","4905"],[54,"Room No- S6","4906"],[54,"Room No- S7","4907"],[54,"Room No- S8","4908"],[54,"Room No- S9","4909"],[54,"Room No- S10","4910"],[55,"Academic Section/PG Cell","4755"],[55,"Library Incharge","4745"],[55,"Library","4272 4741"],[55,"Sulabh Supervisor, ABVIMS","4762"],[55,"Security Room, ABVIMS","23341433"],[55,"Accounts Section","4719"],[55,"Computer Lab (Technician) IInd Floor, R.No","4626"],[55,"ABVIMS Store","5067"],[55,"NABH Office","5042"],[55,"Code) RED (FIRE","5073"],[55,"Code) BLUE (ECS RR","5070"],[55,"Code) Black (Bomb","4492"],[55,"Code ) Violet","4492"],[55,"I.T. Section","4626"],[55,"UG Cell","4515"],[55,"Met Division","4819"],[56,"Senior Account Officer","23341270 4540"],[56,"AAO","4656"],[56,"Account Section","4250 4292 4521"],[57,"Account Section II","4248"],[58,"UDC","23404624"],[59,"Director Professor, Chairman","4808"],[60,"Dy. Labour Welfare","23743463"],[60,"Commissioner Office","4258"],[61,"AO","4635"],[61,"Assistant","4263"],[62,"Administrative Officer","23348035 4355"],[62,"Assistant","4464 4443"],[63,"Officer Superintendent","4748"],[63,"HA-II Section","4439"],[64,"Associate Director (OL)","4226 4821"],[64,"Jr. Translator","4226"],[65,"Store officer","4556"],[65,"Pharmacist (N.F.G.) Oxygen Store","4734"],[65,"Pharmacist (N.F.G)","4381"],[65,"Pharmacist (X-Ray & Chemical) Store","4336"],[65,"I.V. Fluid Store","4608"],[65,"Stationary store","4366"],[65,"Equipment store","4565"],[65,"Linen & Contingency store","4456"],[65,"Chemical & Oxygen store","4336"],[65,"Surgical Store","4255"],[65,"Injection Store","4522"],[65,"Tablet Store","4381"],[65,"Oxygen Big Cylinder Store","4734"],[65,"Manifold","4315"],[65,"Disposable Store (Syrup Store)","4598"],[66,"Officer I/C","4261"],[67,"CMO(SAG) & OI/C","4357"],[68,"Medical Social Service Officer (2nd floor OPD)","4399"],[68,"CMO","4936"],[68,"UDC","4936"],[69,"CMO (SAG)","23365524 4352"],[69,"Medical Examination Department","4330"],[70,"Professor & HOD","4725 4432"],[70,"CMO(ME-II & MDB)","4725 4432"],[70,"Link Officer","4725 4432"],[70,"LDC (ME-II & MDB)","4725 4432"],[71,"Medical Record Officer","23365510 4325 5034"],[72,"Associate Professor & HOU M-7","4227"],[72,"Assistant Professor","4391"],[72,"Assistant Professor","4391 4652"],[72,"Doctor’s Duty Room","4350"],[72,"Sister’s Incharge (MICU)","4427"],[72,"Nursing Home (MICU)","4653"],[72,"Sister Incharge (Old Nursing Home)","4490"],[72,"Sister’s Duty Room (Old Nursing Home)","4238"],[72,"Sister Incharge N.H.A","4477"],[72,"Sister’s Duty Room N.H.A","4204"],[72,"Sister’s Duty Room N.H.B","4216"],[72,"E.C.G Nursing Home","4376"],[72,"Nursing Home Counter","5050"],[73,"I/C Nursing section","4385"],[73,"Assistant","4632 4561"],[73,"Outsourcing Cell","4500"],[74,"Sr. Account Officer","23360277 4230"],[74,"Asst. Accounts Officer","4284"],[75,"Officer Incharge","23742467 4428 4641"],[75,"Assit. Professor","4428"],[75,"Debashish Parmar","4428"],[75,"Procurement Section","5055 4595"],[75,"RR Cell","4860"],[76,"RTI Cell","4839"],[77,"Officer in Charge","4803"],[77,"Chief Security Officer","4492"],[77,"Security Control Officer(SIS)","4811"],[77,"CCTV In charge (Dr RMLH)","4706"],[77,"Security Officer(PGIMER)","4761"],[78,"Professor & O/I/C","4569"],[78,"I/C Telephone Exchange","4378"],[78,"Telephone Complaint","4300 4614"],[79,"Technical Section","4538"],[80,"HOU & Officer I/C Vigilance","4858"],[81,"SMO","4796"],[81,"Medical Officer","4795"],[81,"Facility Room (ART)","4797"],[81,"Data Room","4790"],[81,"Counselor I","4791"],[81,"Counselor II","4792"],[81,"Sister’s Duty Room","4794 4793"],[81,"Pharmacy","4798"],[82,"Officer I/C Departmental Canteen","4536"],[82,"Cash Counter","4351"],[83,"Executive Engineer","23345291 23355663 4326"],[84,"CPWD Civil Enquiry","4278"],[84,"Ajay Kumar Chadha, EE","4425 23355068"],[84,"CPWD (AE)","4370 4807"],[84,"CPWD Electrical Enquiry","4877"],[85,"Dispensary (OPD)","4305"],[85,"Dispensary (Psychiatry)","4735"],[86,"Dots Centre","4620"],[87,"Consultant & Officer I/C Library","4745"],[88,"Library Reception","4272"],[89,"Officer I/C","4824"],[89,"Interim Supervisor","4333"],[89,"Laundry Department","4293"],[90,"Public Relation Officer","4810"],[91,"Specialist & OfficerI/C","4478 4019"],[91,"SMO & Link Officer","4803"],[91,"Sanitary Superintendent","4307 4747"],[91,"Sanitary Superintendent, New Building","4235"],[91,"Caretaker","4530"],[92,"Director Professor & I/c","4380"],[92,"Incharge","4476"],[93,"Consultant & Officer I/C","4578"],[93,"Transport Incharge","4549"],[93,"Driver’s Room","4353"],[94,"Ward No. 1 (CCU)","4448 4449"],[94,"ECG-CCU","4469"],[94,"Ward No. 2, Burn & Plastic","4319"],[94,"Doctor's Duty Room","4421"],[94,"Ward No. 3 Children Ward, CTVS","4340"],[94,"Ward No. 4 Children Ward, Ped. Surgery","4288"],[94,"Ward No. 5, Female ENT/Skin","4328"],[94,"Sister on I/C Duty","4512"],[94,"Swine Flu/ Covid 19","4733"],[94,"Bronchoscopy Lab","4328"],[94,"Ward No. 6 Male ENT/Skin","4253"],[94,"Ward No. 7 Male Medical/ Cardio CTVS","4342"],[94,"Ward No. 8 Male Medical","4247"],[94,"Ward No. 9 Male Medical","4281"],[94,"Ward No. 10 Male Medical","4327"],[94,"Ward No. 11 Male Medical","4231"],[94,"Ward No. 12 Female Medical","4254"],[94,"Ward No. 13 Ground Floor Neuro Surgery","4393"],[94,"Ward No. 13 Ist Floor Neuro Surgery","4564"],[94,"Doctor’s Duty Room Neuro Surgery","4828"],[94,"Ward No. 14 Male ortho","4241"],[94,"General Maternity ward","4823"],[94,"Ward No. 15 IInd floor","4535 4245"],[94,"Ward No. 16 Iind floor Female surgery","4242 5053"],[94,"Ward No. 17 IIIrd floor Male surgery","4243"],[94,"Ward No. 18 Ivth floor Male surgery","4244"],[94,"Sister Incharge Ward No. 18","4857"],[94,"Ward 20 A (Ground floor Urology Emergency)","4407"],[94,"Ward 20 B (1st floor Emergency)","4823"],[94,"Ward 21","4805 4801"],[94,"Ward 22 (3rd floor Emergency)","4212 4721 4722"],[94,"Ward No. 23 Male Phy","4262"],[94,"Ward No. 24 Female Phy","4502"],[95,"Police Post","4282"],[95,"Bank of Baroda","23361656 23744386"],[95,"Injection Room OPD","4723"],[95,"Ex. P.M. Cell","23360594"],[95,"Wireless Control Room","4486"],[95,"ICM Office(union)","4388"],[95,"Security Officer","4492"],[95,"T & C Cooperative Society","4334"],[95,"Registration Counter OPD","4618"],[95,"Nursing Home Enquiry (Reception)","4219"],[95,"General Enquiry","4286"],[95,"Complaint Cell","4308"],[95,"Labour Welfare Commissioner","4258"],[95,"Server Room","23363906 4476"],[95,"Central Diary","4651"],[95,"Conference Room","4732"],[95,"Hyper Barric","4358"],[95,"Cretch (Baby Cretch)","4343"],[95,"Horti Culture","4523"]]};
+function dirDial(n){ n = String(n); return n.length === 4 ? "0112340" + n : n.length === 8 ? "011" + n : n; }
+function dirNumRow(label, sub, nums){
+  var row = el("div","dirrow phone");
+  var nm = el("span","dirname", label);
+  if (sub) nm.appendChild(el("small","dirsub", sub));
+  row.appendChild(nm);
+  var box = el("span","dirnums");
+  nums.forEach(function(n){ var a = document.createElement("a"); a.className = "dircall"; a.href = "tel:" + dirDial(n);
+    a.textContent = "\u260E " + (String(n).length === 4 ? n : n); a.title = "Call " + label + " (" + dirDial(n) + ")"; box.appendChild(a); });
+  row.appendChild(box);
+  return row;
+}
 function extNumbers(s){ return String(s).split("/").map(function(x){ x = x.trim(); return x.length === 4 ? "0112340" + x : x; }); }
 function unitsLine(host){
-  var key = todayKey(), u = unitsFor(key);
+  var key = dutyKey(), u = unitsFor(key);
   var line = el("button","unitstrip"); line.type = "button";
   line.appendChild(el("b", null, "Units"));
   line.appendChild(el("span","unittxt", u.length ? u.map(function(x){ return x.dept + " " + x.code; }).join(" \u00B7 ") : "none listed today"));
@@ -2015,25 +2040,60 @@ function unitsLine(host){
   host.appendChild(line);
 }
 function openDirectory(){
-  var box = el("div","dirbox"), key = todayKey(), u = unitsFor(key);
-  box.appendChild(el("h4", null, "Emergency units today"));
-  if (u.length) u.forEach(function(x){ box.appendChild(el("div","dirrow", x.dept + " \u00B7 " + x.code + (x.head ? " \u00B7 " + x.head : ""))); });
-  else box.appendChild(el("div","dirrow","None listed for today."));
+  var box = el("div","dirbox"), key = dutyKey(), u = unitsFor(key);
+  var q = document.createElement("input"); q.type = "search"; q.className = "dirsearch";
+  q.placeholder = "\uD83D\uDD0D Search - ward 7, cardio, blood bank\u2026";
+  q.setAttribute("aria-label", "Search hospital numbers");
+  var qw = el("div","dirsearchwrap"); qw.appendChild(q); box.appendChild(qw);
+  var res = el("div","dirres"); box.appendChild(res);
+  var main = el("div","dirmain"); box.appendChild(main);
+  main.appendChild(el("h4", null, "Emergency units today"));
+  if (u.length) u.forEach(function(x){ main.appendChild(el("div","dirrow", x.dept + " \u00B7 " + x.code + (x.head ? " \u00B7 " + x.head : ""))); });
+  else main.appendChild(el("div","dirrow","None listed for today."));
   var wk = el("table","dirweek"), hr = el("tr"); hr.appendChild(el("th", null, ""));
   ["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(d){ hr.appendChild(el("th", null, d)); }); wk.appendChild(hr);
   Object.keys(UNITS).forEach(function(k){ var tr = el("tr"); tr.appendChild(el("th", null, UNITS[k].name));
     [1,2,3,4,5,6].forEach(function(d){ tr.appendChild(el("td", null, UNITS[k].byDay[d] || "")); }); wk.appendChild(tr); });
-  box.appendChild(wk);
+  main.appendChild(wk);
   PHONEBOOK.forEach(function(sec){
-    box.appendChild(el("h4", null, sec[0]));
-    sec[1].forEach(function(r){
-      var row = el("div","dirrow phone");
-      row.appendChild(el("span","dirname", r[0]));
-      var nums = el("span","dirnums");
-      extNumbers(r[1]).forEach(function(n){ var a = document.createElement("a"); a.className = "dircall"; a.href = "tel:" + n; a.textContent = "\u260E " + n.slice(-4); a.title = "Call " + r[0] + " (" + n + ")"; nums.appendChild(a); });
-      row.appendChild(nums); box.appendChild(row);
-    });
+    main.appendChild(el("h4", null, sec[0]));
+    sec[1].forEach(function(r){ main.appendChild(dirNumRow(r[0], "", r[1].split("/").map(function(x){ return x.trim(); }))); });
   });
+  /* the whole hospital directory, one department at a time */
+  if (DIRECTORY && DIRECTORY.rows){
+    main.appendChild(el("h4", null, "Hospital directory"));
+    DIRECTORY.secs.forEach(function(sn, si){
+      var rows = DIRECTORY.rows.filter(function(r){ return r[0] === si; });
+      if (!rows.length) return;
+      var hb = el("button","dirsec"); hb.type = "button"; hb.textContent = sn + " (" + rows.length + ") \u25B8";
+      var list = el("div","dirseclist"); list.hidden = true;
+      hb.onclick = function(){
+        if (!list.childNodes.length) rows.forEach(function(r){ list.appendChild(dirNumRow(r[1], "", r[2].split(" "))); });
+        list.hidden = !list.hidden; hb.textContent = sn + " (" + rows.length + ") " + (list.hidden ? "\u25B8" : "\u25BE");
+      };
+      main.appendChild(hb); main.appendChild(list);
+    });
+  }
+  /* search across everything */
+  var timer = null;
+  q.oninput = function(){
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      var t = q.value.trim().toLowerCase();
+      res.innerHTML = ""; main.hidden = !!t;
+      if (!t) return;
+      var words = t.split(/\s+/), hits = [];
+      function hit(txt){ txt = txt.toLowerCase(); return words.every(function(w){ return txt.indexOf(w) >= 0; }); }
+      PHONEBOOK.forEach(function(sec){ sec[1].forEach(function(r){ if (hit(sec[0] + " " + r[0] + " " + r[1])) hits.push([r[0], sec[0], r[1].split("/").map(function(x){ return x.trim(); })]); }); });
+      if (DIRECTORY && DIRECTORY.rows) DIRECTORY.rows.forEach(function(r){
+        var sn = DIRECTORY.secs[r[0]];
+        if (hit(sn + " " + r[1] + " " + r[2])) hits.push([r[1], sn, r[2].split(" ")]);
+      });
+      if (!hits.length){ res.appendChild(el("p","dirnote","Nothing found for \u201C" + q.value.trim() + "\u201D.")); return; }
+      hits.slice(0, 60).forEach(function(h){ res.appendChild(dirNumRow(h[0], h[1], h[2])); });
+      if (hits.length > 60) res.appendChild(el("p","dirnote", "Showing 60 of " + hits.length + " - type more to narrow it down."));
+    }, 120);
+  };
   openSheet("Units and hospital numbers", box);
 }
 
@@ -3274,7 +3334,24 @@ function renderOtherToday(host, ms){
 }
 
 /* ---------- today ---------- */
-function todayMs(){ var ms = msOf(todayKey()); return ms < epochMs() ? null : ms; }
+/* The duty day: after midnight the night shift is still on, so "today" on
+   the duty screen stays on the day that night began until the first
+   morning shift starts (8 am). */
+function dayStartMin(){
+  var best = null;
+  (CFG.slots || []).forEach(function(s){
+    var m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(String(s.time || "").trim());
+    if (!m) return;
+    var a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4];
+    if (a < b && (best === null || a < best)) best = a;
+  });
+  return best === null ? 8 * 60 : best;
+}
+function dutyKey(){
+  var d = new Date(), now = d.getHours() * 60 + d.getMinutes();
+  return now < dayStartMin() ? iso(msOf(todayKey()) - DAY) : todayKey();
+}
+function todayMs(){ var ms = msOf(dutyKey()); return ms < epochMs() ? null : ms; }
 /* The CMO's main job, at the top of Today: post the JRs of the shift running
    now (or, before the roster starts, of its first morning). */
 var TODAY_POST = false;
@@ -3295,12 +3372,13 @@ function todayPostBox(host){
   host.appendChild(wrap);
 }
 /* is a shift going on right now? (times like "08:00-14:00"; a night runs past midnight) */
-function slotLive(s){
+function slotLive(s, prevDay){
   var m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(String(s && s.time || "").trim());
   if (!m) return false;
   var d = new Date(), now = d.getHours() * 60 + d.getMinutes();
   var a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4];
-  /* a night that began yesterday belongs to yesterday's row, not today's */
+  /* after midnight, the screen shows the day the night began (prevDay) */
+  if (prevDay) return a > b && now < b;
   return a < b ? (now >= a && now < b) : now >= a;
 }
 var TODAY_OPEN = {};      /* JR: the shifts opened by a tap; the one going on is always open */
@@ -3321,18 +3399,19 @@ function renderToday(){
   if (lbl){
     lbl.innerHTML = "";
     lbl.appendChild(document.createTextNode(DOW[d.getUTCDay()] + " " + fmt(ms)));
+    if (dutyKey() !== todayKey()) lbl.appendChild(el("span","nightcont"," \u00B7 night on now"));
     if (hol){ var hs = el("span",null," · " + hol); hs.style.color = "var(--warn-ink)"; lbl.appendChild(hs); }
   }
   var eff = effective(ms);
-  var isNow = iso(ms) === iso(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
-  var anyLive = isNow && CFG.slots.some(function(s){ return s.k !== "OFF" && slotLive(s); });
+  var isNow = iso(ms) === dutyKey(), prevDay = dutyKey() !== todayKey();
+  var anyLive = isNow && CFG.slots.some(function(s){ return s.k !== "OFF" && slotLive(s, prevDay); });
   CFG.slots.forEach(function(s){
     if (s.k === "OFF") return;
     var row = el("div","trow " + s.zone);
     var tl = el("div","tl");
     tl.appendChild(el("b", null, s.label));
     tl.appendChild(document.createTextNode(s.time));
-    var live = anyLive && slotLive(s);
+    var live = anyLive && slotLive(s, prevDay);
     if (live){ row.className += " live"; tl.appendChild(el("span","nowtag","Now")); }
     row.appendChild(tl);
     var tv = el("div","tv");
