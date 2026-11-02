@@ -706,6 +706,46 @@ body.nurse #toolsCard{display:none !important}
 .abslist{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .chip.abs{border:1px solid var(--rule) !important;border-style:solid !important;background:var(--panel2) !important;color:var(--ink) !important;font-size:12.5px}
 .chip.abs .sttag{color:var(--muted);background:transparent;border:0}
+.otpbox{display:flex;flex-direction:column;gap:10px}
+.otpintro{margin:0;font-weight:600}
+.otphelp{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
+.otparea{display:flex;flex-direction:column;gap:10px}
+.otpin{width:100%;box-sizing:border-box;font-size:16px;padding:10px 12px}
+.otpin.code{letter-spacing:.3em;text-align:center;font-size:20px}
+.otprow{display:flex;gap:8px;flex-wrap:wrap}
+.otprow button{flex:1 1 140px}
+.otpst{margin:0;font-size:13px;color:var(--muted)}
+.otpst.bad{color:var(--bad-ink,#a32020)}
+.apguidebox{margin:10px 0 2px;padding:10px 12px;border-radius:10px;background:var(--panel2);font-size:13px;line-height:1.45}
+.apguidebox .apbal{margin:0 0 6px;font-weight:600}
+.apguide{margin:0;padding-left:18px}
+.apguide li{margin:2px 0}
+.apprmail{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all}
+.mailsbox{margin-top:10px}
+.mailrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px}
+.mailrow .mn{font-weight:600}
+.mailrow .me{grid-column:1;color:var(--muted);word-break:break-all}
+.mailrow button{grid-column:2;grid-row:1 / span 2}
+.npfold .absbtn{padding:0;color:var(--accent,#0b6b6b);font-weight:600}
+.nplist{font-size:13px;color:var(--muted);margin-top:2px}
+.absfold .absbtn{color:var(--accent,#0b6b6b);font-weight:600;font-size:13px}
+button.acadline{display:block;width:100%;text-align:left;border:0;font:inherit;cursor:pointer}
+.acadline.cancelled,.acadstrip.cancelled{opacity:.7}
+.acadline.cancelled b,.acadstrip.cancelled b{text-decoration:line-through}
+.ghost.danger{color:var(--bad-ink,#a32020)}
+.acadmove{display:flex;flex-direction:column;gap:8px}
+/* the shift going on now */
+.trow.live{box-shadow:inset 4px 0 0 var(--accent,#0b6b6b);background:var(--panel)}
+.nowtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent,#0b6b6b);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;vertical-align:1px}
+.trow.folded{opacity:.85}
+.tvfold{background:transparent;border:0;padding:0;font:inherit;font-size:13.5px;color:var(--muted);text-align:left;cursor:pointer;align-self:center}
+.trow.unfolded .tvfold{grid-column:1 / -1;font-size:12.5px}
+.trow.folded .tvfold{color:var(--ink)}
+.autobox{flex:1 1 100%;border:1.5px solid var(--accent,#0b6b6b);background:var(--green-bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.autohead{font-size:12px;font-weight:700;color:var(--green-ink);text-transform:none}
+.posttop .autobox .autobtn{flex:none;width:100%;font-size:16px;padding:12px;font-weight:700}
+.autowhat{font-size:12.5px;line-height:1.45;color:var(--ink)}
+.posttop .samebtn{flex:1 1 100%}
 </style>
 </head>
 <body>
@@ -881,6 +921,7 @@ body.nurse #toolsCard{display:none !important}
   </div>
 
   <div id="applyBox" class="lockbox" hidden>
+    <div id="apGuide" class="apguidebox" hidden></div>
     <div class="inline" style="align-items:flex-end">
       <div style="flex:1 1 180px"><label for="apWho">Leave for</label>
         <select id="apWho" style="width:100%"></select></div>
@@ -893,7 +934,7 @@ body.nurse #toolsCard{display:none !important}
         <input type="text" id="apWhy" placeholder="CL / SL / exam" style="width:100%"></div>
       <div style="flex:0 0 auto"><button class="primary" id="apGo">Send for approval</button></div>
     </div>
-    <p class="hint">One application per continuous stretch of days. If somebody is covering a
+    <p class="hint" id="apHint">One application per continuous stretch of days. If somebody is covering a
       duty, enter that as a cover on the day instead - a covered day is not leave.</p>
     <p class="status" id="apMsg"></p>
   </div>
@@ -1623,7 +1664,7 @@ function teamText(t){ return t.name + (t.on === t.total ? "" : " (" + t.on + " o
 function slotText(eff, slotK, ms){
   var se = slotEntries(eff, slotK, ms);
   return se.teams.map(teamText).concat(se.people.map(function(n){
-    return (hasTeams() ? "Dr " : "") + title(n) + (isCovering(eff,n,slotK) ? " (cov)" : "");
+    return "Dr " + title(n) + (isCovering(eff,n,slotK) ? " (cov)" : "");
   })).join(", ");
 }
 
@@ -1738,23 +1779,25 @@ var PLAN = null, PLAN_SIG = "";
 function seriesPlan(){
   var r = seriesRec();
   if (!r || !r.items || !r.start) return {};
-  var sig = JSON.stringify([r.start, r.skips, r.moved, r.items.length]);
+  var sig = JSON.stringify([r.start, r.skips, r.moved, r.dropped, r.items.length]);
   if (PLAN && sig === PLAN_SIG) return PLAN;
   var plan = {}, moved = r.moved || {}, skips = r.skips || [], queue = [], i;
-  for (i = 0; i < r.items.length; i++) if (!moved[i]) queue.push(i);
+  var dropped = r.dropped || [];
+  for (i = 0; i < r.items.length; i++) if (!moved[i] && dropped.indexOf(i) < 0) queue.push(i);
   var t = msOf(r.start), guard = 0;
   while (queue.length && guard++ < 400){
     var k = iso(t);
     if (isClassDay(k) && skips.indexOf(k) < 0){ var idx = queue.shift(); plan[k] = {idx:idx, item:r.items[idx]}; }
     t += DAY;
   }
-  Object.keys(moved).forEach(function(ix){ if (r.items[ix]) plan[moved[ix]] = {idx:+ix, item:r.items[ix], moved:true}; });
+  Object.keys(moved).forEach(function(ix){ if (r.items[ix] && dropped.indexOf(+ix) < 0) plan[moved[ix]] = {idx:+ix, item:r.items[ix], moved:true}; });
   PLAN = plan; PLAN_SIG = sig;
   return plan;
 }
 function academicKind(key){
   if (hasTeams() || CADRE !== "pg") return null;
   var own0 = (DATA.academics || {})[safeId("acad", key)];
+  if (own0 && own0.cancelled && own0.kind) return own0.kind;  /* shown as called off */
   if (own0 && own0.extra && own0.kind) return own0.kind;      /* one held on another day */
   if (seriesPlan()[key]) return "Class";
   if (holidayOn(key)) return null;
@@ -1766,6 +1809,11 @@ function academicKind(key){
   }
   return null;
 }
+/* a class or case presentation called off for that day */
+function academicCancelled(key){
+  var own = (DATA.academics || {})[safeId("acad", key)];
+  return !!(own && own.cancelled);
+}
 function academicOn(key){
   var own = (DATA.academics || {})[safeId("acad", key)];
   if (own && own.topic) return own;
@@ -1776,19 +1824,33 @@ function academicOn(key){
 function nextAcademic(fromKey){
   for (var i = 0; i < 14; i++){
     var k = iso(msOf(fromKey) + i * DAY);
-    if (academicKind(k)) return k;
+    if (academicKind(k) && !academicCancelled(k)) return k;
   }
   return null;
 }
 function academicLine(key, small){
   var kind = academicKind(key);
   if (!kind) return null;
-  var a = academicOn(key), d = el("div", "acadline" + (small ? " small" : ""));
+  var a = academicOn(key), can = academicCanEdit();
+  var d = el(can ? "button" : "div", "acadline" + (small ? " small" : ""));
+  if (can){ d.type = "button"; d.onclick = function(ev){ ev.stopPropagation(); openAcademic(key); }; }
   d.appendChild(el("b", null, kind));
+  if (academicCancelled(key)){
+    var cx = (DATA.academics || {})[safeId("acad", key)];
+    d.className += " cancelled";
+    d.appendChild(document.createTextNode(" \u00B7 " + (cx.movedTo ? "postponed to " + fmt(msOf(cx.movedTo)) : "cancelled")));
+    return d;
+  }
   var t = a && a.topic ? a.topic : "topic not set";
   d.appendChild(document.createTextNode(" \u00B7 " + t + (a && a.by ? " \u00B7 Dr " + title(a.by) : "")));
   if (!(a && a.topic)) d.className += " unset";
   return d;
+}
+function academicCanEdit(){ return !hasTeams() && CADRE === "pg" && UNLOCKED && !FAC && (ROLE === "pg" || HOD); }
+function openAcademic(key){
+  var kind = academicKind(key);
+  if (!kind) return;
+  openSheet(kind + " - " + fmt(msOf(key)), academicEditor(key, function(){ closeSheet(); }));
 }
 /* Today: one slim line for today's class or case presentation; tap it to
    fill in the topic and presenter. Nothing on other days. */
@@ -1802,14 +1864,57 @@ function academicBox(host){
   var line = el(canEdit ? "button" : "div", "acadstrip" + (a.topic ? "" : " unset"));
   if (canEdit) line.type = "button";
   line.appendChild(el("b", null, kind + " today"));
+  if (academicCancelled(key)){
+    var cx0 = (DATA.academics || {})[safeId("acad", key)];
+    line.className += " cancelled";
+    line.appendChild(document.createTextNode(" \u00B7 " + (cx0.movedTo ? "postponed to " + fmt(msOf(cx0.movedTo)) : "cancelled")));
+  } else
   line.appendChild(document.createTextNode(" \u00B7 " + (a.topic || (canEdit ? "tap to add the topic" : "topic not set"))
     + (a.by ? " \u00B7 Dr " + title(a.by) : "")));
   if (canEdit) line.onclick = function(){ ACAD_EDIT = !ACAD_EDIT; renderToday(); };
   host.appendChild(line);
   if (!(canEdit && ACAD_EDIT)) return;
+  host.appendChild(academicEditor(key, function(){ ACAD_EDIT = false; }));
+}
+/* edit a class day: topic and presenter, postpone, move, cancel - or bring it back */
+function academicEditor(key, onDone){
+  var kind = academicKind(key), a = academicOn(key) || {};
   var box = el("div","acadedit");
+  var own = (DATA.academics || {})[safeId("acad", key)] || null;
+  var plan = seriesPlan()[key], rec = seriesRec();
+  var st = el("p","status");
+  function finish(msg){ PLAN = null; if (onDone) onDone(); renderAll(); setStatus(msg); }
+  function failed(){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; }
+  function jobs(list, msg){
+    st.className = "status"; st.textContent = "Saving\u2026";
+    runSeq(list).then(function(r){ if (r.refused || r.failed) failed(); else finish(msg); });
+  }
+  function putRec(r2){ return function(){ return STORE.put("academics", "series_class", r2); }; }
+  function putDay(k, body){ return function(){ return STORE.put("academics", safeId("acad", k), body); }; }
+  function dropDay(k){ return function(){ return STORE.drop("academics", safeId("acad", k)); }; }
+
+  if (academicCancelled(key)){
+    box.appendChild(el("p","acadsub", kind + (own.movedTo ? " postponed to " + fmt(msOf(own.movedTo)) : " cancelled") + " for this day."));
+    var back = el("button","primary","Bring it back to this day"); back.type = "button";
+    back.onclick = function(){
+      var L = [dropDay(key)];
+      if (own.movedTo){ var o2 = (DATA.academics || {})[safeId("acad", own.movedTo)]; if (o2 && o2.extra && o2.from === key) L.push(dropDay(own.movedTo)); }
+      if (own.seriesIdx != null && rec){
+        var r2 = JSON.parse(JSON.stringify(rec));
+        r2.skips = (r2.skips || []).filter(function(x){ return x !== key; });
+        r2.dropped = (r2.dropped || []).filter(function(x){ return x !== own.seriesIdx; });
+        if (r2.moved) delete r2.moved[own.seriesIdx];
+        L.push(putRec(r2));
+      }
+      jobs(L, kind + " is back on " + fmt(msOf(key)) + ".");
+    };
+    box.appendChild(back); box.appendChild(st);
+    return box;
+  }
+
+  /* topic and presenter */
   var ti = document.createElement("input"); ti.type = "text"; ti.value = a.topic || ""; ti.placeholder = kind === "Class" ? "Topic of the class" : "Case / topic";
-  var ps = document.createElement("select"); ps.appendChild(opt("", "— who is presenting —"));
+  var ps = document.createElement("select"); ps.appendChild(opt("", "\u2014 who is presenting \u2014"));
   roster().forEach(function(n){ ps.appendChild(opt(n, "Dr " + title(n))); });
   var ot = document.createElement("input"); ot.type = "text"; ot.placeholder = "or type a name (e.g. faculty)";
   if (a.by && roster().indexOf(a.by) >= 0) ps.value = a.by; else if (a.by) ot.value = title(a.by);
@@ -1818,50 +1923,66 @@ function academicBox(host){
   var f2 = el("div","pf"); f2.appendChild(el("label", null, "Presenting")); f2.appendChild(ps); g.appendChild(f2);
   var f3 = el("div","pf"); f3.appendChild(el("label", null, "Other presenter")); f3.appendChild(ot); g.appendChild(f3);
   box.appendChild(g);
-  var sv = el("button","primary","Save"), cn = el("button","ghost","Cancel"), st = el("span","status");
+  function byNow(){ return ps.value || String(ot.value || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase(); }
+  var sv = el("button","primary","Save"), cn = el("button","ghost","Close");
   sv.type = cn.type = "button";
-  cn.onclick = function(){ ACAD_EDIT = false; renderToday(); };
+  cn.onclick = function(){ if (onDone) onDone(); renderAll(); };
   sv.onclick = function(){
-    var by = ps.value || String(ot.value || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase();
-    st.className = "status"; st.textContent = "Saving\u2026";
-    runSeq([function(){ return STORE.put("academics", safeId("acad", key),
-      {date:key, kind:kind, topic:String(ti.value || "").trim(), by:by, setBy:whoName() || ME || "", createdAt:Date.now()}); }])
-    .then(function(r){
-      if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
-      ACAD_EDIT = false; renderAll(); setStatus(kind + " saved.");
-    });
+    var body = {date:key, kind:kind, topic:String(ti.value || "").trim(), by:byNow(), setBy:whoName() || ME || "", createdAt:Date.now()};
+    if (own && own.extra){ body.extra = true; if (own.from) body.from = own.from; }
+    jobs([putDay(key, body)], kind + " saved.");
   };
-  var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(cn); row.appendChild(st); box.appendChild(row);
-  var plan = seriesPlan()[key], rec = seriesRec();
+  var row = el("div","acadbtns"); row.appendChild(sv); row.appendChild(cn); box.appendChild(row);
+
+  /* can't hold it that day */
+  var mv = el("div","acadmove");
+  mv.appendChild(el("div","acadsub","Can't hold it this day?"));
+  var di = document.createElement("input"); di.type = "date"; di.min = iso(msOf(key) + DAY);
+  var mb = el("button","ghost","Postpone to this date"); mb.type = "button";
+  var cx = el("button","ghost danger","Cancel this " + kind.toLowerCase()); cx.type = "button";
+  var stamp = {kind:kind, cancelled:true, setBy:whoName() || ME || "", createdAt:Date.now(), date:key};
   if (plan && rec){
-    var mv = el("div","acadmove");
-    mv.appendChild(el("div","acadsub","Can't hold it today?"));
     var pp = el("button","ghost","Postpone to the next class day"); pp.type = "button";
-    var di = document.createElement("input"); di.type = "date"; di.min = iso(msOf(key) + DAY);
-    var mb = el("button","ghost","Move to this date"); mb.type = "button";
-    var st2 = el("span","status");
-    function saveRec(r2, msg){
-      st2.className = "status"; st2.textContent = "Saving\u2026";
-      runSeq([function(){ return STORE.put("academics", "series_class", r2); }]).then(function(r){
-        if (r.refused || r.failed){ st2.className = "status bad"; st2.textContent = "Could not save. Please try again."; return; }
-        PLAN = null; ACAD_EDIT = false; renderAll(); setStatus(msg);
-      });
-    }
     pp.onclick = function(){
       var r2 = JSON.parse(JSON.stringify(rec)); r2.skips = (r2.skips || []).concat([key]);
-      saveRec(r2, "Postponed - this class and the ones after it move to the next class days.");
-    };
-    mb.onclick = function(){
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(di.value) || di.value <= key){ st2.className = "status bad"; st2.textContent = "Choose a later date."; return; }
-      var r2 = JSON.parse(JSON.stringify(rec)); r2.moved = r2.moved || {}; r2.moved[plan.idx] = di.value;
-      if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
-      saveRec(r2, "Moved to " + fmt(msOf(di.value)) + ".");
+      if (plan.moved) delete r2.moved[plan.idx];
+      jobs([putRec(r2)], "Postponed - this class and the ones after it move to the next class days.");
     };
     mv.appendChild(pp);
-    var mr = el("div","acadbtns"); mr.appendChild(di); mr.appendChild(mb); mv.appendChild(mr); mv.appendChild(st2);
-    box.appendChild(mv);
   }
-  host.appendChild(box);
+  mb.onclick = function(){
+    var to = di.value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(to) || to <= key){ st.className = "status bad"; st.textContent = "Choose a later date."; return; }
+    var L;
+    if (plan && rec){
+      var r2 = JSON.parse(JSON.stringify(rec)); r2.moved = r2.moved || {}; r2.moved[plan.idx] = to;
+      if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
+      L = [putRec(r2)];
+    } else {
+      var b2 = {date:to, kind:kind, topic:String(ti.value || a.topic || "").trim(), by:byNow() || a.by || "", extra:true, from:key,
+                setBy:whoName() || ME || "", createdAt:Date.now()};
+      var s2 = JSON.parse(JSON.stringify(stamp)); s2.movedTo = to;
+      L = [putDay(to, b2), putDay(key, s2)];
+    }
+    jobs(L, kind + " postponed to " + fmt(msOf(to)) + ".");
+  };
+  cx.onclick = function(){
+    var L = [], s3 = JSON.parse(JSON.stringify(stamp));
+    if (plan && rec){
+      /* the topic is dropped; the classes after it keep their dates */
+      var r2 = JSON.parse(JSON.stringify(rec));
+      r2.dropped = (r2.dropped || []).concat([plan.idx]);
+      if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
+      s3.seriesIdx = plan.idx;
+      L.push(putRec(r2));
+    }
+    L.push(putDay(key, s3));
+    jobs(L, kind + " on " + fmt(msOf(key)) + " cancelled.");
+  };
+  var mr = el("div","acadbtns"); mr.appendChild(di); mr.appendChild(mb); mv.appendChild(mr);
+  mv.appendChild(cx);
+  box.appendChild(mv); box.appendChild(st);
+  return box;
 }
 
 /* ---------- emergency units of the day, and hospital numbers ---------- */
@@ -2003,7 +2124,8 @@ try { if (!PASSKEY && CADRE === "pg") PASSKEY = localStorage.getItem("rml_maam")
 var ROLE = null;           /* who the server says this device is: pg, jr, maam or hod */
 var MAAM = false;          /* the faculty who keeps the JR roster */
 var GATED = false;         /* the server would not show this roster without a passphrase */
-var ELSEWHERE = null;      /* for the HOD: requests waiting on the other roster */
+var ELSEWHERE = null;
+var EMAILS = null;         /* the HOD and in-charge: which Gmail each JR verified with */      /* for the HOD: requests waiting on the other roster */
 /* The Head of the Department's passphrase, held only on his own device. */
 var HODKEY = "";
 try { HODKEY = localStorage.getItem("rml_hod") || ""; } catch(e){}
@@ -2120,7 +2242,7 @@ var STORE = (function(){
      in the offline queue waiting to be sent again. */
   function isRefusal(e){
     var m = e && String(e.message||e);
-    return m === "key" || m === "decided" || m === "role" || m === "roster" || m === "who"
+    return /^otp/.test(m||"") || m === "key" || m === "decided" || m === "role" || m === "roster" || m === "who"
         || m === "hod" || /^name:/.test(m||"");
   }
 
@@ -2146,6 +2268,7 @@ var STORE = (function(){
         self.lastOther = res.other || null;
         if (res.config) CFG = res.config;
         ELSEWHERE = res.elsewhere || null;
+        EMAILS = res.emails || null;
         if (res.data){
           COLLS.forEach(function(c){
             DATA[c] = res.data[c] || DATA[c] || {};
@@ -2208,14 +2331,15 @@ var STORE = (function(){
           return {offline:true};
         });
     },
-    drop: function(coll, id){
+    drop: function(coll, id, extra){
       var self = this, had = DATA[coll].hasOwnProperty(id), prev = DATA[coll][id];
       delete DATA[coll][id];
       writeLocal();
       if (!ENDPOINT) return Promise.resolve({});
-      return call({action:"drop", key:wkey(), coll:coll, id:id})
-        .then(function(){ self.online = true; return {}; },
+      return call({action:"drop", key:wkey(), coll:coll, id:id, otp:extra && extra.otp, tok:extra && extra.tok})
+        .then(function(res){ self.online = true; keepTok(res); return {}; },
         function(e){
+          if (extra && !isRefusal(e)) e = new Error("otp:offline");   /* a code cannot wait for later */
           if (isRefusal(e)){
             if (had) DATA[coll][id] = prev;
             writeLocal();
@@ -2228,7 +2352,14 @@ var STORE = (function(){
     },
     /* Several days of leave in one round trip, so a ten-day leave is one
        request and not ten. */
-    putMany: function(coll, items){
+    /* ask the server to email a JR their leave code */
+    otp: function(name, email){
+      return call({action:"otp", key:wkey(), name:name, email:email || null});
+    },
+    unlinkEmail: function(name){
+      return call({action:"unlinkemail", key:wkey(), name:name});
+    },
+    putMany: function(coll, items, extra){
       var self = this, i, undo = [];
       for (i=0;i<items.length;i++){
         undo.push({id:items[i].id, had:DATA[coll].hasOwnProperty(items[i].id), prev:DATA[coll][items[i].id]});
@@ -2242,11 +2373,13 @@ var STORE = (function(){
       var p = Promise.resolve();
       chunks.forEach(function(ch){
         p = p.then(function(){
-          return call({action:"putmany", key:wkey(), coll:coll, body:JSON.stringify(ch)});
+          return call({action:"putmany", key:wkey(), coll:coll, body:JSON.stringify(ch), otp:extra && extra.otp, tok:extra && extra.tok})
+            .then(function(res){ keepTok(res); return res; });
         });
       });
       return p.then(function(){ self.online = true; return {}; },
         function(e){
+          if (extra && !isRefusal(e)) e = new Error("otp:offline");
           if (isRefusal(e)){
             for (var j=0;j<undo.length;j++){
               if (undo[j].had) DATA[coll][undo[j].id] = undo[j].prev;
@@ -2618,6 +2751,96 @@ function requestDetail(g){
   if (v.by || v.requestedBy) bits.push("entered by Dr " + title(v.by || v.requestedBy));
   return bits.join("  ·  ");
 }
+/* ---------- the email code for a JR's leave ----------
+   Every leave a JR sends (or takes back) needs a code emailed to the Gmail
+   linked to that name, so nobody can do it in someone else's name. The first
+   time, the JR gives their own Gmail and the name is linked to it. */
+/* this phone's token for a name, once it has confirmed with a code */
+function tokKey(n){ return lsName("rml_tok_" + rid(n)); }
+function tokOf(n){ try { return localStorage.getItem(tokKey(n)) || ""; } catch(e){ return ""; } }
+function keepTok(res){ if (res && res.token && res.tokName){ try { localStorage.setItem(tokKey(res.tokName), res.token); } catch(e){} } }
+function dropTok(n){ try { localStorage.removeItem(tokKey(n)); } catch(e){} }
+/* send with this phone's token; if the phone has not confirmed yet (or the
+   token is no longer good), ask for the Gmail code once */
+function withConfirm(name, what, sendWith, done){
+  var t = tokOf(name);
+  if (t){
+    sendWith({tok:t}).then(function(r){
+      if (r && r.failed && /^otp/.test(r.why || "")){ dropTok(name); withOtp(name, what, function(c){ return sendWith({otp:c}); }, done); }
+      else done(r);
+    });
+    return;
+  }
+  withOtp(name, what, function(c){ return sendWith({otp:c}); }, done);
+}
+function needsOtp(){ return !!ENDPOINT && CADRE === "jr" && ROLE === "jr"; }
+var OTP_WHY = {
+  "otp:needemail": "", "otp:bademail": "That does not look like an email address.",
+  "otp:emailused": "This Gmail is already linked to another name. Use your own Gmail.",
+  "otp:toomany": "Too many codes asked for in an hour. Please try again later.",
+  "otp:name": "This name is not on the JR roster.",
+  "otp:wrong": "That code is not right. Check the email and type it again.",
+  "otp:expired": "The code has expired or was used. Tap Send a new code.",
+  "otp:offline": "No connection. A code needs the internet - please try again.",
+  "otp:one": "Send leave for one person at a time."
+};
+function otpWhy(m){ return OTP_WHY.hasOwnProperty(m) ? OTP_WHY[m] : "Could not do that just now. Please try again."; }
+/* send(code) does the saving and resolves to a runSeq result */
+function withOtp(name, what, send, done){
+  var box = el("div","otpbox"), st = el("p","otpst"), area = el("div","otparea");
+  box.appendChild(el("p","otpintro", "One-time check on this phone: " + what.toLowerCase() + " for Dr " + title(name)
+    + " needs a code from the Gmail linked to this name. After this, this phone will not ask again."));
+  box.appendChild(area); box.appendChild(st);
+  openSheet("Confirm it is you", box);
+  function say(t, bad){ st.textContent = t; st.className = "otpst" + (bad ? " bad" : ""); }
+  function ask(email){
+    area.innerHTML = ""; say("Sending the code\u2026");
+    STORE.otp(name, email).then(function(r){ codeStep(r.to, r.first); },
+      function(e){
+        var m = String(e && e.message || e);
+        if (m === "otp:needemail" || ((m === "otp:bademail" || m === "otp:emailused") && email)) emailStep(m === "otp:needemail" ? "" : otpWhy(m));
+        else say(otpWhy(m), true);
+      });
+  }
+  function emailStep(err){
+    area.innerHTML = "";
+    area.appendChild(el("p","otphelp", "First time only: type your own Gmail. A code will be sent there, and this Gmail will be linked to Dr "
+      + title(name) + ". After that, leave in this name can only be sent with a code from this Gmail."));
+    var inp = document.createElement("input"); inp.type = "email"; inp.placeholder = "yourname@gmail.com";
+    inp.autocomplete = "email"; inp.className = "otpin";
+    var go = el("button","primary","Send code"); go.type = "button";
+    go.onclick = function(){ var v = inp.value.trim(); if (!v){ say("Type your Gmail.", true); return; } ask(v); };
+    area.appendChild(inp); area.appendChild(go);
+    say(err || "", !!err); setTimeout(function(){ try { inp.focus(); } catch(e){} }, 50);
+  }
+  function codeStep(to, first){
+    area.innerHTML = "";
+    area.appendChild(el("p","otphelp", "A 6-digit code has been sent to " + to + ". Type it here. "
+      + "Not in the inbox? Look in Spam or Promotions."));
+    var inp = document.createElement("input"); inp.type = "text"; inp.inputMode = "numeric"; inp.maxLength = 6;
+    inp.placeholder = "6-digit code"; inp.autocomplete = "one-time-code"; inp.className = "otpin code";
+    var go = el("button","primary","Confirm"); go.type = "button";
+    var again = el("button","ghost","Send a new code"); again.type = "button";
+    again.onclick = function(){ ask(null); };
+    go.onclick = function(){
+      var c = inp.value.replace(/\D/g, "");
+      if (c.length !== 6){ say("The code has 6 digits.", true); return; }
+      go.disabled = true; say("Checking\u2026");
+      send(c).then(function(r){
+        go.disabled = false;
+        if (r && r.failed && /^otp/.test(r.why || "")){ say(otpWhy(r.why), true); return; }
+        closeSheet();
+        if (done) done(r);
+      });
+    };
+    var row = el("div","otprow"); row.appendChild(go); row.appendChild(again);
+    area.appendChild(inp); area.appendChild(row);
+    say(first ? "Once confirmed, this Gmail is linked to your name." : "");
+    setTimeout(function(){ try { inp.focus(); } catch(e){} }, 50);
+  }
+  ask(null);
+}
+
 /* ---------- apply for leave, from the leave record ---------- */
 function wireApply(){
   var btn = document.getElementById("applyBtn"),
@@ -2668,8 +2891,18 @@ function wireApply(){
     /* JRs: no more than 2.5 days of leave in a calendar month */
     var over = hasTeams() ? overMonthCap(n, items.map(function(x){ return x.body; })) : "";
     /* over the limit: it can still be sent; the extra days are leave without pay */
+    if (needsOtp()){
+      msg.textContent = "";
+      msg.textContent = "Sending\u2026";
+      withConfirm(n, "Leave", function(x){
+        return runSeq([function(){ return STORE.putMany("leaves", items, x); }]);
+      }, after);
+      return;
+    }
     msg.textContent = "Saving\u2026";
-    runSeq([function(){ return STORE.putMany("leaves", items); }]).then(function(r){
+    runSeq([function(){ return STORE.putMany("leaves", items); }]).then(after);
+    function after(r){
+      if (r.failed && /^otp/.test(r.why || "")){ msg.className="status bad"; msg.textContent = otpWhy(r.why); return; }
       if (r.refused){ msg.className="status bad"; msg.textContent="Not saved - tap Unlock editing and enter the department passphrase."; return; }
       if (r.failed){ msg.className="status bad"; msg.textContent="Could not save. Please try again."; return; }
       renderAll();
@@ -2679,11 +2912,34 @@ function wireApply(){
         : "Sent for approval - " + (isHalf ? "half a day" : span + (span===1?" day":" days")) + ". It shows in the roster marked awaiting approval.";
       if (over){
         msg.className = "status bad";
-        msg.textContent += " Note: " + monthCap() + " days a month is the limit - " + over
-          + " The days over it count as leave without pay (salary deducted). The Head of the Department sees this.";
+        msg.textContent += " Note: " + over
+          + " The days beyond your balance count as leave without pay (salary deducted). The Head of the Department sees this.";
       }
-    });
+    }
   };
+  /* what the person applying should know, with their own balance */
+  function guide(){
+    var g = document.getElementById("apGuide"), hn = document.getElementById("apHint");
+    if (hn) hn.hidden = hasTeams();        /* JRs: covers are not theirs to enter */
+    if (!g || !hasTeams()) { if (g) g.hidden = true; return; }
+    g.hidden = false; g.innerHTML = "";
+    var n = who.value;
+    if (n){
+      var b = leaveBalance(n);
+      g.appendChild(el("p","apbal", "Dr " + title(n) + ": " + fmtDays(b.left) + " of leave available now"
+        + (b.booked ? " (after " + fmtDays(b.booked) + " already applied for)" : "") + "."));
+    }
+    var ul = el("ul","apguide");
+    ["You earn " + fmtDays(monthCap()) + " of leave every month. Unused leave carries forward to the next month.",
+     "A night duty counts as 2 days. A half day counts as half.",
+     "Leave beyond your balance can still be sent, but those days are leave without pay (salary deducted).",
+     "Apply as early as you can. Leave counts only after HOD Sir approves it.",
+     needsOtp() ? "The first time on a phone, a code is sent to your own Gmail to confirm it is you. After that, no code." : ""]
+      .forEach(function(t){ if (t) ul.appendChild(el("li", null, t)); });
+    g.appendChild(ul);
+  }
+  who.addEventListener("change", guide);
+  btn.addEventListener("click", function(){ setTimeout(guide, 0); });
 }
 
 /* ---------- cover balance ---------- */
@@ -2789,10 +3045,15 @@ function renderApprovals(){
     if (dIn <= 2) row.className += " soon";
     row.appendChild(el("div","apprwhat", requestTitle(g)));
     row.appendChild(el("div","apprdet", requestDetail(g)));
+    if (g.kind === "leave" && hasTeams() && (HOD || MAAM)){
+      var gm = (EMAILS && EMAILS[g.v.resident]) || g.v.verified || "";
+      row.appendChild(el("div","apprmail", gm ? "Confirmed by code from " + gm
+        : (g.v.by && g.v.by !== g.v.resident ? "Entered by Dr " + title(g.v.by) : "Sent before email codes began")));
+    }
     if (g.kind === "leave" && hasTeams()){
       var ov = monthsOver(g.v.resident);
-      if (ov.length) row.appendChild(el("div","overcap", "Over " + monthCap() + " days a month (" + ov.join(", ")
-        + ") - the days over the limit count as leave without pay."));
+      if (ov.length) row.appendChild(el("div","overcap", "Beyond the leave balance (" + ov.join(", ")
+        + ") - those days count as leave without pay."));
     }
     var btns = el("div","apprbtns");
     if (g.kind === "leave"){
@@ -3029,10 +3290,20 @@ function todayPostBox(host){
   b.onclick = function(){ TODAY_POST = !TODAY_POST; renderToday(); };
   wrap.appendChild(b);
   var posted = Object.keys(postingsOn(key, slot)).length;
-  if (!TODAY_POST && !posted) wrap.appendChild(el("p","postremind","Please post the JRs as early as possible in the shift."));
+  if (!TODAY_POST && !posted) wrap.appendChild(el("p","postremind","Please post the JRs as early as possible in the shift. Tap the button above, then \u26A1 Fill automatically - it is done in one tap."));
   if (TODAY_POST) wrap.appendChild(postingEditor(key, slot, function(){ TODAY_POST = false; }));
   host.appendChild(wrap);
 }
+/* is a shift going on right now? (times like "08:00-14:00"; a night runs past midnight) */
+function slotLive(s){
+  var m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(String(s && s.time || "").trim());
+  if (!m) return false;
+  var d = new Date(), now = d.getHours() * 60 + d.getMinutes();
+  var a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4];
+  /* a night that began yesterday belongs to yesterday's row, not today's */
+  return a < b ? (now >= a && now < b) : now >= a;
+}
+var TODAY_OPEN = {};      /* JR: the shifts opened by a tap; the one going on is always open */
 function renderToday(){
   var host = document.getElementById("todayCard"), lbl = document.getElementById("tdDate");
   if (!host) return;
@@ -3053,19 +3324,25 @@ function renderToday(){
     if (hol){ var hs = el("span",null," · " + hol); hs.style.color = "var(--warn-ink)"; lbl.appendChild(hs); }
   }
   var eff = effective(ms);
+  var isNow = iso(ms) === iso(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
+  var anyLive = isNow && CFG.slots.some(function(s){ return s.k !== "OFF" && slotLive(s); });
   CFG.slots.forEach(function(s){
     if (s.k === "OFF") return;
     var row = el("div","trow " + s.zone);
     var tl = el("div","tl");
     tl.appendChild(el("b", null, s.label));
     tl.appendChild(document.createTextNode(s.time));
+    var live = anyLive && slotLive(s);
+    if (live){ row.className += " live"; tl.appendChild(el("span","nowtag","Now")); }
     row.appendChild(tl);
     var tv = el("div","tv");
     if (hasTeams()){
       fillSlot(tv, eff, s.k, ms, true);
       var cl = cmoLine(iso(ms), s.k);
       if (cl) tv.insertBefore(cl, tv.firstChild);
-      var ar = slotAreas(eff, s.k, ms).filter(function(a){ return a.area !== "Not posted"; });
+      var arAll = slotAreas(eff, s.k, ms), notPosted = [];
+      arAll.forEach(function(a){ if (a.area === "Not posted") notPosted = a.names.filter(function(n){ return !visitorOf(n); }); });
+      var ar = arAll.filter(function(a){ return a.area !== "Not posted"; });
       if (ar.length) row.className += " posted";
       /* PG CMOs already have their own line above the JRs */
       ar = ar.map(function(a){ return {area:a.area, names:a.names.filter(function(n){ return !visitorOf(n); })}; })
@@ -3079,12 +3356,23 @@ function renderToday(){
           a.names.forEach(function(n, j){
             if (j) who.appendChild(document.createTextNode(", "));
             var ph = phoneOf(n), x = document.createElement(ph ? "a" : "span");
-            x.className = "aperson"; x.textContent = title(n);
+            x.className = "aperson"; x.textContent = "Dr " + title(n);
             if (ph){ x.href = telHref(ph); x.title = "Call Dr " + title(n); }
             who.appendChild(x);
           });
           r.appendChild(who); ad.appendChild(r);
         });
+        /* who is on this shift but not posted - kept folded, opened on a tap */
+        if (notPosted.length && !NURSE){
+          var np = el("div","arow npfold"), npl = el("span","aname","Not posted"), npw = el("span","awho"), npo = false;
+          var npb = el("button","absbtn"); npb.type = "button";
+          var npPaint = function(){ npb.textContent = npo ? "Hide \u25BE" : notPosted.length + " \u00B7 Show \u25B8";
+            npt.hidden = !npo; };
+          var npt = el("div","nplist", notPosted.map(function(n){ return "Dr " + title(n); }).join(", "));
+          npb.onclick = function(ev){ ev.stopPropagation(); npo = !npo; npPaint(); };
+          npw.appendChild(npb); npw.appendChild(npt); npPaint();
+          np.appendChild(npl); np.appendChild(npw); ad.appendChild(np);
+        }
         tv.appendChild(ad);
       }
     }
@@ -3101,6 +3389,17 @@ function renderToday(){
     });
     if (!hasTeams()) tv.appendChild(jrSideBox(ms, s.k));
     row.appendChild(tv);
+    /* JR: only the shift going on stays open; the others fold to one line */
+    if (hasTeams() && anyLive && !live){
+      var open0 = !!TODAY_OPEN[s.k];
+      var fold = el("button","tvfold"); fold.type = "button";
+      var teams0 = slotEntries(eff, s.k, ms).teams.map(function(t){ return t.name; }).join(", ");
+      fold.textContent = open0 ? "Hide \u25BE" : (teams0 || "Nobody") + " \u00B7 Show \u25B8";
+      fold.onclick = function(ev){ ev.stopPropagation(); TODAY_OPEN[s.k] = !TODAY_OPEN[s.k]; renderToday(); };
+      row.className += open0 ? " unfolded" : " folded";
+      if (!open0) tv.hidden = true;
+      row.insertBefore(fold, tv);
+    }
     host.appendChild(row);
   });
   anaesRow(host);
@@ -3123,7 +3422,7 @@ function renderToday(){
       /* kept quiet: just a count, the names on a tap */
       var tv = el("div","tv absfold"), open = false;
       tv.setAttribute("role","button"); tv.tabIndex = 0;
-      var paint = function(){ tv.textContent = open ? names : p[1].length + " ▸"; };
+      var paint = function(){ tv.innerHTML = ""; var bb = el("span","absbtn", open ? names + "  \u25BE" : p[1].length + " \u00B7 Show who \u25B8"); tv.appendChild(bb); };
       tv.onclick = function(){ open = !open; paint(); }; paint();
       row.appendChild(tv);
     } else row.appendChild(el("div","tv", names));
@@ -3253,7 +3552,7 @@ function showReason(n, key){
 }
 function nameChip(n, ms, eff, slotK, tinted){
   var g = groupOf(n, ms), lead = CFG.groups.length ? CFG.groups[0].id : null;
-  var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), title(n));
+  var c = el("span", "nm " + (g && g.id === lead ? "p2" : "p1"), "Dr " + title(n));
   var vis = hasTeams() && visitorOf(n);
   if (vis){ c.className += " visitor"; c.appendChild(el("span","vistag", visLabel(vis, " · "))); }
   if (eff.changed[n] && !NURSE){
@@ -3316,7 +3615,7 @@ function slotAreas(eff, slotK, ms){
   if (un.length) out.push({area:"Not posted", names:un});
   return out;
 }
-function areaText(a){ return a.area + ": " + a.names.map(function(n){ return title(n); }).join(", "); }
+function areaText(a){ return a.area + ": " + a.names.map(function(n){ return "Dr " + title(n); }).join(", "); }
 function groupPanel(teamName, eff, slotK, ms){
   var box = el("div","grplist"), g = null, t = null, k;
   for (k=0;k<CFG.groups.length;k++) if (isTeamGroup(CFG.groups[k]))
@@ -3539,14 +3838,14 @@ function chipFor(kind, it){
   if (isPending(it.v)) ch.className += " pend";
   else if (isDeclined(it.v)) ch.className += " decl";
   ch.appendChild(document.createTextNode(kind==="leave"
-    ? title(it.v.resident) + (it.v.half ? " · half day" : "") + (it.v.reason? " · "+it.v.reason : "")
+    ? "Dr " + title(it.v.resident) + (it.v.half ? " · half day" : "") + (it.v.reason? " · "+it.v.reason : "")
       + (hasTeams() && isExcess(it.id) ? " · over 2.5 - without pay" : "")
-      + (it.v.coveredBy? " · covered by "+title(it.v.coveredBy) : "")
+      + (it.v.coveredBy? " · covered by "+"Dr "+title(it.v.coveredBy) : "")
     : kind==="newcover"
-      ? title(it.v.relieved) + " relieved · " + title(it.v.by) + " covers"
+      ? "Dr " + title(it.v.relieved) + " relieved · Dr " + title(it.v.by) + " covers"
     : kind==="move"
-      ? title(it.v.resident) + " → " + slotMeta(it.v.slot).label
-      : title(it.v.a) + " ↔ " + title(it.v.b)));
+      ? "Dr " + title(it.v.resident) + " → " + slotMeta(it.v.slot).label
+      : "Dr " + title(it.v.a) + " ↔ Dr " + title(it.v.b)));
   if (kind !== "leave" && crossesTeams(kind === "newcover" ? "cover" : kind, it.v))
     ch.appendChild(el("span","crossmark","crosses groups"));
   if (isPending(it.v) || isDeclined(it.v)){
@@ -3600,6 +3899,12 @@ function chipFor(kind, it){
       : "Undo exchange between Dr " + title(it.v.a) + " and Dr " + title(it.v.b));
   b.onclick = function(){
     var coll = kind==="leave" ? "leaves" : kind==="newcover" ? "covers" : "swaps";
+    if (kind === "leave" && needsOtp()){
+      withConfirm(it.v.resident, "Taking back leave", function(x){
+        return runSeq([function(){ return STORE.drop(coll, it.id, x); }]);
+      }, function(r){ renderAll(); if (r && r.failed) setStatus(otpWhy(r.why), true); else setStatus("Leave taken back."); });
+      return;
+    }
     runSeq([function(){ return STORE.drop(coll, it.id); }])
       .then(function(r){
         renderAll();
@@ -3872,7 +4177,7 @@ function absFold(host, key, items){
 function absChip(it){
   var v = it.v, wd = v.status === "withdrawn";
   var ch = el("span","chip lv abs" + (wd ? " decl" : ""));
-  ch.appendChild(document.createTextNode(title(v.resident) + (v.converted ? " · leave" : " · absent")
+  ch.appendChild(document.createTextNode("Dr " + title(v.resident) + (v.converted ? " · leave" : " · absent")
     + (v.reason ? " · " + v.reason : "")));
   ch.appendChild(el("span","sttag", wd ? "made present" + (v.withdrawnBy ? " by " + v.withdrawnBy : "")
     : v.converted ? "absent, made CL by HOD"
@@ -4084,7 +4389,20 @@ function postingEditor(key, wantSlot, onClose){
       if (onClose && !(r.refused || r.failed || r.decided || r.offline)) setStatus("Postings saved for " + slotMeta(k).label + ", " + fmt(ms) + ".");
     });
   };
-  auto.className = "primary"; topbar.appendChild(auto); topbar.appendChild(same);
+  /* the quickest way, made plain: one big button and what it does */
+  auto.className = "primary autobtn"; auto.textContent = "\u26A1 Fill automatically";
+  var ab = el("div","autobox");
+  ab.appendChild(el("div","autohead","Quickest way - one tap"));
+  var what = el("div","autowhat");
+  function autoText(){
+    var q = fixedFor(shiftSel.value), parts = Object.keys(q).map(function(a0){ return q[a0] + " in " + a0; });
+    what.textContent = "Puts " + (parts.length ? parts.join(", ") : "the fixed places") + ", and everyone else in Green. "
+      + "You can still change anyone before you tap Save.";
+  }
+  autoText(); shiftSel.addEventListener("change", autoText);
+  ab.appendChild(auto); ab.appendChild(what);
+  topbar.appendChild(ab);
+  same.className = "ghost samebtn"; topbar.appendChild(same);
   actions.appendChild(save); actions.appendChild(cancel); actions.appendChild(st);
   box.appendChild(actions);
   return box;
@@ -4371,10 +4689,10 @@ function renderMine(){
         var se = slotEntries(eff, s, ms), mt = teamOf(ME, ms);
         /* your own team goes without saying - name only who else is there */
         se.teams.forEach(function(t){ if (!mt || t.name !== mt.team.name) withs.push(t.name); });
-        se.people.forEach(function(n){ if (n!==ME) withs.push(title(n)); });
-      } else inSlot(eff,s).forEach(function(n){ if(n!==ME) withs.push(title(n)); });
+        se.people.forEach(function(n){ if (n!==ME) withs.push("Dr " + title(n)); });
+      } else inSlot(eff,s).forEach(function(n){ if(n!==ME) withs.push("Dr " + title(n)); });
     }
-    mex.forEach(function(k){ inSlot(eff,k).forEach(function(n){ if(n!==ME && withs.indexOf(title(n))<0) withs.push(title(n)); }); });
+    mex.forEach(function(k){ inSlot(eff,k).forEach(function(n){ if(n!==ME && withs.indexOf("Dr " + title(n))<0) withs.push("Dr " + title(n)); }); });
     row.appendChild(el("div","mwith", withs.length? "with "+withs.join(", ") : ""));
     list.appendChild(row);
   });
@@ -4539,61 +4857,83 @@ function monthLeave(n, y, m, skipIds){
   }
   return tot;
 }
-/* the months in which somebody's leave (approved or awaiting) is over the
-   limit, e.g. ["Nov 3.5"] - shown to the HOD and in the leave record */
-function monthsOver(n){
-  var seen = {}, out = [], k;
+/* ---- 2.5 a month that carries forward ----
+   Leave is earned from the month the roster began (or the JR joined, if
+   later): 2.5 on the 1st of every month. Unused days carry on. A leave day
+   is without pay when, taken in date order, there is not enough earned by
+   that day's month to cover it. */
+function fmtDays(d){ d = Math.round(d * 10) / 10; return d + (d === 1 ? " day" : " days"); }
+function monthKeyOf(k){ return k.slice(0, 7); }
+function accStart(n){
+  var e = monthKeyOf(iso(epochMs())), j = recOf("joining", n), jk = j && j.date ? monthKeyOf(j.date) : "";
+  return jk > e ? jk : e;
+}
+function monthsFrom(a, b){ return (+b.slice(0,4) - +a.slice(0,4)) * 12 + (+b.slice(5,7) - +a.slice(5,7)); }
+function earnedBy(n, mk){ var s0 = accStart(n); return mk < s0 ? 0 : monthCap() * (monthsFrom(s0, mk) + 1); }
+/* the leave days in date order: [{id, date, w}] (extra: new ones being sent) */
+function leaveDays(n, extra, skip){
+  var out = [], k;
   for (k in DATA.leaves){
     var lv = DATA.leaves[k];
-    if (lv.resident !== n || isDeclined(lv)) continue;
-    var d = new Date(msOf(lv.date)), mk = d.getUTCFullYear() + "-" + d.getUTCMonth();
-    if (seen[mk]) continue; seen[mk] = 1;
-    var tot = monthLeave(n, d.getUTCFullYear(), d.getUTCMonth());
-    if (tot > monthCap()) out.push(MON[d.getUTCMonth()] + " " + tot);
+    if (!lv || lv.resident !== n || isDeclined(lv) || (skip && skip[k])) continue;
+    if (CFG.offFree && baseDuty(n, msOf(lv.date)) === "OFF") continue;
+    out.push({id:k, date:lv.date, w:leaveWeight(n, lv.date, lv.half), at:lv.createdAt || 0});
   }
+  (extra || []).forEach(function(b, i){
+    if (CFG.offFree && baseDuty(n, msOf(b.date)) === "OFF") return;
+    out.push({id:"new" + i, date:b.date, w:leaveWeight(n, b.date, b.half), at:Infinity, fresh:true});
+  });
+  out.sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : a.at - b.at; });
   return out;
 }
-/* Which leave days go past the monthly limit: within each calendar month,
-   in date order, the days after 2.5 have been used. They are leave without
-   pay - kept off the entitlement and shown so on the attendance sheet. */
+/* walk the days: which are without pay */
+function walkLeave(n, days){
+  var used = 0, over = [];
+  days.forEach(function(x){
+    if (used + x.w > earnedBy(n, monthKeyOf(x.date)) + 1e-9) over.push(x);
+    else used += x.w;
+  });
+  return {used:used, over:over};
+}
+/* what is left now: earned up to this month, less what is taken or asked for (within the balance) */
+function leaveBalance(n){
+  var mk = monthKeyOf(msOf(todayKey()) < epochMs() ? iso(epochMs()) : todayKey());
+  var w = walkLeave(n, leaveDays(n));
+  var left = earnedBy(n, mk) - w.used;
+  var booked = 0;
+  leaveDays(n).forEach(function(x){ if (isPending(DATA.leaves[x.id] || {})) booked += x.w; });
+  return {earned:earnedBy(n, mk), used:w.used, left:Math.max(0, left), booked:booked, overDays:w.over.length};
+}
+/* the months in which somebody has leave beyond the balance, e.g. ["Nov 1"] -
+   shown to the HOD and in the leave record */
+function monthsOver(n){
+  var by = {}, out = [];
+  walkLeave(n, leaveDays(n)).over.forEach(function(x){ var mk = monthKeyOf(x.date); by[mk] = (by[mk] || 0) + x.w; });
+  Object.keys(by).sort().forEach(function(mk){ out.push(MON[+mk.slice(5,7) - 1] + " " + by[mk]); });
+  return out;
+}
 var EXCESS = null;
 function excessIds(){
   if (EXCESS) return EXCESS;
   EXCESS = {};
   if (!hasTeams()) return EXCESS;
-  var by = {}, k;
+  var seen = {}, k;
   for (k in DATA.leaves){
     var lv = DATA.leaves[k];
-    if (!lv || isDeclined(lv)) continue;
-    if (CFG.offFree && baseDuty(lv.resident, msOf(lv.date)) === "OFF") continue;
-    (by[lv.resident] = by[lv.resident] || []).push({id:k, v:lv});
+    if (!lv || seen[lv.resident]) continue;
+    seen[lv.resident] = 1;
+    walkLeave(lv.resident, leaveDays(lv.resident)).over.forEach(function(x){ EXCESS[x.id] = 1; });
   }
-  Object.keys(by).forEach(function(n){
-    var used = {};
-    by[n].sort(function(a, b){ return a.v.date < b.v.date ? -1 : a.v.date > b.v.date ? 1 : (a.v.createdAt||0) - (b.v.createdAt||0); });
-    by[n].forEach(function(x){
-      var mk = x.v.date.slice(0, 7), w = leaveWeight(n, x.v.date, x.v.half);
-      if ((used[mk] || 0) + w > monthCap() + 1e-9) EXCESS[x.id] = 1;
-      used[mk] = (used[mk] || 0) + w;
-    });
-  });
   return EXCESS;
 }
 function isExcess(id){ return !!excessIds()[id]; }
-/* "" when new leave fits; otherwise what is over, in words */
+/* "" when new leave fits in the balance; otherwise what is over, in words */
 function overMonthCap(n, bodies){
-  var add = {}, cap = monthCap(), out = [];
-  bodies.forEach(function(b){
-    if (CFG.offFree && baseDuty(n, msOf(b.date)) === "OFF") return;
-    var d = new Date(msOf(b.date)), mk = d.getUTCFullYear() + "-" + d.getUTCMonth();
-    add[mk] = (add[mk] || 0) + leaveWeight(n, b.date, b.half);
-  });
   var skip = {}; bodies.forEach(function(b){ skip[safeId(rid(n), b.date)] = 1; });
-  Object.keys(add).forEach(function(mk){
-    var y = +mk.split("-")[0], m = +mk.split("-")[1], had = monthLeave(n, y, m, skip);
-    if (had + add[mk] > cap) out.push(MON[m] + ": " + had + " already taken or asked for; this would make " + (had + add[mk]) + ".");
-  });
-  return out.join(" ");
+  var w = walkLeave(n, leaveDays(n, bodies, skip)), extra = 0;
+  w.over.forEach(function(x){ if (x.fresh) extra += x.w; });
+  if (!extra) return "";
+  return "this goes " + fmtDays(extra) + " beyond the leave balance (" + fmtDays(monthCap()) + " a month, carried forward).";
 }
 function leaveTaken(n, ly){
   if (!ly) return {taken:0, ahead:0, covered:0};
@@ -4710,7 +5050,7 @@ function renderCounter(){
   var absCount = hasTeams() ? absentCounts() : null;
   var thead = el("thead"), hr = el("tr");
   ["Resident","Date of joining", leaveMonths()===12 ? "Leave taken this year" : "Leave taken this period","Remaining of " + CFG.annualLeave]
-    .concat(hasTeams() ? ["This month (of " + monthCap() + ")"] : [])
+    .concat(hasTeams() ? ["Balance (" + monthCap() + " a month, carried forward)"] : [])
     .concat(absCount ? ["Absent this period"] : [])
     .forEach(function(h,i){ hr.appendChild(el("th", i===0?"plain":null, h)); });
   thead.appendChild(hr); t.appendChild(thead);
@@ -4753,9 +5093,9 @@ function renderCounter(){
     tr.appendChild(cl);
     if (hasTeams()){
       var tdn = new Date(msOf(todayKey()) < epochMs() ? epochMs() : msOf(todayKey()));
-      var mt = monthLeave(n, tdn.getUTCFullYear(), tdn.getUTCMonth()), ovr = monthsOver(n);
-      var mc = el("td","num", String(mt));
-      if (mt > monthCap()) mc.className += " overcell";
+      var bal = leaveBalance(n), ovr = monthsOver(n);
+      var mc = el("td","num", String(Math.round(bal.left * 10) / 10));
+      if (ovr.length) mc.className += " overcell";
       if (ovr.length){ var od = el("div","overnote", "over: " + ovr.join(", ")); mc.appendChild(od); }
       tr.appendChild(mc);
     }
@@ -4767,10 +5107,40 @@ function renderCounter(){
     tb.appendChild(tr);
   });
   t.appendChild(tb);
+  linkedMails(t);
   if (bar && filt){
     var cnt = document.getElementById("cCount");
     if (cnt) cnt.textContent = shown + " of " + total;
   }
+}
+/* the HOD and the in-charge: which Gmail each JR is linked to, and Unlink
+   (a new phone number, a lost Gmail, or somebody linked a name not theirs) */
+var MAILS_OPEN = false;
+function linkedMails(t){
+  var old = document.getElementById("mailsBox"); if (old) old.parentNode.removeChild(old);
+  if (!hasTeams() || !(HOD || MAAM) || !EMAILS) return;
+  var names = Object.keys(EMAILS).sort();
+  var box = el("div","mailsbox noprint"); box.id = "mailsBox";
+  var tg = el("button","absbtn", "Gmails linked for leave codes (" + names.length + ") " + (MAILS_OPEN ? "\u25BE" : "\u25B8"));
+  tg.type = "button"; tg.onclick = function(){ MAILS_OPEN = !MAILS_OPEN; linkedMails(t); };
+  box.appendChild(tg);
+  if (MAILS_OPEN){
+    if (!names.length) box.appendChild(el("p","hint","No JR has linked a Gmail yet. Each JR links theirs the first time they apply for leave."));
+    names.forEach(function(n){
+      var r = el("div","mailrow");
+      r.appendChild(el("span","mn","Dr " + title(n)));
+      r.appendChild(el("span","me", EMAILS[n]));
+      var u = el("button","formbtn","Unlink"); u.type = "button";
+      u.onclick = function(){
+        u.disabled = true;
+        STORE.unlinkEmail(n).then(function(){ delete EMAILS[n]; linkedMails(t);
+          setStatus("Unlinked. Dr " + title(n) + " can link their own Gmail with the next leave request."); },
+          function(){ u.disabled = false; setStatus("Could not unlink - please try again.", true); });
+      };
+      r.appendChild(u); box.appendChild(r);
+    });
+  }
+  t.parentNode.insertBefore(box, t.nextSibling);
 }
 /* The JR list is long: show one group at a time, or search, or only those
    with leave or absence to their name. */
@@ -5991,7 +6361,7 @@ function pdfFull(fromMs, toMs){
     CFG.slots.forEach(function(s){
       var line = hasTeams() ? slotText(eff, s.k, ms)
         : inSlot(eff, s.k).map(function(n){
-            return title(n) + (isCovering(eff,n,s.k)? " (cov)" : "");
+            return "Dr " + title(n) + (isCovering(eff,n,s.k)? " (cov)" : "");
           }).join(", ");
       doc.text(x, y, 7.5, false, line, s.k==="OFF" ? GREY : INK);
       x += per;
