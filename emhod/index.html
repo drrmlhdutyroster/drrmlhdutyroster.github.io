@@ -2844,7 +2844,11 @@ var OTP_WHY = {
   "otp:offline": "No connection. A code needs the internet - please try again.",
   "otp:one": "Send leave for one person at a time."
 };
-function otpWhy(m){ return OTP_WHY.hasOwnProperty(m) ? OTP_WHY[m] : "Could not do that just now. Please try again."; }
+function otpWhy(m){
+  if (OTP_WHY.hasOwnProperty(m)) return OTP_WHY[m];
+  if (/MailApp|permission/i.test(m || "")) return "The code email could not be sent from the department's side. Please tell Dr Vivek - it is being fixed.";
+  return "Could not do that just now. Please try again.";
+}
 /* send(code) does the saving and resolves to a runSeq result */
 function withOtp(name, what, send, done){
   var box = el("div","otpbox"), st = el("p","otpst"), area = el("div","otparea");
@@ -2859,7 +2863,12 @@ function withOtp(name, what, send, done){
       function(e){
         var m = String(e && e.message || e);
         if (m === "otp:needemail" || ((m === "otp:bademail" || m === "otp:emailused") && email)) emailStep(m === "otp:needemail" ? "" : otpWhy(m));
-        else say(otpWhy(m), true);
+        else {
+          say(otpWhy(m), true);
+          var tr = el("button","ghost","Try again"); tr.type = "button";
+          tr.onclick = function(){ ask(email); };
+          area.appendChild(tr);
+        }
       });
   }
   function emailStep(err){
@@ -4537,8 +4546,24 @@ function addBtn(key, kind){
     kind==="leave" ? "+ leave" : kind==="move" ? "+ move"
     : kind==="newcover" ? "+ cover" : kind==="absent" ? "+ absent"
     : kind==="post" ? "postings" : "+ exchange");
-  b.onclick = function(){ editing = {date:key, kind:kind}; renderViews(); };
+  b.onclick = function(){
+    /* residents: one way to ask for leave - the same Apply for leave form,
+       opened on this day. The HOD keeps the quick form here. */
+    if (kind === "leave" && !HOD && openApplyOn(key)) return;
+    editing = {date:key, kind:kind}; renderViews();
+  };
   return b;
+}
+function openApplyOn(key){
+  var btn = document.getElementById("applyBtn"), box = document.getElementById("applyBox");
+  var fa = document.getElementById("apFrom"), fb = document.getElementById("apTo"), who = document.getElementById("apWho");
+  if (!btn || !box || !fa) return false;
+  if (box.hidden) btn.click();
+  fa.value = key; fb.value = key;
+  if (fb.onchange) fb.onchange();
+  if (who && ME) { who.value = ME; who.dispatchEvent(new Event("change")); }
+  setTimeout(function(){ try { box.scrollIntoView({behavior:"smooth", block:"start"}); } catch(e){ box.scrollIntoView(); } }, 30);
+  return true;
 }
 function renderCards(){
   var host = document.getElementById("cards");
@@ -4665,6 +4690,17 @@ function leaveEditor(key){
                            by:ME||"", createdAt:Date.now(), reqId:reqId});
       if (cov && cov.value && k2===key) body.coveredBy = cov.value;
       items.push({id:safeId(n.toLowerCase(),k2), body:body});
+    }
+    /* a JR: the same one-time Gmail check as Apply for leave */
+    if (needsOtp()){
+      st.textContent = "Sending\u2026";
+      withConfirm(n, "Leave", function(x){
+        return runSeq([function(){ return STORE.putMany("leaves", items, x); }]);
+      }, function(r){
+        if (r && r.failed && /^otp/.test(r.why || "")){ st.className = "status bad"; st.textContent = otpWhy(r.why); return; }
+        finishSave(r, st);
+      });
+      return;
     }
     st.textContent = "Saving…";
     runSeq([function(){ return STORE.putMany("leaves", items); }])
