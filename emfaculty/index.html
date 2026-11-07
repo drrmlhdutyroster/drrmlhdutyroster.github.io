@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Duty Roster</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0E5A62">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="EM Roster">
 <style>
 :root{
   --ground:#F7F6F3; --panel:#FFFFFF; --panel2:#F1F0EC; --ink:#15191B; --muted:#6B7779;
@@ -816,6 +824,19 @@ button.small{padding:4px 10px;font-size:13px;min-height:0}
 .reqst.approved{color:var(--green-ink)}
 .cmox{background:transparent;border:1px solid var(--rule);border-radius:999px;font:inherit;font-size:12px;line-height:1;padding:3px 7px;color:var(--muted);cursor:pointer}
 .cmox.sure{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink);font-weight:600}
+.installbar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:45;max-width:520px;margin:0 auto;
+  display:flex;gap:12px;align-items:flex-start;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:14px;
+  padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+.installbar .insticon{width:44px;height:44px;border-radius:10px;flex:none}
+.installbar .insttext{flex:1;min-width:0;font-size:14px;line-height:1.4}
+.installbar .insttext > b:first-child{display:block;font-size:15px;margin-bottom:2px}
+.installbar .insttext span{display:block;color:var(--muted)}
+.installbar ol{margin:6px 0 0;padding-left:18px}
+.installbar ol li{margin:2px 0}
+.installbar .instbtns{display:flex;gap:8px;margin-top:10px}
+.installbar .instbtns button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--rule);background:transparent;color:var(--ink)}
+.installbar .instbtns button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+body.hasinstall{padding-bottom:180px}
 </style>
 </head>
 <body>
@@ -8394,6 +8415,70 @@ function useOther(o){
     if (HODKEY && r !== "hod") checkHodLater();
     applyLock(); renderAll(); idleStatus();
   });
+})();
+
+/* ---------- the home-screen icon ----------
+   Android: Chrome offers to install; we show our own small bar with an
+   Install button. iPhone: Apple gives websites no button, so the bar shows
+   the three taps once. Nothing shows once it is opened from the icon. */
+(function installHelp(){
+  if (location.protocol !== "https:") return;              /* previews and tests */
+  if ("serviceWorker" in navigator){
+    try { navigator.serviceWorker.register("/sw.js", {scope: location.pathname.replace(/[^\/]*$/, "")}); } catch(e){}
+  }
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  if (standalone) return;
+  function get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  if (Date.now() < +(get("rml_inst_later") || 0)) return;
+  var ua = navigator.userAgent || "";
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var touch = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
+  var bar = null;
+  function hide(days){
+    if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+    bar = null; document.body.classList.remove("hasinstall");
+    set("rml_inst_later", String(Date.now() + days * 864e5));
+  }
+  function show(html){
+    if (bar) return;
+    bar = document.createElement("div"); bar.className = "installbar"; bar.setAttribute("role", "dialog");
+    bar.setAttribute("aria-label", "Add EM Roster to your home screen");
+    bar.innerHTML = '<img src="/icon-192.png" alt="" class="insticon">' + html;
+    document.body.appendChild(bar); document.body.classList.add("hasinstall");
+    var x = bar.querySelector(".instlater"); if (x) x.onclick = function(){ hide(7); };
+    return bar;
+  }
+  var SHARE = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" style="vertical-align:-3px"><path d="M10 2v11M6 6l4-4 4 4M4 10v7h12v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  if (ios){
+    setTimeout(function(){
+      var b = show('<div class="insttext"><b>Put EM Roster on your home screen</b>'
+        + '<ol><li>Tap <b>Share</b> ' + SHARE + ' (bottom bar in Safari, top right in Chrome)</li>'
+        + '<li>Scroll and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li></ol>'
+        + '<div class="instbtns"><button type="button" class="instdone primary">Done</button>'
+        + '<button type="button" class="instlater">Not now</button></div></div>');
+      if (b) b.querySelector(".instdone").onclick = function(){ hide(3650); };
+    }, 2500);
+    return;
+  }
+  if (!touch) return;                                     /* computers: no bar */
+  var ev = null;
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault(); ev = e;
+    setTimeout(function(){
+      var b = show('<div class="insttext"><b>Put EM Roster on your home screen</b>'
+        + '<span>Opens in one tap, like an app.</span>'
+        + '<div class="instbtns"><button type="button" class="instgo primary">Install</button>'
+        + '<button type="button" class="instlater">Not now</button></div></div>');
+      if (b) b.querySelector(".instgo").onclick = function(){
+        if (!ev) return hide(7);
+        ev.prompt();
+        var c = ev.userChoice; ev = null;
+        if (c && c.then) c.then(function(r){ hide(r && r.outcome === "accepted" ? 3650 : 7); }); else hide(7);
+      };
+    }, 1500);
+  });
+  window.addEventListener("appinstalled", function(){ hide(3650); });
 })();
 
 </script>
