@@ -3301,14 +3301,8 @@ function wireApply(){
         g.appendChild(fl);
       }
     }
-    var ul = el("ul","apguide");
-    [monthCap() + " days are added when each month is completed (on its last day). Unused leave carries forward.",
-     "A night duty counts as 2 days. A half day counts as half.",
-     "Leave beyond your balance can still be sent; the balance goes into minus and is made up from the coming months.",
-     "Apply as early as you can. Leave counts only after HOD Sir approves it.",
-     needsOtp() ? "The first time on a phone, a code is sent to your own Gmail to confirm it is you. After that, no code." : ""]
-      .forEach(function(t){ if (t) ul.appendChild(el("li", null, t)); });
-    g.appendChild(ul);
+    /* the leave rules themselves are written once, under the leave record */
+    if (needsOtp()) g.appendChild(el("p","apguide", "The first time on a phone, a code is sent to your own Gmail to confirm it is you. After that, no code."));
   }
   who.addEventListener("change", guide);
   btn.addEventListener("click", function(){ setTimeout(guide, 0); });
