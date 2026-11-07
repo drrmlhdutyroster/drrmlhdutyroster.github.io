@@ -773,6 +773,49 @@ button.small{padding:4px 10px;font-size:13px;min-height:0}
 .serfields input{width:100%;box-sizing:border-box}
 .serline{display:grid;grid-template-columns:96px 1fr;gap:6px}
 .sertools{display:flex;flex-direction:column;gap:4px}
+.lsum{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--panel)}
+.lsumhead{font-weight:700;font-size:14px}
+.lsumsub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.lsumgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.lsumcell{background:var(--panel2);border-radius:8px;padding:6px 8px;min-width:0}
+.lsumcell b{display:block;font-size:17px}
+.lsumcell span{display:block;font-size:11px;color:var(--muted);line-height:1.25}
+.lsumcell.minus b{color:var(--warn-ink)}
+.lsumcell.good b{color:var(--green-ink)}
+.lsumcell.wait b{color:var(--muted)}
+.lsumflag{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--warn-ink)}
+.endflag{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:999px;background:var(--warn-bg);color:var(--warn-ink)}
+.endflag.soon{background:var(--panel2);color:var(--ink)}
+#counterNote ul.rules{margin:6px 0 0;padding-left:18px}
+#counterNote ul.rules li{margin:3px 0}
+.flagsbox{border:1.5px solid var(--warn-ink);background:var(--warn-bg);border-radius:12px;padding:10px 12px;margin:10px 0}
+.flagshead{font-weight:700;color:var(--warn-ink);margin-bottom:4px}
+.flagrow{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:4px 0;border-top:1px solid var(--rule)}
+.setuphelp ul{margin:4px 0 8px;padding-left:18px}
+.setuphelp li{margin:2px 0}
+.extwrap{display:flex;flex-direction:column;gap:2px}
+.posttill{font-size:11px;color:var(--muted)}
+.posttill.past{color:var(--warn-ink);font-weight:600}
+/* JR setup on a phone: one card per JR, labels beside the boxes */
+@media (max-width: 720px){
+  .ptable.jrsetup thead{display:none}
+  .ptable.jrsetup, .ptable.jrsetup tbody, .ptable.jrsetup tr, .ptable.jrsetup td{display:block;width:100%;box-sizing:border-box}
+  .ptable.jrsetup tr{border:1px solid var(--rule);border-radius:12px;padding:8px 10px;margin:0 0 10px;background:var(--panel)}
+  .ptable.jrsetup tr.gone{opacity:.55}
+  .ptable.jrsetup td{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;padding:3px 0;border:0}
+  .ptable.jrsetup td::before{content:attr(data-label);font-size:12px;color:var(--muted)}
+  .ptable.jrsetup td:first-child{grid-template-columns:1fr}
+  .ptable.jrsetup td:first-child::before{display:none}
+  .ptable.jrsetup td:first-child input{font-weight:700;font-size:16px}
+  .ptable.jrsetup td:last-child{grid-template-columns:1fr;justify-items:end}
+  .ptable.jrsetup td:last-child::before{display:none}
+  .ptable.jrsetup input, .ptable.jrsetup select{width:100%;min-width:0;box-sizing:border-box}
+  .jrsetup-scroll{overflow:visible}
+}
+.reqst.declined{color:var(--warn-ink)}
+.reqst.approved{color:var(--green-ink)}
+.cmox{background:transparent;border:1px solid var(--rule);border-radius:999px;font:inherit;font-size:12px;line-height:1;padding:3px 7px;color:var(--muted);cursor:pointer}
+.cmox.sure{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink);font-weight:600}
 </style>
 </head>
 <body>
@@ -971,7 +1014,7 @@ button.small{padding:4px 10px;font-size:13px;min-height:0}
   <h3 class="ledgerhead" id="ledgerHead">Cover balance</h3>
   <div class="scroller" id="ledgerWrap"><table id="ledger"></table></div>
   <p class="note" style="margin-top:10px" id="ledgerNote"></p>
-  <p class="note" style="margin-top:10px" id="counterNote"></p>
+  <div class="note" style="margin-top:10px" id="counterNote"></div>
 </section>
 
 <section id="hoursSec" hidden>
@@ -1486,6 +1529,28 @@ function shiftAndDate(){
   if (h < 8) return {slot:"N", key:iso(msOf(key) - DAY)};
   return {slot: h >= 20 ? "N" : h >= 14 ? "E" : "M", key:key};
 }
+/* Which day a CMO's chosen shift belongs to. "Night" chosen in the morning
+   (before noon) is the night that has just ended - it began yesterday - not
+   tonight's. Morning and evening are always today's. */
+function cmoShiftKey(slot){
+  var sd = shiftAndDate();
+  if (slot === sd.slot) return sd.key;
+  var h = new Date().getHours(), t = todayKey();
+  if (slot === "N" && h < 12) return iso(msOf(t) - DAY);
+  return t;
+}
+/* the shift list says which day each one is, so nobody marks the wrong night */
+function cmoShiftLabels(){
+  var cs = document.getElementById("cmoShift");
+  if (!cs) return;
+  [].forEach.call(cs.options, function(o){
+    var k = cmoShiftKey(o.value), sm = slotMeta(o.value);
+    var night = o.value === "N" ? (k === todayKey() ? "tonight" : "last night") : "today";
+    o.textContent = (sm && sm.label ? sm.label : o.value) + " \u00B7 " + night + ", " + fmt(msOf(k));
+  });
+}
+/* a CMO entry on the wrong shift can be taken off - by the CMOs, the in-charge or the HOD */
+var CMO_DEL = null;
 function cmoLine(key, slot){
   var list = cmosOn(key, slot);
   if (!list.length) return null;
@@ -1497,6 +1562,21 @@ function cmoLine(key, slot){
     if (it.v.phone){
       var a = document.createElement("a"); a.className = "callbtn small noprint"; a.href = telHref(it.v.phone);
       a.textContent = "\u260E"; a.title = "Call Dr " + title(it.v.name); d.appendChild(a);
+    }
+    if ((CMO || MAAM || HOD) && ENDPOINT){
+      var sure = CMO_DEL === it.id;
+      var x = el("button","cmox noprint" + (sure ? " sure" : ""), sure ? "Remove?" : "\u00D7"); x.type = "button";
+      x.title = "Not on this shift - take off";
+      x.onclick = function(ev){
+        ev.stopPropagation();
+        if (CMO_DEL !== it.id){ CMO_DEL = it.id; renderToday(); return; }
+        CMO_DEL = null;
+        runSeq([function(){ return STORE.drop("cmos", it.id); }]).then(function(r){
+          renderAll();
+          setStatus(r.refused || r.failed ? "Could not remove - please try again." : "Dr " + title(it.v.name) + " taken off this shift.", !!(r.refused || r.failed));
+        });
+      };
+      d.appendChild(x);
     }
   });
   return d;
@@ -2465,6 +2545,7 @@ var STORE = (function(){
         if (res.config) CFG = res.config;
         ELSEWHERE = res.elsewhere || null;
         EMAILS = res.emails || null;
+        FLAGS = res.flags || null;
         if (res.data){
           COLLS.forEach(function(c){
             DATA[c] = res.data[c] || DATA[c] || {};
@@ -2496,7 +2577,16 @@ var STORE = (function(){
     save: function(){                        /* config only */
       writeLocal();
       if (!ENDPOINT) return Promise.resolve();
-      return call({action:"config", key:(MAAM && !HODKEY ? PASSKEY : HODKEY), body:JSON.stringify(CFG)});
+      var key = (MAAM && !HODKEY ? PASSKEY : HODKEY), body = JSON.stringify(CFG);
+      if (body.length <= 1800) return call({action:"config", key:key, body:body});
+      /* a big setup goes in small parts, one after another; the last one saves it */
+      var size = 1800, n = Math.ceil(body.length / size), up = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      var p = Promise.resolve(), last = null;
+      for (var i = 0; i < n; i++) (function(i){
+        p = p.then(function(){ return call({action:"configpart", key:key, up:up, i:i, n:n, part:body.slice(i * size, (i + 1) * size)}); })
+             .then(function(r){ last = r; });
+      })(i);
+      return p.then(function(){ if (!last || !last.done) throw new Error("part"); return last; });
     },
     /* localBody: what this page should hold meanwhile, when what is sent is
        an instruction rather than the row itself (a posting merge). If the
@@ -2532,7 +2622,7 @@ var STORE = (function(){
       delete DATA[coll][id];
       writeLocal();
       if (!ENDPOINT) return Promise.resolve({});
-      return call({action:"drop", key:wkey(), coll:coll, id:id, otp:extra && extra.otp, tok:extra && extra.tok})
+      return call({action:"drop", key:wkey(), coll:coll, id:id, otp:extra && extra.otp, tok:extra && extra.tok, dev:extra ? devId() : null})
         .then(function(res){ self.online = true; keepTok(res); return {}; },
         function(e){
           if (extra && !isRefusal(e)) e = new Error("otp:offline");   /* a code cannot wait for later */
@@ -2550,7 +2640,13 @@ var STORE = (function(){
        request and not ten. */
     /* ask the server to email a JR their leave code */
     otp: function(name, email){
-      return call({action:"otp", key:wkey(), name:name, email:email || null});
+      return call({action:"otp", key:wkey(), name:name, email:email || null, dev:devId()});
+    },
+    setEmail: function(name, email){
+      return call({action:"setemail", key:(MAAM && !HODKEY ? PASSKEY : HODKEY) || wkey(), name:name, email:email || ""});
+    },
+    clearFlag: function(id){
+      return call({action:"clearflag", key:HODKEY || wkey(), id:id});
     },
     unlinkEmail: function(name){
       return call({action:"unlinkemail", key:wkey(), name:name});
@@ -2569,7 +2665,7 @@ var STORE = (function(){
       var p = Promise.resolve();
       chunks.forEach(function(ch){
         p = p.then(function(){
-          return call({action:"putmany", key:wkey(), coll:coll, body:JSON.stringify(ch), otp:extra && extra.otp, tok:extra && extra.tok})
+          return call({action:"putmany", key:wkey(), coll:coll, body:JSON.stringify(ch), otp:extra && extra.otp, tok:extra && extra.tok, dev:extra ? devId() : null})
             .then(function(res){ keepTok(res); return res; });
         });
       });
@@ -2955,6 +3051,14 @@ function requestDetail(g){
    Every leave a JR sends (or takes back) needs a code emailed to the Gmail
    linked to that name, so nobody can do it in someone else's name. The first
    time, the JR gives their own Gmail and the name is linked to it. */
+/* this phone, as the server knows it (made once, kept on the phone) */
+function devId(){
+  var d = "";
+  try { d = localStorage.getItem("rml_dev") || ""; } catch(e){}
+  if (!d){ d = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); try { localStorage.setItem("rml_dev", d); } catch(e){} }
+  return d;
+}
+var FLAGS = null;          /* the HOD and in-charge: phones that tried leave in another JR's name */
 /* this phone's token for a name, once it has confirmed with a code */
 function tokKey(n){ return lsName("rml_tok_" + rid(n)); }
 function tokOf(n){ try { return localStorage.getItem(tokKey(n)) || ""; } catch(e){ return ""; } }
@@ -2986,6 +3090,10 @@ var OTP_WHY = {
 };
 function otpWhy(m){
   if (OTP_WHY.hasOwnProperty(m)) return OTP_WHY[m];
+  if (/^otp:otherphone/.test(m || "")){
+    var on = (m || "").split(":")[2] || "";
+    return "This phone is set up for Dr " + title(on) + ". Leave for anyone else cannot be sent from it - this try has been noted for HOD Sir.";
+  }
   if (/MailApp|permission/i.test(m || "")) return "The code email could not be sent from the department's side. Please tell Dr Vivek - it is being fixed.";
   return "Could not do that just now. Please try again.";
 }
@@ -5178,22 +5286,37 @@ function clStart(n){
   var jd = j && j.date ? j.date : "";
   return jd > CL_FROM ? jd : CL_FROM;
 }
-/* month-ends credited by 'key': whole calendar months from the start, each counted on its last day */
-function clCredits(n, key){
-  var st = clStart(n), y = +st.slice(0,4), m = +st.slice(5,7), c = 0;
-  if (+st.slice(8,10) !== 1){ m++; if (m > 12){ m = 1; y++; } }
-  for (var i = 0; i < 240; i++){
-    var last = iso(Date.UTC(y, m, 0));                    /* last day of month m */
-    if (last > key) break;
-    c++; m++; if (m > 12){ m = 1; y++; }
-  }
-  return c;
+/* A JR's posting: one year from joining (last day = joining + 1 year - 1
+   day), or to the date it was extended to. Only flagged when it ends -
+   nobody is taken off the roster by the app. */
+function postEnd(n){
+  var j = recOf("joining", n);
+  if (!j) return "";
+  if (j.extendedTill) return j.extendedTill;
+  if (!j.date) return "";
+  var y = +j.date.slice(0,4), m = +j.date.slice(5,7), d = +j.date.slice(8,10);
+  return iso(Date.UTC(y + 1, m - 1, d) - DAY);
 }
-function nextCreditDay(n, key){
-  var st = clStart(n), y = +st.slice(0,4), m = +st.slice(5,7);
+/* the credit days, in order: each whole month on its last day - except the
+   last month of the posting, whose 2.5 comes on its 1st so it can be used */
+function clCreditDays(n){
+  var st = clStart(n), end = postEnd(n), out = [];
+  var y = +st.slice(0,4), m = +st.slice(5,7);
   if (+st.slice(8,10) !== 1){ m++; if (m > 12){ m = 1; y++; } }
-  for (var i = 0; i < 240; i++){ var last = iso(Date.UTC(y, m, 0)); if (last >= key) return last; m++; if (m > 12){ m = 1; y++; } }
-  return "";
+  var endMk = end ? end.slice(0,7) : "";
+  for (var i = 0; i < 120; i++){
+    var mk = y + "-" + (m < 10 ? "0" : "") + m;
+    if (endMk && mk > endMk) break;
+    out.push(endMk && mk === endMk ? mk + "-01" : iso(Date.UTC(y, m, 0)));
+    m++; if (m > 12){ m = 1; y++; }
+    if (!endMk && i > 36) break;
+  }
+  return out;
+}
+function clCredits(n, key){ return clCreditDays(n).filter(function(d){ return d <= key; }).length; }
+function nextCreditDay(n, key){
+  var c = clCreditDays(n).filter(function(d){ return d > key; });
+  return c.length ? c[0] : "";
 }
 /* the leave days counted against the balance: [{id, date, w, pending, ahead}] (extra: new ones being sent) */
 function leaveDays(n, extra, skip){
@@ -5226,8 +5349,76 @@ function leaveBalance(n, extra, skip){
     if (x.pending) pending += x.w; else if (x.ahead) ahead += x.w; else taken += x.w;
   });
   var left = open + credited - taken - ahead - pending;
+  var days = clCreditDays(n), toCome = monthCap() * days.filter(function(d){ return d > key; }).length;
   return {open:open, hasOpen:!!(op && op.balance != null), credited:credited, taken:taken, ahead:ahead,
-          pending:pending, booked:ahead + pending, left:left, next:nextCreditDay(n, key)};
+          pending:pending, booked:ahead + pending, left:left, next:nextCreditDay(n, key),
+          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * 12};
+}
+/* where a JR's posting stands: "past" (ended), "soon" (within 30 days) or "" */
+function postFlag(n){
+  var e = postEnd(n), t = todayKey();
+  if (!e) return "";
+  if (e < t) return "past";
+  if (msOf(e) - msOf(t) <= 30 * DAY) return "soon";
+  return "";
+}
+/* absences this posting year from 1 Nov (entered by hand or from postings), not made leave */
+function absentSince(n){
+  /* every kind of absence: entered by hand, a refused leave, or not posted on a posted shift */
+  var c = 0, t0 = msOf(clStart(n)), t1 = msOf(todayKey());
+  for (var t = t0; t <= t1; t += DAY){ if (effective(t).duty[n] === "ABSENT") c++; }
+  return c;
+}
+/* the yearly picture for one JR, as a small card */
+function leaveSummaryCard(n){
+  var b = leaveBalance(n), box = el("div","lsum");
+  box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this posting year"));
+  var j = recOf("joining", n);
+  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 posting till " + fmt(msOf(b.end))
+    + (j.extendedTill ? " (extended)" : "") : "")));
+  var g = el("div","lsumgrid");
+  function cell(label, val, cls){ var c = el("div","lsumcell" + (cls ? " " + cls : "")); c.appendChild(el("b", null, val)); c.appendChild(el("span", null, label)); g.appendChild(c); }
+  cell("in the year (" + monthCap() + " a month)", String(b.yearTotal));
+  cell("balance on 31 Oct", b.hasOpen ? fmtBal(b.open) : "-", b.open < 0 ? "minus" : "");
+  cell("credited since", "+" + b.credited);
+  cell("taken since 1 Nov", String(Math.round((b.taken + b.ahead) * 10) / 10));
+  cell("awaiting approval", String(b.pending), b.pending ? "wait" : "");
+  cell("balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
+  cell("still to come till the end", "+" + b.toCome);
+  cell("can still take this year", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  cell("absent since 1 Nov", String(absentSince(n)), absentSince(n) ? "minus" : "");
+  box.appendChild(g);
+  if (b.next) box.appendChild(el("div","lsumsub", "Next " + monthCap() + " on " + fmt(msOf(b.next)) + "."));
+  /* their requests and what HOD Sir decided, each with its form */
+  var runs = {}, k3;
+  for (k3 in DATA.leaves){
+    var l3 = DATA.leaves[k3];
+    if (!l3 || l3.resident !== n) continue;
+    var rk = l3.reqId || l3.date;
+    if (!runs[rk]) runs[rk] = {from:l3.date, to:l3.date, st:statusOf(l3), half:!!l3.half};
+    if (l3.date < runs[rk].from) runs[rk].from = l3.date;
+    if (l3.date > runs[rk].to) runs[rk].to = l3.date;
+  }
+  var rl = Object.keys(runs).map(function(x){ return runs[x]; }).sort(function(x, y){ return x.from < y.from ? 1 : -1; }).slice(0, 8);
+  if (rl.length){
+    var fl = el("div","apforms");
+    fl.appendChild(el("div","apformshead","Requests and HOD Sir's decision"));
+    rl.forEach(function(r){
+      var row = el("div","apformrow");
+      var st = r.st === "pending" ? "awaiting approval" : r.st === "declined" ? "not approved" : "approved \u2713";
+      row.appendChild(el("span", "reqst " + r.st, fmt(msOf(r.from)) + (r.to !== r.from ? " \u2013 " + fmt(msOf(r.to)) : "") + (r.half ? " (half)" : "") + " \u00B7 " + st));
+      if (r.st !== "declined"){
+        var fb4 = el("button","formbtn","Form"); fb4.type = "button";
+        fb4.onclick = function(){ downloadLeaveForm(n, msOf(r.from)); };
+        row.appendChild(fb4);
+      }
+      fl.appendChild(row);
+    });
+    box.appendChild(fl);
+  }
+  var f = postFlag(n);
+  if (f) box.appendChild(el("div","lsumflag", f === "past" ? "Posting has ended (" + fmt(msOf(b.end)) + ") - not extended in setup." : "Posting ends on " + fmt(msOf(b.end)) + "."));
+  return box;
 }
 /* nothing is without pay any more: a minus balance is made up later */
 function monthsOver(n){ return []; }
@@ -5352,12 +5543,18 @@ function renderCounter(){
     allBtn.setAttribute("aria-pressed", counterAll?"true":"false");
   }
   t.innerHTML = "";
+  /* a JR looking at their own record: the yearly picture first */
+  var lh = document.getElementById("lsumHost");
+  if (!lh && t.parentNode){ lh = el("div"); lh.id = "lsumHost"; t.parentNode.insertBefore(lh, t); }
+  var cardOnly = hasTeams() && solo && ME && !visitorOf(ME);
+  if (lh){ lh.innerHTML = ""; if (cardOnly) lh.appendChild(leaveSummaryCard(ME)); }
+  t.hidden = !!cardOnly;              /* the card says it all; the one-row table only repeats it */
   var filt = hasTeams() && counterAll;
   var bar = counterFilterBar(filt);
   var absCount = hasTeams() ? absentCounts() : null;
   var thead = el("thead"), hr = el("tr");
   (hasTeams()
-    ? ["Resident","Date of joining","Balance on 31 Oct","Taken since 1 Nov","Balance now"]
+    ? ["Resident","Date of joining","Balance on 31 Oct","Taken since 1 Nov","Balance now","Can still take this year"]
     : ["Resident","Date of joining", leaveMonths()===12 ? "Leave taken this year" : "Leave taken this period","Remaining of " + CFG.annualLeave])
     .concat(absCount ? ["Absent this period"] : [])
     .forEach(function(h,i){ hr.appendChild(el("th", i===0?"plain":null, h)); });
@@ -5401,6 +5598,14 @@ function renderCounter(){
       var bc = el("td","num" + (bal.left < 0 ? " minuscell" : ""), fmtBal(bal.left));
       if (bal.credited) bc.appendChild(el("div","subnum", "+" + bal.credited + " credited"));
       tr.appendChild(bc);
+      var ct = el("td","num" + (bal.canTake < 0 ? " minuscell" : ""), fmtBal(bal.canTake));
+      if (bal.end) ct.appendChild(el("div","subnum", "till " + fmt(msOf(bal.end))));
+      tr.appendChild(ct);
+      var pf = postFlag(n);
+      if (pf) th.appendChild(el("span","endflag " + pf, pf === "past" ? "posting ended" : "ends " + fmt(msOf(bal.end))));
+      /* tap the name: the whole yearly picture */
+      th.style.cursor = "pointer";
+      th.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a,button")) return; openSheet("Leave - Dr " + title(n), leaveSummaryCard(n)); };
       if (absCount){
         var an0 = absCount[n] || 0, ac0 = el("td","num", String(an0));
         if (an0) ac0.style.color = "var(--warn-ink)";
@@ -5440,6 +5645,7 @@ function renderCounter(){
   });
   t.appendChild(tb);
   linkedMails(t);
+  flagsBox(t);
   if (bar && filt){
     var cnt = document.getElementById("cCount");
     if (cnt) cnt.textContent = shown + " of " + total;
@@ -5448,6 +5654,26 @@ function renderCounter(){
 /* the HOD and the in-charge: which Gmail each JR is linked to, and Unlink
    (a new phone number, a lost Gmail, or somebody linked a name not theirs) */
 var MAILS_OPEN = false;
+function flagsBox(t){
+  var old = document.getElementById("flagsBox"); if (old) old.parentNode.removeChild(old);
+  if (!hasTeams() || !(HOD || MAAM) || !FLAGS) return;
+  var ids = Object.keys(FLAGS).sort(function(a, b){ return (FLAGS[b].at || 0) - (FLAGS[a].at || 0); });
+  if (!ids.length) return;
+  var box = el("div","flagsbox noprint"); box.id = "flagsBox";
+  box.appendChild(el("div","flagshead", "\u26A0 Leave tried in someone else's name (" + ids.length + ")"));
+  ids.slice(0, 30).forEach(function(id){
+    var f = FLAGS[id], r = el("div","flagrow");
+    r.appendChild(el("span", null, "Dr " + title(f.owner) + "'s phone " + f.what + " for Dr " + title(f.tried)
+      + (f.at ? " \u00B7 " + fmt(f.at) + ", " + new Date(f.at).toTimeString().slice(0,5) : "")));
+    if (HOD){
+      var x = el("button","formbtn","Clear"); x.type = "button";
+      x.onclick = function(){ x.disabled = true; STORE.clearFlag(id).then(function(){ delete FLAGS[id]; flagsBox(t); }, function(){ x.disabled = false; }); };
+      r.appendChild(x);
+    }
+    box.appendChild(r);
+  });
+  t.parentNode.insertBefore(box, t);
+}
 function linkedMails(t){
   var old = document.getElementById("mailsBox"); if (old) old.parentNode.removeChild(old);
   if (!hasTeams() || !(HOD || MAAM) || !EMAILS) return;
@@ -5609,15 +5835,22 @@ function renderJrSetup(host){
   teams.forEach(function(t){ (t.members||[]).forEach(function(n){
     var j = recOf("joining", n);
     var o = recOf("opening", n);
-    rows.push({name:n, orig:n, group:t.name, join:(j && j.date) || "", phone:phoneOf(n),
-               before:(o && o.days != null) ? String(o.days) : "", gone:false, fresh:false});
+    rows.push({name:n, orig:n, group:t.name, join:(j && j.date) || "", ext:(j && j.extendedTill) || "", phone:phoneOf(n),
+               bal:(o && o.balance != null) ? String(o.balance) : "", mail:(EMAILS && EMAILS[n]) || "",
+               gone:false, fresh:false});
   }); });
 
-  var intro = el("p","note",
-    "A new JR: tap + Add a JR and type the name, joining date and number - they go into the smallest group. "
-    + "A JR who has left: tap remove. Then Save. "
-    + "\"Leave taken before " + fmt(msOf(CFG.epoch)) + "\" is leave a JR had already used in their current "
-    + leaveMonths() + "-month period before this roster began; it is counted in their balance of " + CFG.annualLeave + ".");
+  var intro = el("div","note setuphelp");
+  intro.appendChild(el("b", null, "How to use this page"));
+  var hl = el("ul");
+  ["Each card is one JR. Change anything in it, then tap Save at the bottom.",
+   "New JR: tap + Add a JR. Fill in the name, group, mobile, Gmail and joining date.",
+   "Gmail: the leave code is sent only to this address. Collect it from the JR in advance.",
+   "Balance on 31 Oct: their leave balance from the department's record (minus allowed, e.g. -2 or 0.5). A JR joining later: leave it empty.",
+   "Posting runs one year from joining. If it is extended, put the new last day in Extended till.",
+   "A JR who has left: tap Remove. Their record stays; they come off the roster from the date under More settings."]
+    .forEach(function(t){ hl.appendChild(el("li", null, t)); });
+  intro.appendChild(hl);
   host.appendChild(intro);
 
   var bar = el("div","cfilter");
@@ -5627,8 +5860,9 @@ function renderJrSetup(host){
   bar.appendChild(q);
   host.appendChild(bar);
 
-  var tbl = el("table","ptable"), tb = el("tbody");
-  var hr = el("tr"); ["Name","Joining date","Phone","Leave taken before " + fmt(msOf(CFG.epoch)),"Group",""].forEach(function(h){ hr.appendChild(el("th",null,h)); });
+  var tbl = el("table","ptable jrsetup"), tb = el("tbody");
+  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Extended till",""];
+  var hr = el("tr"); COLS.forEach(function(h){ hr.appendChild(el("th",null,h)); });
   var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0); tbl.appendChild(tb);
   var wrap = el("div","scroller"); wrap.appendChild(tbl); host.appendChild(wrap);
 
@@ -5650,18 +5884,26 @@ function renderJrSetup(host){
       ji.onchange = function(){ r.join = ji.value; };
       var pi = document.createElement("input"); pi.type = "tel"; pi.value = r.phone; pi.placeholder = "10-digit mobile";
       pi.oninput = function(){ r.phone = pi.value; };
-      var bi = document.createElement("input"); bi.type = "number"; bi.min = "0"; bi.max = String(CFG.annualLeave);
-      bi.value = r.before; bi.placeholder = "0"; bi.className = "numin";
-      bi.title = "Days of leave already taken in this " + leaveMonths() + "-month period, before the roster began";
-      bi.oninput = function(){ r.before = bi.value; };
-      var rm = el("button","ghost rm", r.gone ? "keep" : "remove");
+      var bi = document.createElement("input"); bi.type = "text"; bi.inputMode = "decimal";
+      bi.value = r.bal; bi.placeholder = "e.g. 3.5 or -2"; bi.className = "numin";
+      bi.title = "Leave balance on 31 Oct 2026, from the department's record";
+      bi.oninput = function(){ r.bal = bi.value; };
+      var mi = document.createElement("input"); mi.type = "email"; mi.value = r.mail; mi.placeholder = "name@gmail.com";
+      mi.autocomplete = "off"; mi.oninput = function(){ r.mail = mi.value; };
+      if (!EMAILS){ mi.disabled = true; mi.placeholder = "needs a connection"; }
+      var xi = document.createElement("input"); xi.type = "date"; xi.value = r.ext;
+      xi.onchange = function(){ r.ext = xi.value; };
+      var end = r.ext || (r.join ? iso(Date.UTC(+r.join.slice(0,4) + 1, +r.join.slice(5,7) - 1, +r.join.slice(8,10)) - DAY) : "");
+      var xw = el("div","extwrap"); xw.appendChild(xi);
+      if (end) xw.appendChild(el("small", "posttill" + (end < todayKey() ? " past" : ""), "posting till " + fmt(msOf(end))));
+      var rm = el("button","ghost rm", r.gone ? "Keep" : "Remove");
       rm.title = r.gone ? "Keep this JR" : "This JR has left - remove from the date below";
       rm.onclick = function(){
         if (r.fresh){ rows.splice(rows.indexOf(r), 1); }
         else r.gone = !r.gone;
         draw();
       };
-      [ni, ji, pi, bi, gs, rm].forEach(function(x){ var td = el("td"); td.appendChild(x); tr.appendChild(td); });
+      [ni, gs, pi, mi, ji, bi, xw, rm].forEach(function(x, i){ var td = el("td"); td.setAttribute("data-label", COLS[i]); td.appendChild(x); tr.appendChild(td); });
       tb.appendChild(tr);
     });
   }
@@ -5679,7 +5921,7 @@ function renderJrSetup(host){
     return groupNames.reduce(function(a, b){ return cnt[b] < cnt[a] ? b : a; });
   }
   add.onclick = function(){
-    rows.push({name:"", orig:null, group:PEOPLE_FILTER.group || smallest(), join:"", phone:"", before:"", gone:false, fresh:true});
+    rows.push({name:"", orig:null, group:PEOPLE_FILTER.group || smallest(), join:"", ext:"", phone:"", bal:"", mail:"", gone:false, fresh:true});
     draw();
     var ins = tb.querySelectorAll("input[type=text]"); if (ins.length) ins[ins.length-1].focus();
   };
@@ -5766,9 +6008,13 @@ function renderJrSetup(host){
       var ph = String(r.phone||"").replace(/[\s\-()]/g, "");
       if (ph && !/^(\+?\d{10,13})$/.test(ph)) problems.push(title(n) + "'s number does not look right");
       r.cleanPhone = ph;
-      var bf = String(r.before == null ? "" : r.before).trim();
-      if (bf !== "" && (!/^\d+$/.test(bf) || +bf > CFG.annualLeave)) problems.push(title(n) + "'s leave taken before should be 0 to " + CFG.annualLeave);
-      r.cleanBefore = bf === "" ? null : +bf;
+      var bf = String(r.bal == null ? "" : r.bal).trim().replace(/^minus\s*/i, "-");
+      if (bf !== "" && (!/^-?\d+(\.5|\.0)?$/.test(bf) && !/^-?\.5$/.test(bf))) problems.push(title(n) + "'s balance should be a number like 3, 2.5 or -2");
+      r.cleanBal = bf === "" ? null : +bf;
+      var ml = String(r.mail || "").trim().toLowerCase();
+      if (ml && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ml)) problems.push(title(n) + "'s Gmail does not look right");
+      r.cleanMail = ml;
+      if (r.ext && r.join && r.ext < r.join) problems.push(title(n) + ": extended till is before joining");
     });
     if (problems.length){ msg.textContent = "Not saved: " + problems.join("; ") + "."; return; }
     /* the new groups: people keep their order, newcomers go to the end */
@@ -5814,25 +6060,43 @@ function renderJrSetup(host){
     rows.forEach(function(r){
       if (!r.clean || !r.join) return;
       var old = recOf("joining", r.clean);
-      if (!old || old.date !== r.join) items.push({id:rid(r.clean), body:{resident:r.clean, date:r.join}});
+      if (!old || old.date !== r.join || (old.extendedTill || "") !== (r.ext || "")){
+        var jb = {resident:r.clean, date:r.join};
+        if (r.ext) jb.extendedTill = r.ext;
+        if (old && old.source) jb.source = old.source;
+        items.push({id:rid(r.clean), body:jb});
+      }
     });
-    /* leave already taken before the roster began, counted from its first day */
+    /* the balance on 31 Oct, from the department's record */
     var opens = [], dropOpen = [];
     rows.forEach(function(r){
       if (!r.clean) return;
       var old = recOf("opening", r.clean), id = rid(r.clean);
-      if (r.cleanBefore === null){ if (old && !r.gone) dropOpen.push(id); return; }
-      if (!old || old.days !== r.cleanBefore || old.asOf !== CFG.epoch)
-        opens.push({id:id, body:{resident:r.clean, days:r.cleanBefore, asOf:CFG.epoch}});
+      if (r.cleanBal === null){ if (old && old.balance != null && !r.gone) dropOpen.push(id); return; }
+      if (!old || old.balance !== r.cleanBal)
+        opens.push({id:id, body:{resident:r.clean, balance:r.cleanBal, asOf:"2026-10-31", source:(old && old.source) || "setup"}});
+    });
+    /* Gmails go to the private list on the server, one by one */
+    var mails = [];
+    if (EMAILS) rows.forEach(function(r){
+      if (!r.clean || r.gone) return;
+      var was = EMAILS[r.clean] || "";
+      if ((r.cleanMail || "") !== was) mails.push({n:r.clean, m:r.cleanMail || ""});
     });
     var keep = CFG; CFG = next;
     var jobs = [function(){ return STORE.save(); }];
     if (items.length) jobs.push(function(){ return STORE.putMany("joining", items); });
     if (opens.length) jobs.push(function(){ return STORE.putMany("opening", opens); });
     dropOpen.forEach(function(id){ jobs.push(function(){ return STORE.drop("opening", id); }); });
+    mails.forEach(function(x){ jobs.push(function(){ return STORE.setEmail(x.n, x.m).then(function(){
+      if (x.m) EMAILS[x.n] = x.m; else delete EMAILS[x.n]; return {}; }); }); });
     msg.className = "status"; msg.textContent = "Saving\u2026";
     runSeq(jobs).then(function(r){
       var m2 = document.getElementById("setupMsg");
+      if (r.failed && /^otp:emailused/.test(r.why || "")){
+        if (m2){ m2.className = "status bad"; m2.textContent = "Saved, except one Gmail: it is already given to another JR. Each JR needs their own."; }
+        return;
+      }
       if (r.refused || r.why === "role" || r.why === "hod"){
         CFG = keep;
         if (m2){ m2.className = "status bad"; m2.textContent = "Not saved - your passphrase does not allow this."; }
@@ -7599,12 +7863,21 @@ function renderHeader(){
     }
   }
   var n = document.getElementById("counterNote");
-  if (n) n.textContent = hasTeams()
-    ? "Leave balance starts from the department's list on 31 Oct 2026. " + monthCap() + " days are added when each month is completed, "
-      + "and unused leave carries forward. Leave beyond the balance takes it into minus, which the coming months make up. "
-      + "A night duty counts as 2 days, a half day as half; a day your group was due off anyway is not counted. "
-      + "Leave awaiting HOD Sir's approval shows as leave, not absent, while he decides."
-    : leaveMonths() === 12
+  if (n && hasTeams()){
+    n.innerHTML = "";
+    n.appendChild(el("b", null, "Leave rules for Junior Residents"));
+    var ul0 = el("ul","rules");
+    ["Your balance starts from the department's record on 31 October 2026.",
+     "You earn " + monthCap() + " days for every month you complete. They are added on the last day of the month.",
+     "In the last month of your posting, that month's " + monthCap() + " days are added on the 1st, so you can use them before you leave.",
+     "Unused leave carries forward to the next month.",
+     "A night duty counts as 2 days, a half day as half. A day your group is off anyway is not counted.",
+     "You may take more than your balance; it goes into minus and is made up from the coming months.",
+     "Leave counts once HOD Sir approves it. While it waits, it shows as leave - not absent.",
+     "Your posting runs for one year from your date of joining, unless it is extended."]
+      .forEach(function(t0){ ul0.appendChild(el("li", null, t0)); });
+    n.appendChild(ul0);
+  } else if (n) n.textContent = leaveMonths() === 12
     ? "Entitlement is a single pool of " + CFG.annualLeave
       + " days per year, counted from each resident's own joining date. A day somebody else was named to cover "
       + "is an exchange, not leave, so it is not counted."
@@ -7742,6 +8015,7 @@ function cmoOnNow(){
 }
 var CMO_EDIT = false;
 function cmoState(){
+  cmoShiftLabels();
   var form = document.getElementById("cmoForm"), done = document.getElementById("cmoDone");
   if (!form || !done) return;
   var on = cmoOnNow();
@@ -7756,8 +8030,49 @@ function cmoState(){
     done.appendChild(ch);
   }
 }
+/* who is looking: what they need, and nothing else
+     - JR / PG on their own roster: apply for leave, their own leave record
+       (with the yearly summary) and its approval status, their duties
+     - faculty: everyone's leave record, to look at
+     - JR in-charge (JR roster) and HOD: everyone's record, attendance, the
+       roster PDF and changes register, setup
+     - CMO: posting and the duty screens; nursing: the duty screens
+     Absences show to everyone, each roster separately, as before. */
+function viewer(){
+  if (HOD) return "hod";
+  if (NURSE) return "nursing";
+  if (CMO) return "cmo";
+  if (MAAM) return "maam";
+  if (FAC) return "faculty";
+  return ROLE || CADRE;                   /* an older server that does not say: a resident of this roster */
+}
+function isCandidate(){ var v = viewer(); return (v === "jr" && CADRE === "jr") || (v === "pg" && CADRE === "pg"); }
+function seesEveryone(){ var v = viewer(); return v === "hod" || v === "faculty" || v === "maam"; }
+function applyRoleView(){
+  /* a copy kept on a computer with no server behind it is its keeper's: all of it shows */
+  if (!ENDPOINT && !(SEED && SEED.preview)) return;
+  var v = viewer(), office = v === "hod" || (v === "maam" && CADRE === "jr");
+  function show(id, on){ var e = document.getElementById(id); if (e) e.hidden = !on; }
+  show("applyBtn", isCandidate() && (CADRE !== "jr" || can("leave")));
+  show("cAll", false);
+  show("attBtn", office);
+  if (!office){ var ab = document.getElementById("attBox"); if (ab) ab.hidden = true; }
+  /* the roster PDF stays for everyone who works on the roster; the changes register is the office's */
+  var dl = document.querySelector(".dlgrid"); if (dl) dl.hidden = (v === "nursing" || v === "cmo");
+  show("pReg", office);
+  show("whoWrap", isCandidate());
+  show("counterSec", v !== "cmo" && v !== "nursing");
+  /* the tools card only if something is left in it */
+  var tc = document.getElementById("toolsCard");
+  if (tc){
+    var any = [].some.call(tc.querySelectorAll("#whoWrap, .dlgrid, #previewBar"), function(x){ return !x.hidden; });
+    tc.hidden = !any && !(document.getElementById("dbstatus") || {}).textContent;
+  }
+}
 function renderAll(){
   EXCESS = null;
+  /* residents see their own record only; the office and faculty always see everyone */
+  if (ENDPOINT || (SEED && SEED.preview)) counterAll = seesEveryone();
   try { myDetailsBox(); } catch(e){}
   var swl = document.getElementById("switchLine");
   if (swl) swl.hidden = !(LINK && ENDPOINT && !GATED);
@@ -7772,6 +8087,7 @@ function renderAll(){
   renderInd(); renderCounter(); renderLedger(); renderSpec();
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
+  applyRoleView();
 }
 
 /* ---------- copy helper ---------- */
@@ -7836,8 +8152,7 @@ function wire(){
   if (go) go.onclick = function(){
     var nm = (CMONAME || "").replace(/^dr\.?\s+/i, "").trim();
     if (!nm){ cmsg.className = "status bad"; cmsg.textContent = "Type your name first."; return; }
-    var sd = shiftAndDate(), slot = cs.value || sd.slot, key = sd.key;
-    if (slot !== sd.slot) key = todayKey();
+    var sd = shiftAndDate(), slot = cs.value || sd.slot, key = cmoShiftKey(slot);
     var ph = (cp && cp.value || "").replace(/[\s\-()]/g, "");
     var id = safeId("cmo", key, slot, rid(nm).replace(/\s+/g, "-"));
     cmsg.className = "status"; cmsg.textContent = "Saving\u2026";
@@ -7848,7 +8163,7 @@ function wire(){
       cmsg.className = "status"; cmsg.textContent = "";
     });
   };
-  if (cs){ var sd0 = shiftAndDate(); cs.value = sd0.slot; }
+  if (cs){ var sd0 = shiftAndDate(); cs.value = sd0.slot; cmoShiftLabels(); }
   var pr0 = document.getElementById("previewRole");
   if (pr0 && CADRE === "pg")             /* on the PG roster only the HOD and faculty views apply */
     [].slice.call(pr0.options).forEach(function(o){ if (o.value !== "hod" && o.value !== "faculty") pr0.removeChild(o); });
