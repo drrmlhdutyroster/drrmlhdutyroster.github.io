@@ -3100,9 +3100,7 @@ function withConfirm(name, what, sendWith, done, cancelled){
 }
 function needsOtp(){ return !!ENDPOINT && CADRE === "jr" && ROLE === "jr"; }
 var OTP_WHY = {
-  "otp:nogmail": "Your Gmail is not in the roster yet. Please send it to Dr Praveen Singh Sir (JR in-charge) to add in Setup - then try again.",
-  "otp:needemail": "Your Gmail is not in the roster yet. Please send it to Dr Praveen Singh Sir (JR in-charge) to add in Setup - then try again.",
-  "otp:bademail": "That does not look like an email address.",
+  "otp:needemail": "", "otp:bademail": "That does not look like an email address.",
   "otp:emailused": "This Gmail is already linked to another name. Use your own Gmail.",
   "otp:toomany": "Too many codes asked for in an hour. Please try again later.",
   "otp:name": "This name is not on the JR roster.",
@@ -3113,6 +3111,10 @@ var OTP_WHY = {
 };
 function otpWhy(m){
   if (OTP_WHY.hasOwnProperty(m)) return OTP_WHY[m];
+  if (/^otp:dropown/.test(m || "")){
+    var dn = (m || "").split(":")[2] || "";
+    return "Only Dr " + title(dn) + " can take back this leave, from the phone it was sent from. Ask Dr Praveen Singh Sir or HOD Sir if it must be removed.";
+  }
   if (/^otp:otherphone/.test(m || "")){
     var on = (m || "").split(":")[2] || "";
     return "This phone is set up for Dr " + title(on) + ". Leave for anyone else cannot be sent from it - this try has been noted for HOD Sir.";
@@ -3124,7 +3126,7 @@ function otpWhy(m){
 function withOtp(name, what, send, done, cancelled){
   var box = el("div","otpbox"), st = el("p","otpst"), area = el("div","otparea");
   box.appendChild(el("p","otpintro", "One-time check on this phone: " + what.toLowerCase() + " for Dr " + title(name)
-    + " needs a code sent to the Gmail in the roster for this name. After this, this phone will not ask again."));
+    + " needs a code from the Gmail linked to this name. After this, this phone will not ask again."));
   box.appendChild(area); box.appendChild(st);
   var finished = false;
   openSheet("Confirm it is you", box, {sticky:true, onClose:function(){ if (!finished && cancelled) cancelled(); }});
@@ -3134,7 +3136,8 @@ function withOtp(name, what, send, done, cancelled){
     STORE.otp(name, email).then(function(r){ codeStep(r.to, r.first); },
       function(e){
         var m = String(e && e.message || e);
-        {
+        if (m === "otp:needemail" || ((m === "otp:bademail" || m === "otp:emailused") && email)) emailStep(m === "otp:needemail" ? "" : otpWhy(m));
+        else {
           say(otpWhy(m), true);
           var tr = el("button","ghost","Try again"); tr.type = "button";
           tr.onclick = function(){ ask(email); };
@@ -4255,6 +4258,10 @@ function chipFor(kind, it){
   var mine = isPending(it.v) || HOD || (MAAM && it.v.decidedBy === "FACULTY");
   /* and only somebody allowed to make this kind of entry may touch it */
   if (!can(kind === "leave" ? "leave" : "change") && !HOD) mine = false;
+  /* a JR's waiting leave: only on the phone it was sent from (it holds that
+     JR's confirmation) - nobody else can take it back */
+  var notTheirs = false;
+  if (kind === "leave" && mine && needsOtp() && !tokOf(it.v.resident)){ mine = false; notTheirs = true; }
   if (kind === "leave"){
     /* anyone may take a copy of the application, decided or not */
     var fb = el("button",null,"form");
@@ -4282,7 +4289,9 @@ function chipFor(kind, it){
   }
   if (!mine){
     /* say why there is nothing to tap, rather than leaving a bare chip */
-    ch.title = it.v.decidedBy === "FACULTY"
+    ch.title = notTheirs
+      ? "Waiting for HOD Sir. Only Dr " + title(it.v.resident) + " can take it back, from the phone it was sent from."
+      : it.v.decidedBy === "FACULTY"
       ? "Entered by " + facultyName() + " - only she or the Head of the Department can change it."
       : "Approved by the Head of the Department - only he can change it.";
     return ch;
@@ -7982,7 +7991,6 @@ function myDetailsBox(){
   if (!host) return;
   host.innerHTML = ""; host.hidden = true;
   if (!(hasTeams() && ROLE === "jr" && ME && UNLOCKED)) return;
-  return;   /* balances now come only from the department list, entered in Setup */
   var j = recOf("joining", ME), o = recOf("opening", ME);
   /* the department's list now gives everyone's joining date and balance:
      only someone missing from it is asked */
