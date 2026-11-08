@@ -7991,6 +7991,7 @@ function myDetailsBox(){
   if (!host) return;
   host.innerHTML = ""; host.hidden = true;
   if (!(hasTeams() && ROLE === "jr" && ME && UNLOCKED)) return;
+  return;   /* joining dates and balances come from the department list, in Setup only */
   var j = recOf("joining", ME), o = recOf("opening", ME);
   /* the department's list now gives everyone's joining date and balance:
      only someone missing from it is asked */
