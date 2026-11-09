@@ -318,6 +318,7 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .apprwhat{font-weight:600;font-size:14px}
 .apprdet{font-size:13px;color:var(--muted);margin-top:3px}
 .apprbtns{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.apprall{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
 @media print{#apprSec{display:none!important}}
 
 .chip.pend{background:var(--panel2);color:var(--muted);border:1px dashed var(--rule)}
@@ -3362,6 +3363,60 @@ function renderLedger(){
   }
 }
 
+/* The HOD: approve many at once. "Up to today" approves only the days that
+   have come (a leave running past today keeps its later days waiting);
+   "everything" approves all that is waiting. Each asks for a second tap. */
+function approveAllBar(groups){
+  var bar = el("div","apprall");
+  var tk = todayKey();
+  function pick(upToToday){
+    var by = {}, n = 0, people = {};
+    groups.forEach(function(g){
+      g.ids.forEach(function(id){
+        var v = (DATA[g.coll] || {})[id];
+        if (!v || !isPending(v)) return;
+        if (upToToday && !(g.kind === "leave" && v.date && v.date <= tk)) return;
+        (by[g.coll] = by[g.coll] || []).push(id); n++;
+        if (v.resident) people[v.resident] = 1;
+      });
+    });
+    return {by: by, n: n, people: Object.keys(people).length};
+  }
+  var st = el("span","status");
+  function mk(label, upToToday, cls){
+    var p = pick(upToToday);
+    var b = el("button", cls, label + " (" + p.n + (p.n === 1 ? " day" : " days") + ")");
+    if (!p.n){ b.disabled = true; return b; }
+    var armed = false;
+    b.onclick = function(){
+      if (!armed){
+        armed = true;
+        b.textContent = "Tap again to approve " + p.n + (p.n === 1 ? " day" : " days") + " for " + p.people + (p.people === 1 ? " resident" : " residents");
+        setTimeout(function(){ if (armed){ armed = false; b.textContent = label + " (" + p.n + (p.n === 1 ? " day" : " days") + ")"; } }, 6000);
+        return;
+      }
+      armed = false; b.disabled = true;
+      st.className = "status"; st.textContent = "Saving…";
+      var jobs = [];
+      Object.keys(p.by).forEach(function(coll){
+        var ids = p.by[coll];
+        for (var i = 0; i < ids.length; i += 8) (function(chunk){
+          jobs.push(function(){ return STORE.decide(coll, chunk, {status:"approved", decidedBy:"HOD", decidedAt:Date.now(), remark:""}); });
+        })(ids.slice(i, i + 8));
+      });
+      var k = 0;
+      (function next(){
+        if (k >= jobs.length){ renderAll(); setStatus("Approved " + p.n + (p.n === 1 ? " day" : " days") + "."); return; }
+        jobs[k++]().then(next, function(){ st.className = "status bad"; st.textContent = "Could not save all - please try again."; renderAll(); });
+      })();
+    };
+    return b;
+  }
+  bar.appendChild(mk("Approve all up to today", true, "primary"));
+  bar.appendChild(mk("Approve everything waiting", false, "ghost"));
+  bar.appendChild(st);
+  return bar;
+}
 function renderApprovals(){
   var sec = document.getElementById("apprSec"),
       btn = document.getElementById("apprToggle"),
@@ -3409,6 +3464,7 @@ function renderApprovals(){
     });
     list.appendChild(al);
   }
+  if (HOD) list.appendChild(approveAllBar(groups));
   groups.forEach(function(g){
     var row = el("div","apprrow");
     var dIn = startsIn(g);
@@ -7991,6 +8047,7 @@ function myDetailsBox(){
   if (!host) return;
   host.innerHTML = ""; host.hidden = true;
   if (!(hasTeams() && ROLE === "jr" && ME && UNLOCKED)) return;
+  return;   /* joining dates and balances come from the department list, in Setup only */
   var j = recOf("joining", ME), o = recOf("opening", ME);
   /* the department's list now gives everyone's joining date and balance:
      only someone missing from it is asked */
