@@ -318,6 +318,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .apprwhat{font-weight:600;font-size:14px}
 .apprdet{font-size:13px;color:var(--muted);margin-top:3px}
 .apprbtns{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.apprbal{font-size:13px;margin-top:4px}.apprbal.minus{color:var(--warn-ink);font-weight:600}.apprnote{flex-basis:100%;font-size:13px;color:var(--warn-ink)}
+.apprall{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
 @media print{#apprSec{display:none!important}}
 
 .chip.pend{background:var(--panel2);color:var(--muted);border:1px dashed var(--rule)}
@@ -1887,10 +1889,17 @@ function slotMeta(k){
 function isAway(k){ return k==="LEAVE"||k==="RELIEVED"||k==="ABSENT"; }
 function slotName(k){
   if(k==="LEAVE") return "On leave";
-  if(k==="ABSENT") return "Absent - leave not approved";
+  if(k==="ABSENT") return "Absent";
   if(k==="RELIEVED") return "Relieved - covered by a colleague";
   var m=slotMeta(k);
   return m.label + (m.time? " " + m.time : "");
+}
+/* why a day shows absent, in plain words */
+function absentWhy(n, key, eff){
+  if (eff && eff.auto && eff.auto[n]) return "not recorded on duty for this shift - tell Dr Praveen Singh Sir if you were on duty";
+  var L = DATA.leaves || {};
+  for (var id in L){ var v = L[id]; if (v && v.resident === n && v.date === key && statusOf(v) === "declined") return "leave not approved by HOD Sir"; }
+  return "marked absent";
 }
 function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
 
@@ -3362,6 +3371,64 @@ function renderLedger(){
   }
 }
 
+/* The HOD: approve many at once. "Up to today" approves only the days that
+   have come (a leave running past today keeps its later days waiting);
+   "everything" approves all that is waiting. Each asks for a second tap. */
+function approveAllBar(groups){
+  var bar = el("div","apprall");
+  var tk = todayKey();
+  function pick(upToToday){
+    var by = {}, n = 0, people = {}, minus = {};
+    groups.forEach(function(g){
+      g.ids.forEach(function(id){
+        var v = (DATA[g.coll] || {})[id];
+        if (!v || !isPending(v)) return;
+        if (upToToday && !(g.kind === "leave" && v.date && v.date <= tk)) return;
+        if (g.kind === "leave" && hasTeams() && leaveBalance(v.resident).left < 0){ minus[v.resident] = 1; return; }
+        (by[g.coll] = by[g.coll] || []).push(id); n++;
+        if (v.resident) people[v.resident] = 1;
+      });
+    });
+    return {by: by, n: n, people: Object.keys(people).length, minus: Object.keys(minus)};
+  }
+  var st = el("span","status");
+  function mk(label, upToToday, cls){
+    var p = pick(upToToday);
+    var b = el("button", cls, label + " (" + p.n + (p.n === 1 ? " day" : " days") + ")");
+    if (!p.n){ b.disabled = true; return b; }
+    var armed = false;
+    b.onclick = function(){
+      if (!armed){
+        armed = true;
+        b.textContent = "Tap again to approve " + p.n + (p.n === 1 ? " day" : " days") + " for " + p.people + (p.people === 1 ? " resident" : " residents");
+        setTimeout(function(){ if (armed){ armed = false; b.textContent = label + " (" + p.n + (p.n === 1 ? " day" : " days") + ")"; } }, 6000);
+        return;
+      }
+      armed = false; b.disabled = true;
+      st.className = "status"; st.textContent = "Saving…";
+      var jobs = [];
+      Object.keys(p.by).forEach(function(coll){
+        var ids = p.by[coll];
+        for (var i = 0; i < ids.length; i += 8) (function(chunk){
+          jobs.push(function(){ return STORE.decide(coll, chunk, {status:"approved", decidedBy:"HOD", decidedAt:Date.now(), remark:""}); });
+        })(ids.slice(i, i + 8));
+      });
+      var k = 0;
+      (function next(){
+        if (k >= jobs.length){ renderAll(); setStatus("Approved " + p.n + (p.n === 1 ? " day" : " days") + "."); return; }
+        jobs[k++]().then(next, function(){ st.className = "status bad"; st.textContent = "Could not save all - please try again."; renderAll(); });
+      })();
+    };
+    return b;
+  }
+  bar.appendChild(mk("Approve all up to today", true, "primary"));
+  bar.appendChild(mk("Approve everything waiting", false, "ghost"));
+  bar.appendChild(st);
+  var mn = pick(false).minus;
+  if (mn.length) bar.appendChild(el("div","apprnote", "Not included: " + mn.map(function(n){ return "Dr " + title(n); }).join(", ")
+    + " - their balance goes into minus. Please decide those one by one."));
+  return bar;
+}
 function renderApprovals(){
   var sec = document.getElementById("apprSec"),
       btn = document.getElementById("apprToggle"),
@@ -3409,6 +3476,7 @@ function renderApprovals(){
     });
     list.appendChild(al);
   }
+  if (HOD) list.appendChild(approveAllBar(groups));
   groups.forEach(function(g){
     var row = el("div","apprrow");
     var dIn = startsIn(g);
@@ -3419,6 +3487,21 @@ function renderApprovals(){
       var gm = (EMAILS && EMAILS[g.v.resident]) || g.v.verified || "";
       row.appendChild(el("div","apprmail", gm ? "Confirmed by code from " + gm
         : (g.v.by && g.v.by !== g.v.resident ? "Entered by Dr " + title(g.v.by) : "Sent before email codes began")));
+    }
+    if (g.kind === "leave" && hasTeams() && (HOD || MAAM)){
+      var lb = leaveBalance(g.v.resident);
+      var line = el("div","apprbal" + (lb.left < 0 ? " minus" : ""),
+        "Balance if approved: " + fmtBal(lb.left) + (lb.left < 0 && lb.canTake >= 0 ? " (paid back from coming credits)" : ""));
+      row.appendChild(line);
+      if (lb.canTake < 0) row.appendChild(el("div","overcap", (-lb.canTake) + " day" + (-lb.canTake === 1 ? "" : "s")
+        + " beyond what can be paid back before the posting ends - will count as absent if approved."));
+      (function(n){
+        var fv = el("button","ghost","Full details of Dr " + title(n));
+        fv.onclick = function(){ openSheet("Dr " + title(n), leaveSummaryCard(n)); };
+        row.appendChild(fv);
+        row.querySelector(".apprwhat").style.cursor = "pointer";
+        row.querySelector(".apprwhat").onclick = fv.onclick;
+      })(g.v.resident);
     }
     if (g.kind === "leave" && hasTeams()){
       var ov = monthsOver(g.v.resident);
@@ -5118,7 +5201,8 @@ function renderMine(){
       line.style.color = "var(--warn-ink)";
       du.appendChild(line);
     });
-    if (eff.changed[ME] && !mex.length) du.appendChild(el("small",null,"changed by an exchange"));
+    if (s === "ABSENT") du.appendChild(el("small",null,absentWhy(ME, key, eff)));
+    else if (eff.changed[ME] && !mex.length && !isAway(s)) du.appendChild(el("small",null,"changed by an exchange"));
     row.appendChild(du);
     var withs = [];
     if (s!=="OFF" && !isAway(s)){
@@ -5377,7 +5461,10 @@ function leaveBalance(n, extra, skip){
   var days = clCreditDays(n), toCome = monthCap() * days.filter(function(d){ return d > key; }).length;
   return {open:open, hasOpen:!!(op && op.balance != null), credited:credited, taken:taken, ahead:ahead,
           pending:pending, booked:ahead + pending, left:left, next:nextCreditDay(n, key),
-          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * 12};
+          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * 12,
+          /* minus is allowed only as far as the coming credits can pay it back;
+             approved leave beyond that counts as absent */
+          beyond:Math.max(0, (taken + ahead) - (open + credited + toCome))};
 }
 /* where a JR's posting stands: "past" (ended), "soon" (within 30 days) or "" */
 function postFlag(n){
@@ -5392,6 +5479,7 @@ function absentSince(n){
   /* every kind of absence: entered by hand, a refused leave, or not posted on a posted shift */
   var c = 0, t0 = msOf(clStart(n)), t1 = msOf(todayKey());
   for (var t = t0; t <= t1; t += DAY){ if (effective(t).duty[n] === "ABSENT") c++; }
+  if (hasTeams()) c += leaveBalance(n).beyond;     /* leave beyond what can be paid back */
   return c;
 }
 /* the yearly picture for one JR, as a small card */
@@ -5411,6 +5499,7 @@ function leaveSummaryCard(n){
   cell("balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
   cell("still to come till the end", "+" + b.toCome);
   cell("can still take this year", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  if (b.beyond) cell("beyond the limit - counted absent", String(b.beyond), "minus");
   cell("absent since 1 Nov", String(absentSince(n)), absentSince(n) ? "minus" : "");
   box.appendChild(g);
   if (b.next) box.appendChild(el("div","lsumsub", "Next " + monthCap() + " on " + fmt(msOf(b.next)) + "."));
@@ -7991,6 +8080,7 @@ function myDetailsBox(){
   if (!host) return;
   host.innerHTML = ""; host.hidden = true;
   if (!(hasTeams() && ROLE === "jr" && ME && UNLOCKED)) return;
+  return;   /* joining dates and balances come from the department list, in Setup only */
   var j = recOf("joining", ME), o = recOf("opening", ME);
   /* the department's list now gives everyone's joining date and balance:
      only someone missing from it is asked */
