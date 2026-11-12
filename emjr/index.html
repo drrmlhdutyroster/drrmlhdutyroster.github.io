@@ -319,6 +319,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .apprdet{font-size:13px;color:var(--muted);margin-top:3px}
 .apprbtns{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .apprbal{font-size:13px;margin-top:4px}.apprbal.minus{color:var(--warn-ink);font-weight:600}.apprnote{flex-basis:100%;font-size:13px;color:var(--warn-ink)}
+.lsumfour{display:grid;gap:6px;margin:8px 0}.lsumfour .l4{display:flex;justify-content:space-between;align-items:baseline;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}.lsumfour .l4 b{font-size:17px}.lsumfour .l4.minus b{color:var(--warn-ink)}
+.tenrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-basis:100%}.tenrow span{flex:1;min-width:180px}
 .apprall{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
 @media print{#apprSec{display:none!important}}
 
@@ -3374,6 +3376,34 @@ function renderLedger(){
 /* The HOD: approve many at once. "Up to today" approves only the days that
    have come (a leave running past today keeps its later days waiting);
    "everything" approves all that is waiting. Each asks for a second tap. */
+/* HOD Sir: tenures ending in the next 30 days - extend by 6 months, or let it end */
+function tenureBar(){
+  var tk = todayKey(), rows = [];
+  (CFG.groups || []).forEach(function(g){ if (!isTeamGroup(g)) return; teamsOn(g, msOf(tk)).forEach(function(t){ (t.members || []).forEach(function(n){
+    var e = postEnd(n), j = recOf("joining", n);
+    if (!e || e < tk || msOf(e) - msOf(tk) > 30 * DAY || (j && j.endAgreed === e)) return;
+    rows.push({n:n, e:e, j:j});
+  }); }); });
+  if (!rows.length) return null;
+  var box = el("div","apprall tenure");
+  box.appendChild(el("b", null, "Tenure ending soon"));
+  rows.forEach(function(r){
+    var line = el("div","tenrow");
+    line.appendChild(el("span", null, "Dr " + title(r.n) + " - ends " + fmt(msOf(r.e))));
+    var ext = el("button","primary","Extend 6 months"), end = el("button","ghost","Let it end");
+    function save(patch, msg){
+      var b = JSON.parse(JSON.stringify(r.j || {resident:r.n})); for (var f in patch) b[f] = patch[f];
+      ext.disabled = end.disabled = true;
+      STORE.put("joining", rid(r.n), b).then(function(){ renderAll(); setStatus(msg); },
+        function(){ ext.disabled = end.disabled = false; setStatus("Could not save. Please try again.", true); });
+    }
+    ext.onclick = function(){ save({extendedTill: iso(msOf(addMonthsKey(iso(msOf(r.e) + DAY), TENURE_MONTHS)) - DAY)}, "Extended. The balance carries over."); };
+    end.onclick = function(){ save({endAgreed: r.e}, "Noted - the tenure ends on " + fmt(msOf(r.e)) + "."); };
+    line.appendChild(ext); line.appendChild(end);
+    box.appendChild(line);
+  });
+  return box;
+}
 function approveAllBar(groups){
   var bar = el("div","apprall");
   var tk = todayKey();
@@ -3476,6 +3506,7 @@ function renderApprovals(){
     });
     list.appendChild(al);
   }
+  if (HOD && hasTeams()) { var tb0 = tenureBar(); if (tb0) list.appendChild(tb0); }
   if (HOD) list.appendChild(approveAllBar(groups));
   groups.forEach(function(g){
     var row = el("div","apprrow");
@@ -4294,6 +4325,11 @@ function renderRoster(){
     tdE.appendChild(addBtn(key,"move"));
     tdE.appendChild(addBtn(key,"newcover"));
     if (hasTeams()) tdE.appendChild(addBtn(key,"post"));
+    if (academicCanEdit() && !academicKind(key)){       /* same as the phone view */
+      var acD = el("button","addbtn","+ class"); acD.type = "button";
+      acD.onclick = function(){ openAcademicNew(key); };
+      tdE.appendChild(acD);
+    }
     tr.appendChild(tdE);
 
     tb.appendChild(tr);
@@ -5398,27 +5434,41 @@ function clStart(n){
 /* A JR's posting: one year from joining (last day = joining + 1 year - 1
    day), or to the date it was extended to. Only flagged when it ends -
    nobody is taken off the roster by the app. */
+/* add whole months to a date (the same day of the month) */
+function addMonthsKey(key, k){
+  var y = +key.slice(0,4), m = +key.slice(5,7) - 1 + k, d = +key.slice(8,10);
+  y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return iso(Date.UTC(y, m, Math.min(d, last)));
+}
+var TENURE_MONTHS = 6;
+/* A JR is posted for 6 months at a time, counted from the joining date.
+   The tenure running on 1 Nov 2026 is the current one, unless HOD Sir has
+   extended it (or ended it early) - then his date is the end. */
 function postEnd(n){
   var j = recOf("joining", n);
   if (!j) return "";
   if (j.extendedTill) return j.extendedTill;
   if (!j.date) return "";
-  var y = +j.date.slice(0,4), m = +j.date.slice(5,7), d = +j.date.slice(8,10);
-  return iso(Date.UTC(y + 1, m - 1, d) - DAY);
+  var from = j.date > CL_FROM ? j.date : CL_FROM;
+  for (var k = TENURE_MONTHS; k < 600; k += TENURE_MONTHS){
+    var e = iso(msOf(addMonthsKey(j.date, k)) - DAY);
+    if (e >= from) return e;
+  }
+  return "";
 }
-/* the credit days, in order: each whole month on its last day - except the
-   last month of the posting, whose 2.5 comes on its 1st so it can be used */
 function clCreditDays(n){
-  var st = clStart(n), end = postEnd(n), out = [];
-  var y = +st.slice(0,4), m = +st.slice(5,7);
-  if (+st.slice(8,10) !== 1){ m++; if (m > 12){ m = 1; y++; } }
-  var endMk = end ? end.slice(0,7) : "";
-  for (var i = 0; i < 120; i++){
-    var mk = y + "-" + (m < 10 ? "0" : "") + m;
-    if (endMk && mk > endMk) break;
-    out.push(endMk && mk === endMk ? mk + "-01" : iso(Date.UTC(y, m, 0)));
-    m++; if (m > 12){ m = 1; y++; }
-    if (!endMk && i > 36) break;
+  var j = recOf("joining", n), st = clStart(n), end = postEnd(n), out = [];
+  if (!j || !j.date || !end) return out;
+  for (var k = 1; k < 600; k++){
+    var mEnd = iso(msOf(addMonthsKey(j.date, k)) - DAY);          /* the day month k is complete */
+    if (mEnd > end) break;
+    if (st === CL_FROM && mEnd < CL_FROM) continue;             /* already in the 31 Oct balance */
+    var tk = Math.ceil(k / TENURE_MONTHS) * TENURE_MONTHS;      /* this month's tenure ends after month tk */
+    var tEnd = iso(msOf(addMonthsKey(j.date, tk)) - DAY);
+    if (tEnd > end) tEnd = end;
+    var early = iso(msOf(tEnd) - 30 * DAY);                      /* last month: 30 days before the end */
+    out.push(mEnd > early ? early : mEnd);
   }
   return out;
 }
@@ -5461,7 +5511,7 @@ function leaveBalance(n, extra, skip){
   var days = clCreditDays(n), toCome = monthCap() * days.filter(function(d){ return d > key; }).length;
   return {open:open, hasOpen:!!(op && op.balance != null), credited:credited, taken:taken, ahead:ahead,
           pending:pending, booked:ahead + pending, left:left, next:nextCreditDay(n, key),
-          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * 12,
+          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * TENURE_MONTHS,
           /* minus is allowed only as far as the coming credits can pay it back;
              approved leave beyond that counts as absent */
           beyond:Math.max(0, (taken + ahead) - (open + credited + toCome))};
@@ -5485,24 +5535,32 @@ function absentSince(n){
 /* the yearly picture for one JR, as a small card */
 function leaveSummaryCard(n){
   var b = leaveBalance(n), box = el("div","lsum");
-  box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this posting year"));
+  box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this tenure"));
   var j = recOf("joining", n);
-  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 posting till " + fmt(msOf(b.end))
+  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 tenure till " + fmt(msOf(b.end))
     + (j.extendedTill ? " (extended)" : "") : "")));
+  var four = el("div","lsumfour");
+  function line4(label, val, cls){ var r = el("div","l4" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("b", null, val)); four.appendChild(r); }
+  line4("Balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
+  line4("Next credit", b.next ? "+" + monthCap() + " on " + fmt(msOf(b.next)) : "-");
+  line4("Tenure ends", b.end ? fmt(msOf(b.end)) : "-");
+  line4("Can still take", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  box.appendChild(four);
+  if (b.beyond) box.appendChild(el("div","overcap", b.beyond + " day" + (b.beyond === 1 ? "" : "s") + " of leave beyond what can be paid back - counted absent."));
   var g = el("div","lsumgrid");
+  if (!(HOD || MAAM)) g.hidden = true;                       /* the details are for the office */
   function cell(label, val, cls){ var c = el("div","lsumcell" + (cls ? " " + cls : "")); c.appendChild(el("b", null, val)); c.appendChild(el("span", null, label)); g.appendChild(c); }
-  cell("in the year (" + monthCap() + " a month)", String(b.yearTotal));
+  cell("in a tenure (" + monthCap() + " a month)", String(b.yearTotal));
   cell("balance on 31 Oct", b.hasOpen ? fmtBal(b.open) : "-", b.open < 0 ? "minus" : "");
   cell("credited since", "+" + b.credited);
   cell("taken since 1 Nov", String(Math.round((b.taken + b.ahead) * 10) / 10));
   cell("awaiting approval", String(b.pending), b.pending ? "wait" : "");
   cell("balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
   cell("still to come till the end", "+" + b.toCome);
-  cell("can still take this year", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  cell("can still take this tenure", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
   if (b.beyond) cell("beyond the limit - counted absent", String(b.beyond), "minus");
   cell("absent since 1 Nov", String(absentSince(n)), absentSince(n) ? "minus" : "");
   box.appendChild(g);
-  if (b.next) box.appendChild(el("div","lsumsub", "Next " + monthCap() + " on " + fmt(msOf(b.next)) + "."));
   /* their requests and what HOD Sir decided, each with its form */
   var runs = {}, k3;
   for (k3 in DATA.leaves){
@@ -5961,7 +6019,7 @@ function renderJrSetup(host){
    "New JR: tap + Add a JR. Fill in the name, group, mobile, Gmail and joining date.",
    "Gmail: the leave code is sent only to this address. Collect it from the JR in advance.",
    "Balance on 31 Oct: their leave balance from the department's record (minus allowed, e.g. -2 or 0.5). A JR joining later: leave it empty.",
-   "Posting runs one year from joining. If it is extended, put the new last day in Extended till.",
+   "A tenure is 6 months from joining. HOD Sir extends it from his screen; you can also type a new last day in Tenure ends.",
    "A JR who has left: tap Remove. Their record stays; they come off the roster from the date under More settings."]
     .forEach(function(t){ hl.appendChild(el("li", null, t)); });
   intro.appendChild(hl);
@@ -5975,7 +6033,7 @@ function renderJrSetup(host){
   host.appendChild(bar);
 
   var tbl = el("table","ptable jrsetup"), tb = el("tbody");
-  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Extended till",""];
+  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Tenure ends (if changed)",""];
   var hr = el("tr"); COLS.forEach(function(h){ hr.appendChild(el("th",null,h)); });
   var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0); tbl.appendChild(tb);
   var wrap = el("div","scroller"); wrap.appendChild(tbl); host.appendChild(wrap);
@@ -6224,7 +6282,12 @@ function renderJrSetup(host){
       refreshWho(); renderAll(); renderSetup();
       var m3 = document.getElementById("setupMsg");
       if (!m3) return;
-      if (r.failed){ m3.className = "status bad"; m3.textContent = "Could not save. Please try again."; }
+      if (r.failed){
+        m3.className = "status bad";
+        var why = r.why || "";
+        m3.textContent = /bademail/.test(why) ? "Not saved - one of the Gmails does not look right. Please check it (name@gmail.com)."
+          : "Could not save (" + (why || "no answer from the server") + "). Please try again, and send this message to Dr Vivek if it repeats.";
+      }
       else if (r.offline){ m3.className = "status bad"; m3.textContent = "Saved on this phone. It will reach the department when the connection is back."; }
       else { m3.className = "status"; m3.textContent = "Saved. Applies from " + fmt(msOf(from)) + "."; }
     });
@@ -7981,14 +8044,13 @@ function renderHeader(){
     n.innerHTML = "";
     n.appendChild(el("b", null, "Leave rules for Junior Residents"));
     var ul0 = el("ul","rules");
-    ["Your balance starts from the department's record on 31 October 2026.",
-     "You earn " + monthCap() + " days for every month you complete. They are added on the last day of the month.",
-     "In the last month of your posting, that month's " + monthCap() + " days are added on the 1st, so you can use them before you leave.",
-     "Unused leave carries forward to the next month.",
-     "A night duty counts as 2 days, a half day as half. A day your group is off anyway is not counted.",
-     "You may take more than your balance; it goes into minus and is made up from the coming months.",
-     "Leave counts once HOD Sir approves it. While it waits, it shows as leave - not absent.",
-     "Your posting runs for one year from your date of joining, unless it is extended."]
+    ["You are posted for 6 months at a time from your joining date. HOD Sir may extend it by 6 months.",
+     "You get " + monthCap() + " CL for every month you complete, counted from your joining date.",
+     "30 days before your tenure ends, the last month's " + monthCap() + " is added, so you can use it before you go.",
+     "Leave you do not use carries forward. If your tenure is extended, your balance (even minus) carries into the next one.",
+     "You may go into minus, but only up to what you will still get before your tenure ends. Leave beyond that is counted absent.",
+     "A night duty counts as 2 days, a half day as half.",
+     "Leave counts once HOD Sir approves it. While it waits, it is not absent."]
       .forEach(function(t0){ ul0.appendChild(el("li", null, t0)); });
     n.appendChild(ul0);
   } else if (n) n.textContent = leaveMonths() === 12
