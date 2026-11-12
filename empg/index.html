@@ -319,6 +319,8 @@ tr.hol th[scope=row]{background:var(--warn-bg)}
 .apprdet{font-size:13px;color:var(--muted);margin-top:3px}
 .apprbtns{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .apprbal{font-size:13px;margin-top:4px}.apprbal.minus{color:var(--warn-ink);font-weight:600}.apprnote{flex-basis:100%;font-size:13px;color:var(--warn-ink)}
+.lsumfour{display:grid;gap:6px;margin:8px 0}.lsumfour .l4{display:flex;justify-content:space-between;align-items:baseline;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}.lsumfour .l4 b{font-size:17px}.lsumfour .l4.minus b{color:var(--warn-ink)}
+.tenrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-basis:100%}.tenrow span{flex:1;min-width:180px}
 .apprall{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
 @media print{#apprSec{display:none!important}}
 
@@ -839,7 +841,51 @@ button.small{padding:4px 10px;font-size:13px;min-height:0}
 .installbar .instbtns button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--rule);background:transparent;color:var(--ink)}
 .installbar .instbtns button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 body.hasinstall{padding-bottom:180px}
+/* ---- ECRO roster ---- */
+.trow.ecro .tl b{color:var(--accent)}
+.ecwho{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.ecdept{font-size:12.5px;font-weight:600;color:var(--muted)}
+.ecname{font-size:14px;color:var(--ink);text-decoration:none;font-weight:600}
+a.ecname{color:var(--accent)}
+.ecem{font-size:14px;color:var(--ink)}
+.ecnone{font-size:13px;color:var(--muted)}
+.ecctl{display:inline-block;margin-left:10px;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;
+  border:1px solid var(--rule);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.trow.ecro .tv{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.trow.ecro .ecctl{margin-left:auto}
+.ecbar{align-items:center}
+.ecsaved{margin:4px 0 8px}
+.ecpast{margin:4px 0 10px}
+.ectbl{width:100%;border-collapse:collapse}
+.ectbl th{text-align:left;font-size:12.5px;padding:7px 9px;border-bottom:1px solid var(--rule)}
+.ectbl th small{display:block;font-weight:400;color:inherit;opacity:.85}
+.ectbl td{text-align:left}
+.ectbl td{padding:8px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+.ectbl td.ecdate{white-space:nowrap;font-weight:600;font-size:13.5px}
+.ectbl tr.ectoday td{background:var(--today-wash)}
+.ectbl tr.ecgone td{opacity:.6}
+.ectbl td.ecnow{box-shadow:inset 3px 0 0 var(--accent)}
+.ectbl .ecwho{flex-direction:column;align-items:flex-start;gap:1px}
+.ecedit{border-collapse:collapse;width:100%}
+.ecedit th{text-align:left;font-size:12.5px;padding:6px 8px;border-bottom:1px solid var(--rule)}
+.ecedit td{padding:4px 6px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+.ecedit td.eccell{min-width:170px}
+.ecedit td.eccell input{display:block;width:100%;margin:2px 0;font-size:13.5px;padding:6px 8px}
+@media (max-width:780px){
+  .ectbl thead{display:none}
+  .ectbl tr{display:block;border-bottom:1px solid var(--rule);padding:6px 0}
+  .ectbl td{display:grid;grid-template-columns:96px 1fr;gap:8px;border:0;padding:4px 10px}
+  .ectbl td.ecdate{display:block;padding-top:6px}
+  .ectbl td:not(.ecdate)::before{content:attr(data-l);font-size:12px;color:var(--muted);font-weight:600}
+  .ectbl td.ecnow{box-shadow:inset 3px 0 0 var(--accent)}
+  .ecedit thead{display:none}
+  .ecedit tr{display:block;border-bottom:1px solid var(--rule);padding:6px 0}
+  .ecedit td{display:block}
+  .ecedit td.eccell::before{content:attr(data-l);font-size:12px;color:var(--muted);font-weight:600}
+}
+@media print{ .ecctl, .ecpast{display:none} }
 </style>
+
 </head>
 <body>
 <div class="wrap">
@@ -971,6 +1017,12 @@ body.hasinstall{padding-bottom:180px}
   <p class="note noprint" id="rosterTip" style="margin-top:10px">Tap <b>+ Add</b> on a day to record leave, an exchange, a move or a cover. An exchange swaps just those two duties on that one day. A day somebody else is named to cover is an exchange in practice, so it is not counted against leave.</p>
 </section>
 
+<section id="ecroSec" hidden>
+  <h2>ECRO roster</h2>
+  <p class="note" style="margin-top:-4px">Emergency Control Room Officer, from the hospital office. Tap a name to call.</p>
+  <div id="ecroBox"></div>
+</section>
+
 <section id="indSec">
   <h2>Everyone at a glance</h2>
   <div class="scroller"><table id="ind"></table></div>
@@ -1088,6 +1140,7 @@ body.hasinstall{padding-bottom:180px}
   <button type="button" data-go="todaySec"><span class="ic">&#9673;</span>Today</button>
   <button type="button" data-go="mineSec" id="mnavMine"><span class="ic">&#9786;</span>My duties</button>
   <button type="button" data-go="rosterSec"><span class="ic">&#9638;</span>Roster</button>
+  <button type="button" data-go="ecroSec" id="mnavEcro" hidden><span class="ic">&#9742;</span>ECRO</button>
   <button type="button" data-go="counterSec"><span class="ic">&#9998;</span>Leave</button>
   <button type="button" data-go="indSec"><span class="ic">&#9776;</span>Glance</button>
 </nav>
@@ -2260,6 +2313,234 @@ var PHONEBOOK = [
    only, listed by post (names change, posts and numbers stay) - no names,
    personal mobiles, addresses or emails. {secs:[...], rows:[[sec, post, "nums"]]} */
 var DIRECTORY = {"secs":["Administration - RML Hospital","Administration - ABVIMS","Administration - Nursing","Ayurveda Research Centre","Unani Medicine","Yoga Clinic","College Of Nursing","Nurses (Hostel)","Accident & Emergency Department","Emergency Services","ECS Building","Trauma Care Centre","Anaesthesia Department","Anatomy","Bio –Chemistry","Bio Medical Waste Department","Burns & Plastic Department","Cardiology","Cath Lab","Cardiac Anesthesia","Cardiothoracic Vascular Surgery","CSSD","Community Medicine","Anti Rabies Clinic And Yellow Fever Clinic","Dental Surgery","Dietetics Department","ENT Department","Endocrinology Department","Eye Department","Family Welfare Department","Forensic Medicine","Mortuary","Gastroenterology","Microbiology Department","Medicine","Nephrology Department","Neurology Department","Neuro Surgery","Neonatology","Orthopaedics Department","Pathology","Physiotherapy Department","Pediatrics Department","Pediatric Surgery","Physiology","PMR Department","Radiology Department","Respiratory Medicine","Skin Department","Sr. Cmo (Sag)","Surgery Department","Transfusion Medicine","Intensive Care Units","Operation Theatres","Super Speciality OPD","ABVIMS - Administration Sections","Account Section I","Account Section II","Apar Cell","Central Standing Medical Board","Dy. Labour Welfare Commissioner","Establishment Section–II","H.A. –I Section","H.A. –II Section","Hindi Section","Inventory Management Section","Legal Cell (ABVIMS)","Maintenance & Repair","Medical Social Service Departmemt","Medical Examination-I","Medical Examination – II & Disability Board","Medical Record Department","Nursing Home","Nursing Section","Pay & Account Office","Procurement Section","RTI Cell","Security Department","Telephone Exchange","Technical Section","Vigilance Cell","ART Clinic","Canteen","CPWD (Civil)","Ae Iv","Dispensary","DOTS Centre","Library (ABVIMS)","(Alio)","Laundry","P. I. A. R.O","Sanitation Department","Server Room / IT Department","Transport Department","Wards","Miscellaneous Numbers (Hospital)"],"rows":[[0,"Director & Medical Superintendent","23747027 4470 4570"],[0,"PS to MS","23747027 4470"],[0,"Addl.Medical Superientendent","23346441 4451"],[0,"PS to MS","23346441 4451"],[0,"Addl.Medical Superientendent","23741651 4542"],[0,"PS to Addl. MS","4542 4417"],[0,"Addl.Medical Superientendent","4652"],[0,"PS to Addl. MS","4652"],[0,"Addl.Medical Superientendent","23745443 4433"],[0,"PS to Addl. MS","23745443 4433"],[0,"Dy. Director (Admin)","23365743 4631 4402"],[0,"UDC","4402"],[1,"Director & Medical Superintendent","23365552 4801 4802"],[1,"Assistant PA to Director","23365552 4801 4802"],[1,"Dean","23365553 4804"],[1,"Registrar","23345305 4752"],[1,"PS to Registrar","4752"],[1,"Dy. Registrar","4849"],[1,"PS to Dy Registrar","4849"],[1,"C.O.E","4825"],[1,"Sr. Administrative Officer","23365516 4658"],[1,"Account Officer, ABVIMS","23355506 4750"],[2,"Nursing Superintendent","23404252 23404616"],[2,"ANS (New Building)","23404463 23404290 23404842"],[2,"ANS (Trauma Center)","23404674"],[2,"ANS (Nursing Home)","23404513"],[2,"ANS (ECS)","23404024"],[3,"Officer I/C Of the Department","4845"],[3,"Ayurveda Department","4844"],[4,"HOD unani","4594"],[4,"Unani Clinic","4594"],[5,"Yoga Clinic","4589 4481"],[6,"Vice Principal","4518 23355527 4329"],[6,"Tutor College of Nursing","4833 4835 4637 4851 4853 4329 4834 4636 4638 4852 4854"],[7,"Nurses Hostel","4223"],[8,"PA to Head (Accident & Emergency)","4478 4308"],[8,"Sr. Consultant & Faculty HAG","4479"],[8,"Chief Medical Officer/NFSG","4000"],[8,"Specialist, I/C HH&S L/O Security Assistant Warden","4478 4019"],[8,"SMO(CHS)","4903"],[8,"Medical Officer (CHS)","4903"],[8,"Medical Officer","4903"],[8,"A-101, 1st floor, Park facing, sharda puri, Rame","4903"],[9,"Emergency Enquiry","4286"],[9,"Emergency E.C.G","4382"],[9,"Complaint cell","4308"],[9,"Security Superintendent","4492"],[9,"Emergency OT Ist Floor","4426 4622"],[9,"MAT O.T","4606"],[9,"Gynae. Mat. Ward (R. No. 20B)","4823"],[9,"Emergency Labour Room","5071"],[9,"Emergency IIIrd Floor","4212"],[9,"Doctor’s Duty Room IIIrd Floor","4509"],[9,"Nursery Casualty IIIrd Floor","4721 4722"],[9,"Senior Doctor Room","4592"],[9,"COVID ASSISTANT","4935"],[9,"Screening center","4038 4017"],[10,"ECRO","23404446 23404000 23348200"],[10,"Reception","23404903"],[10,"CMO","23404903"],[10,"CMO (Sister’s Duty Room)","23404902"],[10,"R.R","23404005"],[10,"R.R. (Sister’s Duty Room)","23404007"],[10,"Procedure Room( R. No. 10)","23404001"],[10,"Ist Floor","23404032 23404016 23404015 23404022"],[10,"II Floor","23404014"],[10,"Surgical Emergency No. 12","23404011"],[10,"IIIrd Floor","23404008"],[10,"Sister’s Duty Room","23404009"],[10,"Sister Incharge","23404025"],[10,"PICU","4033"],[10,"PICU (Sister’s Duty Room)","4006"],[10,"NICU","4023"],[10,"NICU (Sister’s Duty Room)","4010"],[10,"MICU","4019"],[10,"ECS O.T","4027"],[10,"ECS O.T. (Sister’s Duty Room)","4012"],[10,"ECS O.T. (Doctor’s Duty Room)","4026"],[10,"ECS O.T. (doctor’s Duty Surgeon)","4018"],[10,"SICU Sister Duty Room","4013"],[10,"SICU","4029"],[11,"Triage Room","4661 4672 4420"],[11,"Disaster (Trauma)","4662 4806"],[11,"Plaster Room","4665"],[11,"Ortho Emergency R. No. 5","4206"],[11,"Sister’s Duty Room","4680"],[11,"Minor O.T","4664"],[11,"Fire Control Room","4667"],[11,"Electrical Complaints","4690"],[11,"Manifold Trauma","4812"],[11,"C.T. Scan Room","4627"],[11,"X-Ray Room No.1","4669"],[11,"E-Ray Room No. 2","4660"],[11,"Ultrasound","4683 4405"],[11,"Laboratory","4666"],[11,"Caretaker","4583"],[11,"CCTV","4706"],[11,"CMO (NFSG)(Bio-Chemistry)","4668"],[11,"I.C.U. Main Counter","4697 4698"],[11,"Doctor’s Duty Room","4699"],[11,"Sister’s Duty Room","4701"],[11,"Neuro surgery","4679"],[11,"Sister’s Duty Room","4678"],[11,"Doctor’s Duty Room","4696"],[11,"Sister’s Incharge (Ortho)","4688 4675"],[11,"Doctor’s Duty Room","4671"],[11,"National Injury Survillence Centre","4815 23741688"],[11,"Doctor’s Duty Room (Main O.T)","4702"],[11,"Sister’s Duty Room(Main O.T)","4691"],[11,"Ortho O.T. Corridor (Post Operative)","4695"],[11,"ATLS Officer","23365509 4707"],[12,"HOD & Professor","4786"],[12,"Professor","23340724"],[12,"PAC Clinic (OPD)","4462"],[12,"Hyperbaric (OPD)","4358"],[13,"Dir Prof & Head","4886"],[13,"Professor","5064"],[14,"Head of the Department","4668"],[14,"Consultant","4440 4398 4871"],[14,"Professor","4890 4873"],[14,"Professor","4855"],[14,"Cosultant","4361"],[14,"Resident’s Room","4361"],[14,"Trauma Emergency Lab","4666"],[14,"UG Lab (ABVIMS)","4728"],[14,"Bio-chemistry Lab (R. No.-250)","4240 4398"],[14,"Blood Collection Center","4613"],[15,"Officer Incharge BMWC","4569"],[15,"SNO","4840"],[15,"LDC","4840"],[16,"Professor & HOD","4623"],[16,"Consultant Professor & Addl M.S","4451"],[16,"Professor","4773"],[16,"Professor","4416"],[16,"Professor","5074"],[16,"Burns & Plastic OPD","4607"],[16,"Burns Ward (Ward No 2)","4319"],[16,"Burn Ward (Doctor’s Duty Room)","4421"],[16,"Burn Dressing Room (II)","4332"],[16,"Laser Room Burn & Plastic","4416"],[17,"Professor & HOD","4491 4861"],[17,"PA to HOD","4491"],[17,"Professor","4799"],[17,"Sr. Physician & Associate Professor","4655"],[17,"Technical Supervisor","4469"],[18,"Technical STA","4507"],[18,"Cath Lab (Sister’s Duty Room)","5072"],[18,"Coronary Care Unit (C.C.U.) Ward-I","4448 4449"],[18,"E.C.G. Room (CCU)","4469"],[18,"NIC Lab","4321"],[18,"CCU (Sister)","4454"],[19,"Professor Consultant & HOD","23365525 4304"],[19,"Assistant Professor","4304"],[20,"Consultant & HOD","23744782 4562 4864"],[20,"Professor","4893 4562"],[20,"Professor","4562"],[20,"CTVS OT","4480"],[20,"CTVS ICU","4609 4510"],[20,"CTVS Anesthesia","4304"],[21,"I/C CSSD, Consultant & HOD","23365508 4567"],[21,"Consultant (Microbiology)","4879"],[21,"Technical Supervisor (CSSD), Store","5069"],[21,"CSSD (CSR)","4270"],[22,"Director Professor & Head","4938"],[23,"Professor & I/C Anti-Rabies Clinic","4349"],[23,"Professor & I/C Yellow Fever Vaccination","4820"],[24,"Consultant & HOD","4461 23364422"],[24,"Staff Surgeon (NFSG)","4489"],[24,"Staff Surgon (NFSG)","4396"],[24,"Staff Surgeon (NFSG)","4582"],[24,"Junior Staff Surgeon","4412"],[24,"Consultant","4578"],[24,"Denatl Hygienist","4717"],[24,"Staff Surgeon (NFSG)","4373"],[24,"Dental Surgeon Room","4578 4412 4489"],[24,"Storekeeper","4239"],[25,"Dietician","4498"],[25,"Nursing Home","4354 4496"],[25,"General Kitchen","4267"],[25,"General Kitchen Store","4619"],[26,"Consultant & HOD","4436 23747592"],[26,"Consultant","4726"],[26,"Consultant","4513"],[26,"Assistant Professor","4299"],[26,"CMO(SAG)","4593"],[26,"CMO(NFSG)","4299"],[26,"Sister in Charge Room/ Doctor Room","4234"],[26,"DHLS Study Center (ABVIMS)","4743"],[26,"ENT (SR)","4710"],[26,"ENT Surgeon’s Room","4511"],[27,"Professor & HOD","4789"],[27,"Endo Ward 21","4895"],[27,"Nursing Home","4341"],[28,"Consul.Prof. & HOD","4444"],[28,"CMO (NFSG)","4466"],[28,"Assistant Professor","4365"],[28,"SMO","4508"],[28,"SMO","4536"],[28,"Senior Medical Officer","4365"],[28,"Principal Consultant","4586"],[28,"Specialist Grade-I","4508"],[28,"CMO/NFSG","4395"],[28,"CMO/NFSG","4536"],[28,"Sr. Optometrist","4727"],[29,"CMO(NFSG)","23745524 4377 4306"],[30,"Professor & Head","4813"],[30,"Associate Professor","5058"],[30,"Medical Officer","4803"],[30,"Medical Officer","5125"],[31,"Medical Officer","4803"],[31,"Mortuary","4379"],[32,"Head & Professor","4222"],[32,"Addociate Professor","4222"],[32,"Associate Professor","4222"],[32,"Assistant Professor","4222"],[32,"ENDOSCOPY ROOM","4479"],[33,"Consultant & HOD","23365508 4567"],[33,"Consultant","4881"],[33,"Consultant","4581"],[33,"Consultant","4879"],[33,"Consultant","4649"],[33,"Professor","4569"],[33,"Associate Professor","4309"],[33,"Senior Medical Officer","4569"],[33,"Assistant Professor","4309"],[33,"Infection Control (Sister’s Duty Room)","4731"],[33,"Reception (Micro ABVIMS Lab)","4883"],[33,"HIV","5112 4266 5052"],[34,"Professor & HOD","4348"],[34,"Professor & HOU M-3","4256"],[34,"Associate Professor & HOU M-7","4227"],[34,"Professor & HOU M-4","4548"],[34,"Professor & HOU M-2","4274"],[34,"Director Professor & HOU M-1","4771"],[34,"Professor","4768"],[34,"Professor","5060"],[34,"Specialist Grade-II","4289"],[34,"Specialist Grade-II","4487"],[34,"SMO","4431"],[34,"Professor","4630"],[34,"Specialist Grade-I","4471"],[34,"Assistant Professor","4391"],[34,"Professor","4505"],[34,"Assistant Professor","4767"],[34,"CMO","4559"],[34,"Assistant Professor","4281"],[34,"Associate Professor","4712"],[34,"Professor","4772"],[34,"Associate Professor","5060"],[34,"Specialist Grade-II","4439"],[34,"Assistant Professor","4453"],[34,"Professor","4424"],[34,"Associate Professor","4652"],[34,"Assistant Professor","5060"],[34,"Assistant Professor","4387"],[34,"Specialist Grade-II","4387"],[34,"Assistant Professor","4781"],[34,"Specialist Grade-II","4471"],[34,"Assistant Professor","4677"],[34,"AssociateProfessor","4251"],[34,"Medical OPD","4271"],[34,"Doctor’s Duty Room","4324 4210"],[35,"Professor & Head of the Dept","4779 4397"],[35,"Bokaro, Jharkhand","4554"],[35,"Medical Officer","4554"],[35,"Professor","4397 4783"],[35,"Associate Professor","4397"],[35,"Kidney Transplant Ward","4729 4730"],[35,"Renal ICU","4681"],[35,"Dialysis Nursing Home","4554 4311"],[35,"Transplant OPD","4397 4737"],[36,"Professor & Head","4577"],[36,"Associate Professor","4785"],[36,"Assistant Professor","4577"],[36,"EEG Room","4360"],[37,"Director Prof. & Head of the Dept","4774"],[37,"PA to HOD","23362728 4740"],[37,"Ward-13","4393 4564"],[37,"Ward-13 (Doctor’s Duty Room)","4828"],[37,"Ward - 13 (Sister’s Duty Room)","4829"],[37,"Neurosurgery Trauma Ward, 3rd Floor, Trauma Centre","4679"],[37,"Trauma Centre (Doctor’s Duty Room)","4696"],[37,"Trauma Centre (Sister’s Duty Room)","4678"],[37,"Ground Floor OT, Old Building","4429 4214"],[38,"Consultant","4217"],[38,"Neonatology OPD Reception","4931"],[38,"Director Professor & HOD, HOU-III","23364007"],[38,"Senior Consultant & HOU-I","4602"],[38,"Consultant HOU-II","4601"],[38,"Sister I/C duty Room (Maternity Nursing)","4294"],[38,"Nursing Staff Duty Room (Maternity Nursing)","4209"],[38,"Nursing Labour Room","4215"],[38,"Ultrasound Room (Maternity Nursing Home)","4435"],[38,"G Mat Ward (Ward 20)","4823"],[38,"OPD Room","4264"],[38,"OPD Room","4313"],[38,"OPD Room","4642"],[38,"OPD Room","4856"],[38,"Sister Room OPD","4287"],[39,"Consultant & HOD","23744223 4647"],[39,"Consultant","4777"],[39,"Consultant","4648"],[39,"DirectorProfessor","4529"],[39,"CMO(NFSG)","4878"],[39,"CMO (NFSG)","4246"],[39,"Assistant Professor","4232"],[39,"Ortho OPD (R.No. 58)","4394"],[39,"Ortho OPD (R. No. 57), Sister's Duty Room","4584"],[39,"Ortho OPD (R. No. 56)","4560"],[39,"Ortho OPD (R. No. 52)","4225"],[39,"Ortho OPD (R. No. 50)","4725"],[39,"Ortho OPD (R. No. 54)","4279"],[39,"Ortho Ward","4241"],[40,"Professor & HOD","4344 4356"],[40,"Professor & HOU","4539"],[40,"Professor & HOU","4885"],[40,"Consultant & HOU","4344"],[40,"Specialist Grade-I","4933"],[40,"Specialist Grade –I","4297"],[40,"Associate Professor","4824"],[40,"SMO","4824"],[40,"Clinical Pathology","4213"],[40,"Clinical Pathology (OPD)","4224"],[40,"Hematology Lab","4588"],[40,"Diagnostic Lab","4637"],[40,"Sr. Lab Technician","4574"],[40,"Hisptopath Lab","4841 4359"],[41,"Sr. Physiotherapist & HOD","4563 4273"],[41,"Physiotherapist","4563"],[41,"Physiotherapist","5048"],[41,"Physiotherapy OPD","5048"],[42,"Professor & Head","4555"],[42,"Consultant","4218"],[42,"Professor (Pediatrics)","4474"],[42,"Professor","4218"],[42,"Professor","4784"],[42,"CMO(SAG)","4445"],[42,"Dr, Karan Singh","4445"],[42,"Associate Professor","4360"],[42,"Sr. Specialist","4740"],[42,"Professor","4774"],[42,"Assistant Professor","4360"],[42,"Professor","4829"],[42,"Assistant Professor","4717"],[42,"Assistant Professor, Pediatrics Cardiology","4564"],[42,"Associate Professor","4519"],[42,"Pediatrics OPD","4205"],[42,"Sister’s Duty Room","4827"],[42,"Pediatric Seminar Room","4591"],[42,"Nursery (NICU) Ward-22","4212 4509"],[42,"Doctor’s Duty Room (C3F) Ward-22","4509"],[42,"Cath Lab","4937 5119"],[42,"Endoscopy","5118"],[43,"Professor & HOD","4754"],[43,"Professor","4953"],[43,"Associate Professor","4754"],[43,"Assistant Professor","4295"],[44,"Professor & Head","4867"],[45,"Professor & HOD","4484"],[45,"PA to HOD","4727"],[45,"Assistant Professor","4459"],[45,"CMO/SAG","4459"],[45,"PMR OPD Sister’s Duty Room (R.No. 302)","4724"],[46,"Consultant & HOD","4280"],[46,"Consultant","23363857 4280"],[46,"Consultant","4338"],[46,"Consultant","4624"],[46,"Consultant","4280"],[46,"Professor","4386"],[46,"Professor","4686"],[46,"Professor","4345"],[46,"Associate Professor","4944"],[46,"CMO(NFSG)","4944"],[46,"Technical Supervisor","4338"],[46,"Store I/C X-Ray","4367"],[46,"Sister Room X-Ray","4628"],[46,"OPD X-Ray","4285"],[46,"Blood Bank MRI","4534"],[46,"Blood Bank CT","4533"],[46,"Blood Bank Ultrasound / Colour Doppler","4572"],[46,"Old Nursing Home USG (Ultrasound)","4657"],[46,"Old Nursing Home New MRI","4497"],[46,"Trauma Centre Ultrasound","4683"],[46,"Trauma Centre C.T","4627"],[47,"CMO (SAG) & HOD","4558"],[47,"CMO (NFSG)","4317"],[47,"CMO (NFSG)","4316"],[47,"Medical Officer","4431"],[47,"Medical Officer","4467"],[47,"Sleep Lab","4863"],[47,"Respiratory Lab","4467"],[47,"Bronchoscopy","4659"],[48,"Professor Consultant & HOD","4380"],[48,"SMO","4296"],[48,"Associate Professor","4322"],[48,"Professor","4406 4780"],[48,"Consultant","4995"],[49,"Director Professor","4283"],[49,"Assistant professor","4322"],[49,"SKIN OPD","4368"],[49,"STD Clinic","4374"],[50,"Consult.& HOD surgery, HOU-IV","23747880 4410"],[50,"Consultant & HOU -II","4880"],[50,"CMO(SAG) & HOU-III","4455"],[50,"Director Professor & HOU-V","23342335 4808"],[50,"Consultant & HOU-1","4401"],[50,"Consultant Surgeon","4781"],[50,"Director Professor","4781"],[50,"Professor","4716"],[50,"Professor","4458"],[50,"Professor","5066"],[50,"Specialist Grade-I","4529"],[50,"Specialist Grade-II","4808"],[50,"Assistant Professor","4460"],[50,"Assistant Professor","4808"],[50,"Assistant Professor","5113"],[50,"Assistant Professor","4716"],[50,"Specialist Grade-III","4617"],[50,"Medical Officer","4617"],[50,"Surgery OPD","4268 4318"],[50,"Surgery Room","4465"],[50,"Minor O.T","4277"],[51,"CMO & HOD","4291"],[51,"SMO(SAG)","4291"],[51,"Blood Bank","4298 4611"],[52,"Main ICU (1st Floor) Trauma","4698 4697"],[52,"Sister Incharge","4701"],[52,"Doctor’s Duty Anesthesia","4699"],[52,"Swine Flu ICU","4245 4310 4535"],[52,"Renal ICU (Nursing Home)","4681"],[52,"MICU ICU (Sister Incharge)","4653"],[52,"ICU (Sister Incharge)","4427"],[52,"PICU 3rd Floor","4721 4722"],[52,"CTVS ICU 2nd Floor (Blood Bank)","4510 4604 4304 4480"],[52,"ICU 1st Floor (Old Building)","4245 4535"],[52,"ICU 2nd Floor (Old Building) (K.T.W)","4729 4730"],[52,"Renal Transplant","4730"],[52,"Doctor’s Duty Room","4689"],[52,"Renal ICU Old Bldg 1stflr","4644"],[52,"PICU (4rth Floor ECS)","4033 4023"],[53,"Ist Floor O.T","4249"],[53,"Doctor’s Duty Room (Surgeon)","4314"],[53,"Doctor’s Duty Room (Anesthesia)","4736"],[53,"Sister Duty Room","4503"],[53,"IInd Floor O.T","4228"],[53,"Doctor’s Duty Room","4552"],[53,"Doctor’s Duty Room (Surgeon)","4814"],[53,"Sister’s Duty Room","4544"],[53,"Emergency O.T","4426"],[53,"Maternity O.T","4606"],[53,"Ground Floor O.T","4429"],[53,"Doctor’s Duty Room","4214"],[53,"I.C.U. (Ground Floor O.T)","4587"],[53,"Minor O.T","4277"],[53,"C.T.V.S OT","4480"],[53,"Trauma O.T. (Doctor’s Duty Room)","4702"],[53,"Ortho OT (Sister’s Duty Room)","4602"],[53,"Ortho OT (Corridor)","4695"],[53,"Uro. OT","4865"],[53,"E.C.S. OT","4013 4027"],[53,"Doctor’s Duty Room (Anesthesia)","4026"],[53,"Doctor’s Duty Room (Surgeon)","4018"],[53,"Sister's Duty Room","4012"],[53,"CMO (SAG), Officer I/C OPD","4316"],[54,"Sister Incharge","4897"],[54,"Room No- S1","4911"],[54,"Room No- S2","4912"],[54,"Room No- S3","4913"],[54,"Room No- S4","4904"],[54,"Room No- S5","4905"],[54,"Room No- S6","4906"],[54,"Room No- S7","4907"],[54,"Room No- S8","4908"],[54,"Room No- S9","4909"],[54,"Room No- S10","4910"],[55,"Academic Section/PG Cell","4755"],[55,"Library Incharge","4745"],[55,"Library","4272 4741"],[55,"Sulabh Supervisor, ABVIMS","4762"],[55,"Security Room, ABVIMS","23341433"],[55,"Accounts Section","4719"],[55,"Computer Lab (Technician) IInd Floor, R.No","4626"],[55,"ABVIMS Store","5067"],[55,"NABH Office","5042"],[55,"Code) RED (FIRE","5073"],[55,"Code) BLUE (ECS RR","5070"],[55,"Code) Black (Bomb","4492"],[55,"Code ) Violet","4492"],[55,"I.T. Section","4626"],[55,"UG Cell","4515"],[55,"Met Division","4819"],[56,"Senior Account Officer","23341270 4540"],[56,"AAO","4656"],[56,"Account Section","4250 4292 4521"],[57,"Account Section II","4248"],[58,"UDC","23404624"],[59,"Director Professor, Chairman","4808"],[60,"Dy. Labour Welfare","23743463"],[60,"Commissioner Office","4258"],[61,"AO","4635"],[61,"Assistant","4263"],[62,"Administrative Officer","23348035 4355"],[62,"Assistant","4464 4443"],[63,"Officer Superintendent","4748"],[63,"HA-II Section","4439"],[64,"Associate Director (OL)","4226 4821"],[64,"Jr. Translator","4226"],[65,"Store officer","4556"],[65,"Pharmacist (N.F.G.) Oxygen Store","4734"],[65,"Pharmacist (N.F.G)","4381"],[65,"Pharmacist (X-Ray & Chemical) Store","4336"],[65,"I.V. Fluid Store","4608"],[65,"Stationary store","4366"],[65,"Equipment store","4565"],[65,"Linen & Contingency store","4456"],[65,"Chemical & Oxygen store","4336"],[65,"Surgical Store","4255"],[65,"Injection Store","4522"],[65,"Tablet Store","4381"],[65,"Oxygen Big Cylinder Store","4734"],[65,"Manifold","4315"],[65,"Disposable Store (Syrup Store)","4598"],[66,"Officer I/C","4261"],[67,"CMO(SAG) & OI/C","4357"],[68,"Medical Social Service Officer (2nd floor OPD)","4399"],[68,"CMO","4936"],[68,"UDC","4936"],[69,"CMO (SAG)","23365524 4352"],[69,"Medical Examination Department","4330"],[70,"Professor & HOD","4725 4432"],[70,"CMO(ME-II & MDB)","4725 4432"],[70,"Link Officer","4725 4432"],[70,"LDC (ME-II & MDB)","4725 4432"],[71,"Medical Record Officer","23365510 4325 5034"],[72,"Associate Professor & HOU M-7","4227"],[72,"Assistant Professor","4391"],[72,"Assistant Professor","4391 4652"],[72,"Doctor’s Duty Room","4350"],[72,"Sister’s Incharge (MICU)","4427"],[72,"Nursing Home (MICU)","4653"],[72,"Sister Incharge (Old Nursing Home)","4490"],[72,"Sister’s Duty Room (Old Nursing Home)","4238"],[72,"Sister Incharge N.H.A","4477"],[72,"Sister’s Duty Room N.H.A","4204"],[72,"Sister’s Duty Room N.H.B","4216"],[72,"E.C.G Nursing Home","4376"],[72,"Nursing Home Counter","5050"],[73,"I/C Nursing section","4385"],[73,"Assistant","4632 4561"],[73,"Outsourcing Cell","4500"],[74,"Sr. Account Officer","23360277 4230"],[74,"Asst. Accounts Officer","4284"],[75,"Officer Incharge","23742467 4428 4641"],[75,"Assit. Professor","4428"],[75,"Debashish Parmar","4428"],[75,"Procurement Section","5055 4595"],[75,"RR Cell","4860"],[76,"RTI Cell","4839"],[77,"Officer in Charge","4803"],[77,"Chief Security Officer","4492"],[77,"Security Control Officer(SIS)","4811"],[77,"CCTV In charge (Dr RMLH)","4706"],[77,"Security Officer(PGIMER)","4761"],[78,"Professor & O/I/C","4569"],[78,"I/C Telephone Exchange","4378"],[78,"Telephone Complaint","4300 4614"],[79,"Technical Section","4538"],[80,"HOU & Officer I/C Vigilance","4858"],[81,"SMO","4796"],[81,"Medical Officer","4795"],[81,"Facility Room (ART)","4797"],[81,"Data Room","4790"],[81,"Counselor I","4791"],[81,"Counselor II","4792"],[81,"Sister’s Duty Room","4794 4793"],[81,"Pharmacy","4798"],[82,"Officer I/C Departmental Canteen","4536"],[82,"Cash Counter","4351"],[83,"Executive Engineer","23345291 23355663 4326"],[84,"CPWD Civil Enquiry","4278"],[84,"Ajay Kumar Chadha, EE","4425 23355068"],[84,"CPWD (AE)","4370 4807"],[84,"CPWD Electrical Enquiry","4877"],[85,"Dispensary (OPD)","4305"],[85,"Dispensary (Psychiatry)","4735"],[86,"Dots Centre","4620"],[87,"Consultant & Officer I/C Library","4745"],[88,"Library Reception","4272"],[89,"Officer I/C","4824"],[89,"Interim Supervisor","4333"],[89,"Laundry Department","4293"],[90,"Public Relation Officer","4810"],[91,"Specialist & OfficerI/C","4478 4019"],[91,"SMO & Link Officer","4803"],[91,"Sanitary Superintendent","4307 4747"],[91,"Sanitary Superintendent, New Building","4235"],[91,"Caretaker","4530"],[92,"Director Professor & I/c","4380"],[92,"Incharge","4476"],[93,"Consultant & Officer I/C","4578"],[93,"Transport Incharge","4549"],[93,"Driver’s Room","4353"],[94,"Ward No. 1 (CCU)","4448 4449"],[94,"ECG-CCU","4469"],[94,"Ward No. 2, Burn & Plastic","4319"],[94,"Doctor's Duty Room","4421"],[94,"Ward No. 3 Children Ward, CTVS","4340"],[94,"Ward No. 4 Children Ward, Ped. Surgery","4288"],[94,"Ward No. 5, Female ENT/Skin","4328"],[94,"Sister on I/C Duty","4512"],[94,"Swine Flu/ Covid 19","4733"],[94,"Bronchoscopy Lab","4328"],[94,"Ward No. 6 Male ENT/Skin","4253"],[94,"Ward No. 7 Male Medical/ Cardio CTVS","4342"],[94,"Ward No. 8 Male Medical","4247"],[94,"Ward No. 9 Male Medical","4281"],[94,"Ward No. 10 Male Medical","4327"],[94,"Ward No. 11 Male Medical","4231"],[94,"Ward No. 12 Female Medical","4254"],[94,"Ward No. 13 Ground Floor Neuro Surgery","4393"],[94,"Ward No. 13 Ist Floor Neuro Surgery","4564"],[94,"Doctor’s Duty Room Neuro Surgery","4828"],[94,"Ward No. 14 Male ortho","4241"],[94,"General Maternity ward","4823"],[94,"Ward No. 15 IInd floor","4535 4245"],[94,"Ward No. 16 Iind floor Female surgery","4242 5053"],[94,"Ward No. 17 IIIrd floor Male surgery","4243"],[94,"Ward No. 18 Ivth floor Male surgery","4244"],[94,"Sister Incharge Ward No. 18","4857"],[94,"Ward 20 A (Ground floor Urology Emergency)","4407"],[94,"Ward 20 B (1st floor Emergency)","4823"],[94,"Ward 21","4805 4801"],[94,"Ward 22 (3rd floor Emergency)","4212 4721 4722"],[94,"Ward No. 23 Male Phy","4262"],[94,"Ward No. 24 Female Phy","4502"],[95,"Police Post","4282"],[95,"Bank of Baroda","23361656 23744386"],[95,"Injection Room OPD","4723"],[95,"Ex. P.M. Cell","23360594"],[95,"Wireless Control Room","4486"],[95,"ICM Office(union)","4388"],[95,"Security Officer","4492"],[95,"T & C Cooperative Society","4334"],[95,"Registration Counter OPD","4618"],[95,"Nursing Home Enquiry (Reception)","4219"],[95,"General Enquiry","4286"],[95,"Complaint Cell","4308"],[95,"Labour Welfare Commissioner","4258"],[95,"Server Room","23363906 4476"],[95,"Central Diary","4651"],[95,"Conference Room","4732"],[95,"Hyper Barric","4358"],[95,"Cretch (Baby Cretch)","4343"],[95,"Horti Culture","4523"]]};
+/* ---------- the ECRO roster (Emergency Control Room Officer) ----------
+   The hospital office's roster, month by month: morning 9 am-3 pm, evening
+   3-9 pm, night 9 pm-9 am. Each shift is [department, doctor, mobile]. It
+   comes from the Sheet with every load (never baked into the page: these are
+   personal numbers), and the same for everyone. Where the department is
+   Emergency Medicine only that is shown - no name, no number. */
+var ECRO = (typeof SEED !== "undefined" && SEED && SEED.ecro) || null;
+var ECRO_MONTH = null, ECRO_PAST = false;
+var ECRO_SHIFTS = [["M","Morning","09:00-15:00","9 am - 3 pm","9-3"],["E","Evening","15:00-21:00","3 pm - 9 pm","3-9"],["N","Night","21:00-09:00","9 pm - 9 am","9-9"]];
+var EM_DEPT = "Emergency Medicine";
+function ecroIsEM(d){ return /^\s*(em|emer(g(ency)?)?\.?\s*med(icine|i)?\.?)\s*$/i.test(String(d || "")); }
+function ecroMeta(k){ for (var i = 0; i < ECRO_SHIFTS.length; i++) if (ECRO_SHIFTS[i][0] === k) return ECRO_SHIFTS[i]; return null; }
+/* which ECRO shift is on now: after midnight it is still the night that began the day before */
+function ecroNow(){
+  var h = new Date().getHours(), key = todayKey(), k;
+  if (h >= 9 && h < 15) k = "M";
+  else if (h >= 15 && h < 21) k = "E";
+  else { k = "N"; if (h < 9) key = iso(msOf(key) - DAY); }
+  return {key:key, k:k};
+}
+function ecroCell(key, k){
+  var d = ECRO && ECRO.days && ECRO.days[key], v = d && d[k];
+  return (v && v.length && (v[0] || v[1])) ? v : null;
+}
+function ecroName(n){ n = String(n || "").trim(); return /^dr\.?\s/i.test(n) ? "Dr " + n.replace(/^dr\.?\s+/i, "") : "Dr " + n; }
+function ecroMonths(){
+  var m = {}; Object.keys((ECRO && ECRO.days) || {}).forEach(function(k){ m[k.slice(0,7)] = 1; });
+  return Object.keys(m).sort();
+}
+function ecroMonthName(mk){ return ["January","February","March","April","May","June","July","August","September","October","November","December"][+mk.slice(5) - 1] + " " + mk.slice(0,4); }
+/* who: department and doctor (the name calls), or just Emergency Medicine */
+function ecroWho(v){
+  var box = el("span","ecwho");
+  if (!v){ box.appendChild(el("span","ecnone","Not given")); return box; }
+  if (ecroIsEM(v[0])){ box.appendChild(el("span","ecem", EM_DEPT)); return box; }
+  if (v[0]) box.appendChild(el("span","ecdept", v[0]));
+  if (v[1]){
+    var nm = ecroName(v[1]), a = document.createElement(v[2] ? "a" : "span");
+    a.className = "ecname"; a.textContent = nm + (v[2] ? " ☎" : "");
+    if (v[2]){ a.href = telHref(v[2]); a.title = "Call " + nm; }
+    box.appendChild(a);
+  }
+  return box;
+}
+function ecroCtl(){
+  if (!ECRO || !ECRO.phone) return null;
+  var a = document.createElement("a"); a.className = "ecctl noprint"; a.href = telHref(ECRO.phone);
+  a.textContent = "☎ Control room"; a.title = "Call the ECRO control room (" + ECRO.phone + ")";
+  return a;
+}
+/* one row on everyone's Today: the ECRO on now */
+function ecroRow(host){
+  if (!ECRO) return;
+  var now = ecroNow(), m = ecroMeta(now.k), v = ecroCell(now.key, now.k);
+  var row = el("div","trow ecro"), tl = el("div","tl");
+  tl.appendChild(el("b", null, "ECRO"));
+  tl.appendChild(document.createTextNode(m[1] + " " + m[2]));
+  row.appendChild(tl);
+  var tv = el("div","tv");
+  if (v) tv.appendChild(ecroWho(v));
+  else tv.appendChild(el("span","ecnone", ECRO.days && Object.keys(ECRO.days).some(function(k){ return k.slice(0,7) === now.key.slice(0,7); })
+    ? "Not given for this shift" : "The " + ecroMonthName(now.key.slice(0,7)) + " ECRO roster is not in yet"));
+  var c = ecroCtl(); if (c) tv.appendChild(c);
+  row.appendChild(tv); host.appendChild(row);
+}
+/* the ECRO tab: the whole month, today marked, earlier days folded away */
+function renderEcro(){
+  var sec = document.getElementById("ecroSec"), box = document.getElementById("ecroBox"), nb = document.getElementById("mnavEcro");
+  if (!sec || !box) return;
+  var months = ecroMonths(), on = !!(ECRO && (months.length || ECRO.phone));
+  sec.hidden = !on; if (nb) nb.hidden = !on;
+  box.innerHTML = "";
+  if (!on) return;
+  var now = ecroNow(), cur = now.key.slice(0,7);
+  if (!ECRO_MONTH || months.indexOf(ECRO_MONTH) < 0) ECRO_MONTH = months.indexOf(cur) >= 0 ? cur : (months[months.length - 1] || cur);
+  var top = el("div","bar ecbar");
+  var mi = months.indexOf(ECRO_MONTH);
+  var pv = el("button","ghost noprint","← " + (mi > 0 ? MON[+months[mi-1].slice(5) - 1] : "")); pv.type = "button";
+  pv.hidden = !(mi > 0); pv.onclick = function(){ ECRO_MONTH = months[mi-1]; ECRO_PAST = false; renderEcro(); };
+  var nx = el("button","ghost noprint",(mi >= 0 && mi < months.length - 1 ? MON[+months[mi+1].slice(5) - 1] : "") + " →"); nx.type = "button";
+  nx.hidden = !(mi >= 0 && mi < months.length - 1); nx.onclick = function(){ ECRO_MONTH = months[mi+1]; ECRO_PAST = false; renderEcro(); };
+  top.appendChild(pv); top.appendChild(el("span","blocklabel", ecroMonthName(ECRO_MONTH))); top.appendChild(nx);
+  top.appendChild(el("span","grow"));
+  var c = ecroCtl(); if (c) top.appendChild(c);
+  box.appendChild(top);
+  var sv = ECRO.saved && ECRO.saved[ECRO_MONTH];
+  if (sv && sv.by) box.appendChild(el("p","note ecsaved","Last changed by the " + sv.by + (sv.at ? ", " + fmt(Date.parse(sv.at)) : "") + "."));
+  var y = +ECRO_MONTH.slice(0,4), mo = +ECRO_MONTH.slice(5) - 1, last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+  var keys = []; for (var d = 1; d <= last; d++) keys.push(ECRO_MONTH + "-" + (d < 10 ? "0" : "") + d);
+  var past = keys.filter(function(k){ return k < now.key; });
+  if (past.length && !ECRO_PAST && ECRO_MONTH === cur){
+    var fb = el("button","ghost noprint ecpast","Earlier days: " + (+past[0].slice(8)) + "-" + (+past[past.length-1].slice(8)) + " " + MON[mo] + " ▸"); fb.type = "button";
+    fb.onclick = function(){ ECRO_PAST = true; renderEcro(); };
+    box.appendChild(fb);
+    keys = keys.filter(function(k){ return k >= now.key; });
+  }
+  var tbl = el("table","ectbl"), th = el("thead"), hr = el("tr");
+  hr.appendChild(el("th", null, "Date"));
+  ECRO_SHIFTS.forEach(function(s){ var h = el("th", null, s[1]); h.appendChild(el("small", null, s[3])); hr.appendChild(h); });
+  th.appendChild(hr); tbl.appendChild(th);
+  var tb = el("tbody");
+  keys.forEach(function(k){
+    var dd = new Date(msOf(k)), tr = el("tr", k === now.key ? "ectoday" : (k < now.key ? "ecgone" : null));
+    tr.setAttribute("data-date", k);
+    var td0 = el("td","ecdate", DOW[dd.getUTCDay()] + " " + dd.getUTCDate() + " " + MON[dd.getUTCMonth()]);
+    if (k === todayKey()) td0.appendChild(el("span","todaychip","Today"));
+    tr.appendChild(td0);
+    ECRO_SHIFTS.forEach(function(s){
+      var td = el("td", k === now.key && s[0] === now.k ? "ecnow" : null);
+      td.setAttribute("data-l", s[1] + " " + s[4]);
+      var who = ecroWho(ecroCell(k, s[0]));
+      if (k === now.key && s[0] === now.k) who.insertBefore(el("span","nowtag","Now"), who.firstChild);
+      td.appendChild(who);
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);
+  var sc = el("div","scroller"); sc.appendChild(tbl); box.appendChild(sc);
+}
+/* Setup (HOD, and the in-charge): type in a month of the ECRO roster */
+function ecroSetup(host){
+  var wrap = el("div","ecset"); host.appendChild(wrap);
+  wrap.appendChild(el("h3","sethead","ECRO roster"));
+  wrap.appendChild(el("p","note","The hospital office's Emergency Control Room Officer roster, one month at a time: the department, the doctor and the mobile number for each shift. "
+    + "For an Emergency Medicine shift write just Emergency Medicine (or EM) - nothing else is shown for it. Saved on its own, with its own button."));
+  var ph = document.createElement("input"); ph.type = "tel"; ph.id = "ecPhone"; ph.value = (ECRO && ECRO.phone) || ""; ph.placeholder = "Control room mobile";
+  var mIn = document.createElement("input"); mIn.type = "month"; mIn.id = "ecMonth";
+  mIn.value = ECRO_MONTH || ecroNow().key.slice(0,7);
+  var row1 = el("div","inline"); row1.appendChild(field("Month", mIn)); row1.appendChild(field("Control room number", ph)); wrap.appendChild(row1);
+  var dl = document.createElement("datalist"); dl.id = "ecDepts";
+  [EM_DEPT,"Anaesthesia","Biochemistry","Burn & Plastic","Cardiology","CCM","Dental","ENT","Eye","Forensic Medicine","Gastroenterology","Gynae","Medicine",
+   "Microbiology","Neurosurgery","Orthopaedics","Paediatric Surgery","Paediatrics","Pathology","Pharmacology","PSM","Psychiatry","Radiology",
+   "Respiratory Medicine","Skin","Surgery","Urology"].forEach(function(x){ var o = document.createElement("option"); o.value = x; dl.appendChild(o); });
+  wrap.appendChild(dl);
+  var work = {};           /* month -> {date: {M,E,N}} being edited */
+  var grid = el("div"); wrap.appendChild(grid);
+  function monthWork(mk){
+    if (!work[mk]){
+      work[mk] = {};
+      var y = +mk.slice(0,4), mo = +mk.slice(5) - 1, last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+      for (var d = 1; d <= last; d++){
+        var k = mk + "-" + (d < 10 ? "0" : "") + d, src = (ECRO && ECRO.days && ECRO.days[k]) || {};
+        work[mk][k] = {};
+        ["M","E","N"].forEach(function(s){ var v = src[s] || []; work[mk][k][s] = [v[0] || "", v[1] || "", v[2] || ""]; });
+      }
+    }
+    return work[mk];
+  }
+  function draw(){
+    grid.innerHTML = "";
+    var mk = mIn.value; if (!/^\d{4}-\d{2}$/.test(mk)) return;
+    var w = monthWork(mk);
+    var tbl = el("table","ecedit"), th = el("thead"), hr = el("tr");
+    hr.appendChild(el("th", null, "Date"));
+    ECRO_SHIFTS.forEach(function(s){ hr.appendChild(el("th", null, s[1] + " " + s[3])); });
+    th.appendChild(hr); tbl.appendChild(th);
+    var tb = el("tbody");
+    Object.keys(w).sort().forEach(function(k){
+      var dd = new Date(msOf(k)), tr = el("tr");
+      tr.appendChild(el("td","ecdate", DOW[dd.getUTCDay()] + " " + dd.getUTCDate()));
+      ["M","E","N"].forEach(function(s){
+        var v = w[k][s], td = el("td","eccell");
+        td.setAttribute("data-l", ecroMeta(s)[1]);
+        var dep = document.createElement("input"); dep.type = "text"; dep.setAttribute("list","ecDepts"); dep.placeholder = "Department"; dep.value = v[0];
+        dep.className = "ecdep"; dep.setAttribute("aria-label", dd.getUTCDate() + " " + MON[dd.getUTCMonth()] + " " + ecroMeta(s)[1] + " department");
+        var nm = document.createElement("input"); nm.type = "text"; nm.placeholder = "Dr name"; nm.value = v[1]; nm.className = "ecnm";
+        var mo = document.createElement("input"); mo.type = "tel"; mo.placeholder = "Mobile"; mo.value = v[2]; mo.className = "ecmo";
+        function paint(){ var em = ecroIsEM(dep.value); nm.hidden = em; mo.hidden = em; }
+        dep.oninput = function(){ v[0] = dep.value; paint(); };
+        nm.oninput = function(){ v[1] = nm.value; };
+        mo.oninput = function(){ v[2] = mo.value; };
+        paint();
+        td.appendChild(dep); td.appendChild(nm); td.appendChild(mo); tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    var sc = el("div","scroller"); sc.appendChild(tbl); grid.appendChild(sc);
+  }
+  mIn.onchange = draw; draw();
+  var bar = el("div","inline"); bar.style.marginTop = "10px";
+  var save = el("button","primary","Save ECRO roster"); save.type = "button"; save.id = "ecSave";
+  var st = el("span","status"); st.id = "ecStat";
+  bar.appendChild(save); bar.appendChild(st); wrap.appendChild(bar);
+  function say(t, bad){ st.textContent = t; st.className = "status" + (bad ? " bad" : ""); }
+  save.onclick = function(){
+    var mk = mIn.value; if (!/^\d{4}-\d{2}$/.test(mk)){ say("Choose the month first.", true); return; }
+    var w = monthWork(mk), days = {}, errs = [];
+    var phone = ph.value.replace(/[^0-9+]/g, "");
+    if (phone && phone.replace(/^\+?91/, "").length !== 10) errs.push("Control room number: 10 digits, please");
+    Object.keys(w).sort().forEach(function(k){
+      var dd = new Date(msOf(k)), dn = dd.getUTCDate() + " " + MON[dd.getUTCMonth()];
+      days[k] = {};
+      ["M","E","N"].forEach(function(s){
+        var v = w[k][s], dep = v[0].trim(), nm = v[1].trim().replace(/^dr\.?\s+/i, ""), mob = v[2].replace(/[^0-9]/g, "").replace(/^(91|0)(\d{10})$/, "$2");
+        if (ecroIsEM(dep)){ days[k][s] = [EM_DEPT, "", ""]; return; }
+        if (!dep && !nm && !mob){ days[k][s] = []; return; }
+        var lab = dn + " " + ecroMeta(s)[1];
+        if (!dep) errs.push(lab + ": department missing");
+        if (!nm) errs.push(lab + ": doctor's name missing");
+        if (mob && mob.length !== 10) errs.push(lab + ": mobile should be 10 digits");
+        days[k][s] = [dep, nm, mob];
+      });
+    });
+    if (errs.length){ say(errs.slice(0,3).join(" · ") + (errs.length > 3 ? " · and " + (errs.length - 3) + " more" : ""), true); return; }
+    save.disabled = true; say("Saving…");
+    STORE.saveEcro({month:mk, phone:phone, days:days}).then(function(res){
+      if (res && res.ecro) ECRO = res.ecro;
+      else {                                  /* no server (a copy on a computer): keep it here */
+        ECRO = ECRO || {phone:"", days:{}, saved:{}};
+        Object.keys(ECRO.days).forEach(function(k){ if (k.slice(0,7) === mk) delete ECRO.days[k]; });
+        Object.keys(days).forEach(function(k){ ECRO.days[k] = days[k]; });
+        ECRO.phone = phone; ECRO.saved = ECRO.saved || {};
+        ECRO.saved[mk] = {by: HOD ? "HOD" : "JR in-charge", at: new Date().toISOString()};
+        STORE.keepLocal();
+      }
+      delete work[mk];
+      save.disabled = false; say("Saved - " + ecroMonthName(mk) + ". Everyone sees it on their next refresh.");
+      ECRO_MONTH = mk; renderEcro(); renderToday();
+    }, function(e){
+      save.disabled = false;
+      var m = String((e && e.message) || e);
+      say(m === "hod" ? "Only the HOD or the JR in-charge can change the ECRO roster." : m === "unreachable" ? "No connection just now - nothing was saved. Please try again." : "Could not save (" + m + ").", true);
+    });
+  };
+}
+
 function dirDial(n){ n = String(n); return n.length === 4 ? "0112340" + n : n.length === 8 ? "011" + n : n; }
 function dirNumRow(label, sub, nums){
   var row = el("div","dirrow phone");
@@ -2491,7 +2772,7 @@ var STORE = (function(){
     catch(e){ return null; }
   }
   function writeLocal(){
-    try { localStorage.setItem(KEY, JSON.stringify({config:CFG, data:DATA})); return true; }
+    try { localStorage.setItem(KEY, JSON.stringify({config:CFG, data:DATA, ecro:ECRO})); return true; }
     catch(e){ return false; }
   }
 
@@ -2559,13 +2840,13 @@ var STORE = (function(){
     /* what this phone held last time: shown at once, before the Sheet answers */
     loadLocal: function(){
       var o = readLocal();
-      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; applyQ(); }
+      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; applyQ(); }
       return !!(o && o.config);
     },
     load: function(){
       var self = this;
       var o = readLocal();
-      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; }
+      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; }
       if (!ENDPOINT) return Promise.resolve();
       self.shared = true;
       return call({action:"load", key:wkey(), both:"1"}).then(function(res){
@@ -2573,6 +2854,7 @@ var STORE = (function(){
         self.lastRole = res.role || null;
         self.lastOther = res.other || null;
         if (res.config) CFG = res.config;
+        if (res.hasOwnProperty("ecro")) ECRO = res.ecro;     /* an older server does not send it: keep what we had */
         ELSEWHERE = res.elsewhere || null;
         EMAILS = res.emails || null;
         FLAGS = res.flags || null;
@@ -2603,6 +2885,19 @@ var STORE = (function(){
       if (!ENDPOINT) return Promise.resolve("hod");
       return call({action:"role", key:(k==null?wkey():k)}).then(function(r){ return r.role; },
         function(e){ if (isKeyError(e)) throw e; return null; });
+    },
+    keepLocal: function(){ writeLocal(); },
+    /* the ECRO roster: one month, always in small parts; the last one saves it */
+    saveEcro: function(o){
+      if (!ENDPOINT) return Promise.resolve({});
+      var key = (MAAM && !HODKEY ? PASSKEY : HODKEY), body = JSON.stringify(o);
+      var size = 1500, n = Math.max(1, Math.ceil(body.length / size)), up = "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      var p = Promise.resolve(), last = null;
+      for (var i = 0; i < n; i++) (function(i){
+        p = p.then(function(){ return call({action:"ecropart", key:key, up:up, i:i, n:n, part:body.slice(i * size, (i + 1) * size)}); })
+             .then(function(r){ last = r; });
+      })(i);
+      return p.then(function(){ if (!last || !last.done) throw new Error("part"); writeLocal(); return last; });
     },
     save: function(){                        /* config only */
       writeLocal();
@@ -3374,6 +3669,34 @@ function renderLedger(){
 /* The HOD: approve many at once. "Up to today" approves only the days that
    have come (a leave running past today keeps its later days waiting);
    "everything" approves all that is waiting. Each asks for a second tap. */
+/* HOD Sir: tenures ending in the next 30 days - extend by 6 months, or let it end */
+function tenureBar(){
+  var tk = todayKey(), rows = [];
+  (CFG.groups || []).forEach(function(g){ if (!isTeamGroup(g)) return; teamsOn(g, msOf(tk)).forEach(function(t){ (t.members || []).forEach(function(n){
+    var e = postEnd(n), j = recOf("joining", n);
+    if (!e || e < tk || msOf(e) - msOf(tk) > 30 * DAY || (j && j.endAgreed === e)) return;
+    rows.push({n:n, e:e, j:j});
+  }); }); });
+  if (!rows.length) return null;
+  var box = el("div","apprall tenure");
+  box.appendChild(el("b", null, "Tenure ending soon"));
+  rows.forEach(function(r){
+    var line = el("div","tenrow");
+    line.appendChild(el("span", null, "Dr " + title(r.n) + " - ends " + fmt(msOf(r.e))));
+    var ext = el("button","primary","Extend 6 months"), end = el("button","ghost","Let it end");
+    function save(patch, msg){
+      var b = JSON.parse(JSON.stringify(r.j || {resident:r.n})); for (var f in patch) b[f] = patch[f];
+      ext.disabled = end.disabled = true;
+      STORE.put("joining", rid(r.n), b).then(function(){ renderAll(); setStatus(msg); },
+        function(){ ext.disabled = end.disabled = false; setStatus("Could not save. Please try again.", true); });
+    }
+    ext.onclick = function(){ save({extendedTill: iso(msOf(addMonthsKey(iso(msOf(r.e) + DAY), TENURE_MONTHS)) - DAY)}, "Extended. The balance carries over."); };
+    end.onclick = function(){ save({endAgreed: r.e}, "Noted - the tenure ends on " + fmt(msOf(r.e)) + "."); };
+    line.appendChild(ext); line.appendChild(end);
+    box.appendChild(line);
+  });
+  return box;
+}
 function approveAllBar(groups){
   var bar = el("div","apprall");
   var tk = todayKey();
@@ -3476,6 +3799,7 @@ function renderApprovals(){
     });
     list.appendChild(al);
   }
+  if (HOD && hasTeams()) { var tb0 = tenureBar(); if (tb0) list.appendChild(tb0); }
   if (HOD) list.appendChild(approveAllBar(groups));
   groups.forEach(function(g){
     var row = el("div","apprrow");
@@ -3876,6 +4200,7 @@ function renderToday(){
   });
   anaesRow(host);
   cmoNowRow(host);
+  ecroRow(host);
   var offRow = hasTeams() ? [] : [["Night off", inSlot(eff,"OFF")]];
   if (hasTeams()){
     var offTeams = slotEntries(eff, "OFF", ms).teams.map(function(t){ return t.name; });
@@ -5403,27 +5728,41 @@ function clStart(n){
 /* A JR's posting: one year from joining (last day = joining + 1 year - 1
    day), or to the date it was extended to. Only flagged when it ends -
    nobody is taken off the roster by the app. */
+/* add whole months to a date (the same day of the month) */
+function addMonthsKey(key, k){
+  var y = +key.slice(0,4), m = +key.slice(5,7) - 1 + k, d = +key.slice(8,10);
+  y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return iso(Date.UTC(y, m, Math.min(d, last)));
+}
+var TENURE_MONTHS = 6;
+/* A JR is posted for 6 months at a time, counted from the joining date.
+   The tenure running on 1 Nov 2026 is the current one, unless HOD Sir has
+   extended it (or ended it early) - then his date is the end. */
 function postEnd(n){
   var j = recOf("joining", n);
   if (!j) return "";
   if (j.extendedTill) return j.extendedTill;
   if (!j.date) return "";
-  var y = +j.date.slice(0,4), m = +j.date.slice(5,7), d = +j.date.slice(8,10);
-  return iso(Date.UTC(y + 1, m - 1, d) - DAY);
+  var from = j.date > CL_FROM ? j.date : CL_FROM;
+  for (var k = TENURE_MONTHS; k < 600; k += TENURE_MONTHS){
+    var e = iso(msOf(addMonthsKey(j.date, k)) - DAY);
+    if (e >= from) return e;
+  }
+  return "";
 }
-/* the credit days, in order: each whole month on its last day - except the
-   last month of the posting, whose 2.5 comes on its 1st so it can be used */
 function clCreditDays(n){
-  var st = clStart(n), end = postEnd(n), out = [];
-  var y = +st.slice(0,4), m = +st.slice(5,7);
-  if (+st.slice(8,10) !== 1){ m++; if (m > 12){ m = 1; y++; } }
-  var endMk = end ? end.slice(0,7) : "";
-  for (var i = 0; i < 120; i++){
-    var mk = y + "-" + (m < 10 ? "0" : "") + m;
-    if (endMk && mk > endMk) break;
-    out.push(endMk && mk === endMk ? mk + "-01" : iso(Date.UTC(y, m, 0)));
-    m++; if (m > 12){ m = 1; y++; }
-    if (!endMk && i > 36) break;
+  var j = recOf("joining", n), st = clStart(n), end = postEnd(n), out = [];
+  if (!j || !j.date || !end) return out;
+  for (var k = 1; k < 600; k++){
+    var mEnd = iso(msOf(addMonthsKey(j.date, k)) - DAY);          /* the day month k is complete */
+    if (mEnd > end) break;
+    if (st === CL_FROM && mEnd < CL_FROM) continue;             /* already in the 31 Oct balance */
+    var tk = Math.ceil(k / TENURE_MONTHS) * TENURE_MONTHS;      /* this month's tenure ends after month tk */
+    var tEnd = iso(msOf(addMonthsKey(j.date, tk)) - DAY);
+    if (tEnd > end) tEnd = end;
+    var early = iso(msOf(tEnd) - 30 * DAY);                      /* last month: 30 days before the end */
+    out.push(mEnd > early ? early : mEnd);
   }
   return out;
 }
@@ -5466,7 +5805,7 @@ function leaveBalance(n, extra, skip){
   var days = clCreditDays(n), toCome = monthCap() * days.filter(function(d){ return d > key; }).length;
   return {open:open, hasOpen:!!(op && op.balance != null), credited:credited, taken:taken, ahead:ahead,
           pending:pending, booked:ahead + pending, left:left, next:nextCreditDay(n, key),
-          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * 12,
+          end:postEnd(n), toCome:toCome, canTake:left + toCome, yearTotal:monthCap() * TENURE_MONTHS,
           /* minus is allowed only as far as the coming credits can pay it back;
              approved leave beyond that counts as absent */
           beyond:Math.max(0, (taken + ahead) - (open + credited + toCome))};
@@ -5490,24 +5829,32 @@ function absentSince(n){
 /* the yearly picture for one JR, as a small card */
 function leaveSummaryCard(n){
   var b = leaveBalance(n), box = el("div","lsum");
-  box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this posting year"));
+  box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this tenure"));
   var j = recOf("joining", n);
-  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 posting till " + fmt(msOf(b.end))
+  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 tenure till " + fmt(msOf(b.end))
     + (j.extendedTill ? " (extended)" : "") : "")));
+  var four = el("div","lsumfour");
+  function line4(label, val, cls){ var r = el("div","l4" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("b", null, val)); four.appendChild(r); }
+  line4("Balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
+  line4("Next credit", b.next ? "+" + monthCap() + " on " + fmt(msOf(b.next)) : "-");
+  line4("Tenure ends", b.end ? fmt(msOf(b.end)) : "-");
+  line4("Can still take", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  box.appendChild(four);
+  if (b.beyond) box.appendChild(el("div","overcap", b.beyond + " day" + (b.beyond === 1 ? "" : "s") + " of leave beyond what can be paid back - counted absent."));
   var g = el("div","lsumgrid");
+  if (!(HOD || MAAM)) g.hidden = true;                       /* the details are for the office */
   function cell(label, val, cls){ var c = el("div","lsumcell" + (cls ? " " + cls : "")); c.appendChild(el("b", null, val)); c.appendChild(el("span", null, label)); g.appendChild(c); }
-  cell("in the year (" + monthCap() + " a month)", String(b.yearTotal));
+  cell("in a tenure (" + monthCap() + " a month)", String(b.yearTotal));
   cell("balance on 31 Oct", b.hasOpen ? fmtBal(b.open) : "-", b.open < 0 ? "minus" : "");
   cell("credited since", "+" + b.credited);
   cell("taken since 1 Nov", String(Math.round((b.taken + b.ahead) * 10) / 10));
   cell("awaiting approval", String(b.pending), b.pending ? "wait" : "");
   cell("balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
   cell("still to come till the end", "+" + b.toCome);
-  cell("can still take this year", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
+  cell("can still take this tenure", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
   if (b.beyond) cell("beyond the limit - counted absent", String(b.beyond), "minus");
   cell("absent since 1 Nov", String(absentSince(n)), absentSince(n) ? "minus" : "");
   box.appendChild(g);
-  if (b.next) box.appendChild(el("div","lsumsub", "Next " + monthCap() + " on " + fmt(msOf(b.next)) + "."));
   /* their requests and what HOD Sir decided, each with its form */
   var runs = {}, k3;
   for (k3 in DATA.leaves){
@@ -5966,7 +6313,7 @@ function renderJrSetup(host){
    "New JR: tap + Add a JR. Fill in the name, group, mobile, Gmail and joining date.",
    "Gmail: the leave code is sent only to this address. Collect it from the JR in advance.",
    "Balance on 31 Oct: their leave balance from the department's record (minus allowed, e.g. -2 or 0.5). A JR joining later: leave it empty.",
-   "Posting runs one year from joining. If it is extended, put the new last day in Extended till.",
+   "A tenure is 6 months from joining. HOD Sir extends it from his screen; you can also type a new last day in Tenure ends.",
    "A JR who has left: tap Remove. Their record stays; they come off the roster from the date under More settings."]
     .forEach(function(t){ hl.appendChild(el("li", null, t)); });
   intro.appendChild(hl);
@@ -5980,7 +6327,7 @@ function renderJrSetup(host){
   host.appendChild(bar);
 
   var tbl = el("table","ptable jrsetup"), tb = el("tbody");
-  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Extended till",""];
+  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Tenure ends (if changed)",""];
   var hr = el("tr"); COLS.forEach(function(h){ hr.appendChild(el("th",null,h)); });
   var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0); tbl.appendChild(tb);
   var wrap = el("div","scroller"); wrap.appendChild(tbl); host.appendChild(wrap);
@@ -6229,7 +6576,12 @@ function renderJrSetup(host){
       refreshWho(); renderAll(); renderSetup();
       var m3 = document.getElementById("setupMsg");
       if (!m3) return;
-      if (r.failed){ m3.className = "status bad"; m3.textContent = "Could not save. Please try again."; }
+      if (r.failed){
+        m3.className = "status bad";
+        var why = r.why || "";
+        m3.textContent = /bademail/.test(why) ? "Not saved - one of the Gmails does not look right. Please check it (name@gmail.com)."
+          : "Could not save (" + (why || "no answer from the server") + "). Please try again, and send this message to Dr Vivek if it repeats.";
+      }
       else if (r.offline){ m3.className = "status bad"; m3.textContent = "Saved on this phone. It will reach the department when the connection is back."; }
       else { m3.className = "status"; m3.textContent = "Saved. Applies from " + fmt(msOf(from)) + "."; }
     });
@@ -6246,7 +6598,7 @@ function renderSetup(){
   host.innerHTML = "";
   var it0 = document.getElementById("setupIntro");
   if (it0) it0.textContent = "";
-  if (hasTeams()){ renderJrSetup(host); return; }
+  if (hasTeams()){ renderJrSetup(host); ecroSetup(host); return; }
   renderPgSetup(host);
   var adv = document.createElement("details"); adv.className = "moreset"; adv.id = "pgAdvanced";
   var sm = document.createElement("summary"); sm.textContent = "Advanced setup - every setting, as before"; adv.appendChild(sm);
@@ -6254,6 +6606,7 @@ function renderSetup(){
   adv.addEventListener("toggle", function(){ PG_ADV_OPEN = adv.open; if (adv.open && !ah.firstChild) renderPgAdvanced(ah); });
   host.appendChild(adv);
   if (PG_ADV_OPEN){ adv.open = true; renderPgAdvanced(ah); }
+  ecroSetup(host);
   if (HOD) host.appendChild(passPanel());
 }
 function renderPgSetup(host){
@@ -7986,14 +8339,13 @@ function renderHeader(){
     n.innerHTML = "";
     n.appendChild(el("b", null, "Leave rules for Junior Residents"));
     var ul0 = el("ul","rules");
-    ["Your balance starts from the department's record on 31 October 2026.",
-     "You earn " + monthCap() + " days for every month you complete. They are added on the last day of the month.",
-     "In the last month of your posting, that month's " + monthCap() + " days are added on the 1st, so you can use them before you leave.",
-     "Unused leave carries forward to the next month.",
-     "A night duty counts as 2 days, a half day as half. A day your group is off anyway is not counted.",
-     "You may take more than your balance; it goes into minus and is made up from the coming months.",
-     "Leave counts once HOD Sir approves it. While it waits, it shows as leave - not absent.",
-     "Your posting runs for one year from your date of joining, unless it is extended."]
+    ["You are posted for 6 months at a time from your joining date. HOD Sir may extend it by 6 months.",
+     "You get " + monthCap() + " CL for every month you complete, counted from your joining date.",
+     "30 days before your tenure ends, the last month's " + monthCap() + " is added, so you can use it before you go.",
+     "Leave you do not use carries forward. If your tenure is extended, your balance (even minus) carries into the next one.",
+     "You may go into minus, but only up to what you will still get before your tenure ends. Leave beyond that is counted absent.",
+     "A night duty counts as 2 days, a half day as half.",
+     "Leave counts once HOD Sir approves it. While it waits, it is not absent."]
       .forEach(function(t0){ ul0.appendChild(el("li", null, t0)); });
     n.appendChild(ul0);
   } else if (n) n.textContent = leaveMonths() === 12
@@ -8204,7 +8556,7 @@ function renderAll(){
   var ab0 = document.getElementById("applyBtn");
   if (ab0 && CADRE === "jr") ab0.hidden = !can("leave");
   renderHeader(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
-  renderInd(); renderCounter(); renderLedger(); renderSpec();
+  renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro();
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
   applyRoleView();
