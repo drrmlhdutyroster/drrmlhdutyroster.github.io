@@ -1889,10 +1889,17 @@ function slotMeta(k){
 function isAway(k){ return k==="LEAVE"||k==="RELIEVED"||k==="ABSENT"; }
 function slotName(k){
   if(k==="LEAVE") return "On leave";
-  if(k==="ABSENT") return "Absent - leave not approved";
+  if(k==="ABSENT") return "Absent";
   if(k==="RELIEVED") return "Relieved - covered by a colleague";
   var m=slotMeta(k);
   return m.label + (m.time? " " + m.time : "");
+}
+/* why a day shows absent, in plain words */
+function absentWhy(n, key, eff){
+  if (eff && eff.auto && eff.auto[n]) return "not recorded on duty for this shift - tell Dr Praveen Singh Sir if you were on duty";
+  var L = DATA.leaves || {};
+  for (var id in L){ var v = L[id]; if (v && v.resident === n && v.date === key && statusOf(v) === "declined") return "leave not approved by HOD Sir"; }
+  return "marked absent";
 }
 function holidayOn(key){ return (CFG.holidays&&CFG.holidays[key])||null; }
 
@@ -4287,6 +4294,11 @@ function renderRoster(){
     tdE.appendChild(addBtn(key,"move"));
     tdE.appendChild(addBtn(key,"newcover"));
     if (hasTeams()) tdE.appendChild(addBtn(key,"post"));
+    if (academicCanEdit() && !academicKind(key)){       /* same as the phone view */
+      var acD = el("button","addbtn","+ class"); acD.type = "button";
+      acD.onclick = function(){ openAcademicNew(key); };
+      tdE.appendChild(acD);
+    }
     tr.appendChild(tdE);
 
     tb.appendChild(tr);
@@ -5194,7 +5206,8 @@ function renderMine(){
       line.style.color = "var(--warn-ink)";
       du.appendChild(line);
     });
-    if (eff.changed[ME] && !mex.length) du.appendChild(el("small",null,"changed by an exchange"));
+    if (s === "ABSENT") du.appendChild(el("small",null,absentWhy(ME, key, eff)));
+    else if (eff.changed[ME] && !mex.length && !isAway(s)) du.appendChild(el("small",null,"changed by an exchange"));
     row.appendChild(du);
     var withs = [];
     if (s!=="OFF" && !isAway(s)){
