@@ -748,7 +748,7 @@ button.acadline{display:block;width:100%;text-align:left;border:0;font:inherit;c
 .acadmove{display:flex;flex-direction:column;gap:8px}
 /* the shift going on now */
 .trow.live{box-shadow:inset 4px 0 0 var(--accent,#0b6b6b);background:var(--panel)}
-.nowtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent,#0b6b6b);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;vertical-align:1px}
+.nowtag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;background:transparent;color:var(--accent,#0b6b6b);border:1px solid currentColor;font-size:10.5px;font-weight:600;letter-spacing:.02em;line-height:1.5;vertical-align:1px;opacity:.85}
 .trow.folded{opacity:.85}
 .tvfold{background:transparent;border:0;padding:0;font:inherit;font-size:13.5px;color:var(--muted);text-align:left;cursor:pointer;align-self:center}
 .trow.unfolded .tvfold{grid-column:1 / -1;font-size:12.5px}
@@ -851,8 +851,25 @@ a.ecname{color:var(--accent)}
 .ecnone{font-size:13px;color:var(--muted)}
 .ecctl{display:inline-block;margin-left:10px;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;
   border:1px solid var(--rule);border-radius:999px;padding:2px 9px;white-space:nowrap}
-.trow.ecro .tv{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.trow.ecro .ecctl{margin-left:auto}
+.ecinline{gap:2px 8px}
+.ecinline .ecdept{font-weight:500}
+.ecctlmini{display:block;margin-top:3px;font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+/* the ECRO screen: only the ECRO roster shows; on the roster screens it never does */
+body:not(.ecroscreen) #ecroSec{display:none}
+body:not(.cmoscreen) #cmoRSec{display:none}
+body.altscreen .wrap > *:not(header):not(.hrule):not(#ecroSec):not(#cmoRSec):not(#mnav):not(script),
+body.altscreen #specBox, body.altscreen #footNote, body.altscreen #maintBy,
+body.altscreen #switchLine, body.altscreen .adminbar{display:none !important}
+.cmor .tv{display:flex;flex-wrap:wrap;gap:2px 12px}
+.cmorsmall{font-size:12.5px;color:var(--muted);line-height:1.45}
+.cmortbl .ecwho{gap:2px}
+.rtabs{max-width:460px}
+.rtab{white-space:nowrap;padding:9px 6px}
+@media (max-width:420px){ .rtab{font-size:14px;padding:9px 4px} }
+.cmortbl .ecname{white-space:nowrap}
+.cmortbl td.cmoroff{min-width:110px}
+body.ecroscreen #ecroSec{margin-top:6px}
+.ectbl td.ecdate .todaychip{display:inline-block;width:auto;margin:0 0 0 8px;padding:0 7px;font-size:11px;font-weight:600;line-height:1.5;vertical-align:1px;background:transparent;color:var(--accent);border:1px solid currentColor;border-radius:999px}
 .ecbar{align-items:center}
 .ecsaved{margin:4px 0 8px}
 .ecpast{margin:4px 0 10px}
@@ -884,6 +901,46 @@ a.ecname{color:var(--accent)}
   .ecedit td.eccell::before{content:attr(data-l);font-size:12px;color:var(--muted);font-weight:600}
 }
 @media print{ .ecctl, .ecpast{display:none} }
+/* ---- CMO roster: the 30-day grid ---- */
+.cmorgrid{border-collapse:collapse;font-size:12.5px;width:100%}
+.cmorgrid th,.cmorgrid td{border:1px solid var(--rule);padding:4px 3px;text-align:center;min-width:30px}
+.cmorgrid thead th{font-size:12px;font-weight:600;background:var(--panel2,#eef1f1);color:var(--ink);line-height:1.15}
+.cmorgrid thead th .mon{display:block;font-size:10px;font-weight:500;color:var(--muted)}
+.cmorgrid thead th.todaycol{background:var(--accent);color:var(--accent-ink)}
+.cmorgrid thead th.todaycol .mon{color:var(--accent-ink)}
+.cmorgrid th[scope=row]{position:sticky;left:0;z-index:1;background:var(--panel,#fff);text-align:left;white-space:nowrap;padding:4px 8px;font-weight:600}
+.cmorgrid th.plain{position:sticky;left:0;z-index:2;text-align:left;padding-left:8px}
+.cmorgrid td{cursor:pointer}
+.cmorgrid td.cm-M,.cmorgrid td.cm-E,.cmorgrid td.cm-N{font-weight:600}
+.cmorgrid td.cm-M{background:var(--green-bg)}
+.cmorgrid td.cm-E{background:#FFF4DC}
+.cmorgrid td.cm-N{background:var(--red-bg)}
+.cmorgrid td.cm-NO,.cmorgrid td.cm-WO,.cmorgrid td.cm-DO,.cmorgrid td.cm-PO,.cmorgrid td.cm-none{color:var(--muted)}
+.cmorgrid td.cm-EL,.cmorgrid td.cm-CL,.cmorgrid td.cm-RH,.cmorgrid td.cm-GH,.cmorgrid td.cm-L{color:var(--muted);font-style:italic}
+.cmorgrid td.todaycol{box-shadow:inset 0 0 0 1px var(--accent)}
+.cmorgrid td.picked{outline:2px solid var(--accent);outline-offset:-2px}
+.cmorpick{margin-top:8px}
+@media (prefers-color-scheme:dark){ .cmorgrid td.cm-E{background:#3a3220} }
+.tennote{font-size:13px;color:var(--muted);padding:8px 12px;border:1px solid var(--rule);border-radius:10px;margin:8px 0;background:var(--panel)}
+.tennote b{color:var(--ink);font-weight:600}
+/* on the EMO and ECRO screens the heading at the top names the roster */
+body.altscreen #ecroSec > h2, body.altscreen #cmoRSec > h2{display:none}
+/* ---- festivals ---- */
+.festwrap{position:fixed;inset:0;z-index:60;pointer-events:none;transition:opacity .45s}
+.festwrap.festgone{opacity:0}
+.festcanvas{position:absolute;inset:0;width:100%;height:100%}
+.festpill{pointer-events:auto;position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);
+  border:0;border-radius:999px;padding:10px 18px;font:600 15px/1.2 var(--font,inherit);color:#fff;background:#0E5A62;
+  box-shadow:0 6px 24px rgba(0,0,0,.18);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;animation:festin .5s ease-out}
+.festpill.fest-diwali{background:linear-gradient(90deg,#B45309,#D97706)}
+.festpill.fest-holi{background:linear-gradient(90deg,#DB2777,#7C3AED,#2563EB)}
+.festpill.fest-christmas{background:#B91C1C}
+.festpill.fest-national{background:#fff;color:#000080;box-shadow:inset 0 3px 0 #FF9933,inset 0 -3px 0 #138808,0 6px 24px rgba(0,0,0,.18)}
+.festpill.fest-eid{background:#065F46}
+.festpill.fest-petals{background:#C2410C}
+@keyframes festin{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.festpill{animation:none}}
+@media print{.festwrap{display:none}}
 </style>
 
 </head>
@@ -962,7 +1019,7 @@ a.ecname{color:var(--accent)}
     <div id="whoWrap"><label for="whoami">I am</label><select id="whoami" style="width:100%"></select></div>
     <div id="previewBar" hidden><label for="previewRole">Preview - try it as</label>
       <select id="previewRole" style="width:100%">
-        <option value="jr">A JR</option><option value="cmo">A CMO</option>
+        <option value="jr">A JR</option><option value="cmo">A CMO</option><option value="cmoic">Dr Sameeksha Jain (EMO in-charge)</option>
         <option value="maam">Dr Praveen Singh (JR in-charge)</option><option value="faculty">Faculty (look only)</option>
         <option value="hod">HOD Sir</option></select></div>
     <div style="flex:2 1 280px" class="status" id="dbstatus"></div>
@@ -1015,6 +1072,12 @@ a.ecname{color:var(--accent)}
   <div class="scroller" id="tableWrap"><table id="roster"></table></div>
   <div id="cards"></div>
   <p class="note noprint" id="rosterTip" style="margin-top:10px">Tap <b>+ Add</b> on a day to record leave, an exchange, a move or a cover. An exchange swaps just those two duties on that one day. A day somebody else is named to cover is an exchange in practice, so it is not counted against leave.</p>
+</section>
+
+<section id="cmoRSec" hidden>
+  <h2>EMO Supervisor roster</h2>
+  <p class="note" style="margin-top:-4px">EMO Supervisor duty roster, signed by HOD Sir. A name can be called once that CMO has given a number on signing in.</p>
+  <div id="cmoRBox"></div>
 </section>
 
 <section id="ecroSec" hidden>
@@ -1111,6 +1174,7 @@ a.ecname{color:var(--accent)}
 
 <div class="adminbar noprint">
   <button class="ghost" id="pPrint">Print this page</button>
+  <button class="ghost" id="pInstall" hidden>Install app</button>
   <button class="ghost" id="lockBtn" aria-expanded="false" aria-controls="lockBox">Unlock editing</button>
   <button class="ghost" id="setupToggle" aria-expanded="false" aria-controls="setupBox">Setup</button>
   <section id="setupSec">
@@ -2019,13 +2083,37 @@ function nextAcademic(fromKey){
   }
   return null;
 }
+/* more classes or case presentations on a day - any day, any time - each its own entry */
+function acadExtras(key){
+  var d = DATA.academics || {}, out = [];
+  Object.keys(d).forEach(function(id){ var v = d[id]; if (v && v.more && v.date === key) out.push({id:id, v:v}); });
+  out.sort(function(a, b){ return (a.v.time || "99") < (b.v.time || "99") ? -1 : (a.v.time || "99") > (b.v.time || "99") ? 1 : (a.v.createdAt || 0) - (b.v.createdAt || 0); });
+  return out;
+}
+function extraLine(x, small){
+  var can = academicCanEdit(), a = x.v;
+  var d = el(can ? "button" : "div", "acadline" + (small ? " small" : "") + (a.topic ? "" : " unset"));
+  if (can){ d.type = "button"; d.onclick = function(ev){ ev.stopPropagation(); openExtraAcademic(x.v.date, x.id); }; }
+  d.appendChild(el("b", null, a.kind || "Class"));
+  d.appendChild(document.createTextNode((acadTime(a) ? " \u00B7 " + acadTime(a) : "") + " \u00B7 " + (a.topic || "topic not set") + (acadPeople(a) ? " \u00B7 " + acadPeople(a) : "")));
+  return d;
+}
 function academicLine(key, small){
+  var main = academicLineOne(key, small), ex = acadExtras(key);
+  if (!ex.length) return main;
+  var w = el("div","acadwrap");
+  if (main) w.appendChild(main);
+  ex.forEach(function(x){ w.appendChild(extraLine(x, small)); });
+  return w;
+}
+function academicLineOne(key, small){
   var kind = academicKind(key);
   if (!kind) return null;
   var a = academicOn(key), can = academicCanEdit();
   var d = el(can ? "button" : "div", "acadline" + (small ? " small" : ""));
   if (can){ d.type = "button"; d.onclick = function(ev){ ev.stopPropagation(); openAcademic(key); }; }
   d.appendChild(el("b", null, kind));
+  if (a && acadTime(a) && !academicCancelled(key)) d.appendChild(document.createTextNode(" \u00B7 " + acadTime(a)));
   if (academicCancelled(key)){
     var cx = (DATA.academics || {})[safeId("acad", key)];
     d.className += " cancelled";
@@ -2039,6 +2127,11 @@ function academicLine(key, small){
   return d;
 }
 /* who presents (one or more) and who moderates, as a line */
+function acadTime(a){
+  if (!a || !/^\d{2}:\d{2}$/.test(a.time || "")) return "";
+  var h = +a.time.slice(0,2), m = a.time.slice(3);
+  return (h % 12 || 12) + (m === "00" ? "" : ":" + m) + (h < 12 ? " am" : " pm");
+}
 function acadPeople(a){
   if (!a) return "";
   var list = [a.by].concat(a.with || []).filter(function(x){ return x; });
@@ -2057,7 +2150,13 @@ function openAcademic(key){
 var ACAD_EDIT = false;
 function academicBox(host){
   if (hasTeams() || CADRE !== "pg") return;
-  var key = todayKey(), kind = academicKind(key);
+  var key0 = todayKey();
+  acadExtras(key0).forEach(function(x){
+    var l = extraLine(x, false); l.className = l.className.replace("acadline", "acadstrip");
+    l.insertBefore(el("b", null, (x.v.kind || "Class") + " today"), l.firstChild); l.removeChild(l.children[1]);
+    host.appendChild(l);
+  });
+  var key = key0, kind = academicKind(key);
   if (!kind) return;
   var a = academicOn(key) || {};
   var canEdit = UNLOCKED && !FAC && (ROLE === "pg" || HOD);
@@ -2069,7 +2168,7 @@ function academicBox(host){
     line.className += " cancelled";
     line.appendChild(document.createTextNode(" \u00B7 " + (cx0.movedTo ? "postponed to " + fmt(msOf(cx0.movedTo)) : "cancelled")));
   } else
-  line.appendChild(document.createTextNode(" \u00B7 " + (a.topic || (canEdit ? "tap to add the topic" : "topic not set"))
+  line.appendChild(document.createTextNode((acadTime(a) ? " \u00B7 " + acadTime(a) : "") + " \u00B7 " + (a.topic || (canEdit ? "tap to add the topic" : "topic not set"))
     + (acadPeople(a) ? " \u00B7 " + acadPeople(a) : "")));
   if (canEdit) line.onclick = function(){ ACAD_EDIT = !ACAD_EDIT; renderToday(); };
   host.appendChild(line);
@@ -2139,6 +2238,10 @@ function academicEditor(key, onDone, kindIn){
   fp.appendChild(ap); g.appendChild(fp);
   var fm = el("div","pf wide"); fm.appendChild(el("label", null, "Moderator"));
   var mi = nameInput(a.mod, "Faculty or senior moderating (optional)"); fm.appendChild(mi); g.appendChild(fm);
+  /* any time of day: optional */
+  var ft = el("div","pf"); ft.appendChild(el("label", null, "Time (optional)"));
+  var tmi = document.createElement("input"); tmi.type = "time"; tmi.value = a.time || ""; tmi.className = "acadtime";
+  ft.appendChild(tmi); g.appendChild(ft);
   box.appendChild(g); box.appendChild(dl);
   function presNow(){ return [].map.call(plist.querySelectorAll("input"), function(i){ return clean(i.value); }).filter(function(x){ return x; }); }
   function byNow(){ return presNow()[0] || ""; }
@@ -2149,6 +2252,7 @@ function academicEditor(key, onDone, kindIn){
     var pn = presNow();
     var body = {date:key, kind:kind, topic:String(ti.value || "").trim(), by:pn[0] || "", "with":pn.slice(1), mod:clean(mi.value),
                 setBy:whoName() || ME || "", createdAt:Date.now()};
+    if (/^\d{2}:\d{2}$/.test(tmi.value || "")) body.time = tmi.value;
     if (own && own.extra){ body.extra = true; if (own.from) body.from = own.from; }
     if (!own && !academicKind(key)) body.extra = true;     /* a class added on a day that has none */
     jobs([putDay(key, body)], kind + " saved.");
@@ -2180,7 +2284,7 @@ function academicEditor(key, onDone, kindIn){
       if (!plan.moved) r2.skips = (r2.skips || []).concat([key]);
       L = [putRec(r2)];
     } else {
-      var b2 = {date:to, kind:kind, topic:String(ti.value || a.topic || "").trim(), by:byNow() || a.by || "", "with":presNow().slice(1), mod:clean(mi.value) || a.mod || "", extra:true, from:key,
+      var b2 = {date:to, kind:kind, topic:String(ti.value || a.topic || "").trim(), by:byNow() || a.by || "", "with":presNow().slice(1), mod:clean(mi.value) || a.mod || "", extra:true, from:key, time:(/^\d{2}:\d{2}$/.test(tmi.value || "") ? tmi.value : (a.time || "")),
                 setBy:whoName() || ME || "", createdAt:Date.now()};
       var s2 = JSON.parse(JSON.stringify(stamp)); s2.movedTo = to;
       L = [putDay(to, b2), putDay(key, s2)];
@@ -2216,13 +2320,62 @@ function openAcademicNew(key){
   var box = el("div","acadedit");
   box.appendChild(el("p","acadsub","What is it?"));
   var row = el("div","acadbtns");
+  var taken = !!academicKind(key);          /* the day has one already: this one is added beside it */
   ["Class","Case presentation"].forEach(function(k){
     var b = el("button","ghost",k); b.type = "button";
-    b.onclick = function(){ openSheet(k + " - " + fmt(msOf(key)), academicEditor(key, function(){ closeSheet(); }, k)); };
+    b.onclick = function(){ if (taken) openExtraAcademic(key, null, k); else openSheet(k + " - " + fmt(msOf(key)), academicEditor(key, function(){ closeSheet(); }, k)); };
     row.appendChild(b);
   });
   box.appendChild(row);
   openSheet("Add on " + fmt(msOf(key)), box);
+}
+/* an extra class / case presentation: kind, topic, presenters, moderator, time; remove */
+function openExtraAcademic(key, id, kindIn){
+  var a = id ? ((DATA.academics || {})[id] || {}) : {kind: kindIn || "Class"};
+  var box = el("div","acadedit"), st = el("p","status");
+  var kr = el("div","acadbtns"), kind = a.kind || "Class";
+  ["Class","Case presentation"].forEach(function(k){
+    var b = el("button", k === kind ? "primary" : "ghost", k); b.type = "button";
+    b.onclick = function(){ kind = k; [].forEach.call(kr.children, function(c){ c.className = c.textContent === k ? "primary" : "ghost"; }); };
+    kr.appendChild(b);
+  });
+  box.appendChild(kr);
+  var g = el("div","cmogrid");
+  function fld(label, inp, wide){ var f = el("div","pf" + (wide ? " wide" : "")); f.appendChild(el("label", null, label)); f.appendChild(inp); g.appendChild(f); return inp; }
+  var ti = document.createElement("input"); ti.type = "text"; ti.value = a.topic || ""; ti.placeholder = "Topic"; fld("Topic", ti, true);
+  var pr = document.createElement("input"); pr.type = "text"; pr.placeholder = "e.g. Bhawna, Vivek";
+  pr.value = [a.by].concat(a["with"] || []).filter(function(x){ return x; }).map(function(x){ return title(x); }).join(", "); fld("Presenter(s)", pr, true);
+  var mo = document.createElement("input"); mo.type = "text"; mo.value = a.mod ? title(a.mod) : ""; mo.placeholder = "optional"; fld("Moderator", mo, true);
+  var tm = document.createElement("input"); tm.type = "time"; tm.value = a.time || ""; tm.className = "acadtime"; fld("Time (optional)", tm);
+  box.appendChild(g);
+  var bar = el("div","inline"), sv = el("button","primary","Save"), cl = el("button","ghost","Close");
+  sv.type = cl.type = "button"; bar.appendChild(sv); bar.appendChild(cl);
+  var nid = id || safeId("acadx", key, String(Date.now()));
+  function clean(x){ return String(x || "").trim().replace(/^dr\.?\s+/i, "").toUpperCase(); }
+  sv.onclick = function(){
+    var ps = pr.value.split(",").map(clean).filter(function(x){ return x; });
+    var body = {date:key, kind:kind, more:true, topic:String(ti.value || "").trim(), by:ps[0] || "", "with":ps.slice(1), mod:clean(mo.value),
+                setBy:whoName() || ME || "", createdAt:a.createdAt || Date.now()};
+    if (/^\d{2}:\d{2}$/.test(tm.value || "")) body.time = tm.value;
+    st.className = "status"; st.textContent = "Saving\u2026";
+    runSeq([function(){ return STORE.put("academics", nid, body); }]).then(function(r){
+      if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not save. Please try again."; return; }
+      closeSheet(); renderAll(); setStatus(kind + " saved.");
+    });
+  };
+  cl.onclick = function(){ closeSheet(); };
+  if (id){
+    var rm = el("button","ghost","Remove"); rm.type = "button";
+    rm.onclick = function(){
+      runSeq([function(){ return STORE.drop("academics", id); }]).then(function(r){
+        if (r.refused || r.failed){ st.className = "status bad"; st.textContent = "Could not remove. Please try again."; return; }
+        closeSheet(); renderAll(); setStatus("Removed.");
+      });
+    };
+    bar.appendChild(rm);
+  }
+  box.appendChild(bar); box.appendChild(st);
+  openSheet((id ? "" : "Add: ") + kind + " - " + fmt(msOf(key)), box);
 }
 /* the class series itself: add, remove, reorder topics; change presenters */
 function openSeriesEditor(){
@@ -2344,17 +2497,18 @@ function ecroMonths(){
 }
 function ecroMonthName(mk){ return ["January","February","March","April","May","June","July","August","September","October","November","December"][+mk.slice(5) - 1] + " " + mk.slice(0,4); }
 /* who: department and doctor (the name calls), or just Emergency Medicine */
-function ecroWho(v){
-  var box = el("span","ecwho");
+function ecroWho(v, inline){
+  var box = el("span","ecwho" + (inline ? " ecinline" : ""));
   if (!v){ box.appendChild(el("span","ecnone","Not given")); return box; }
   if (ecroIsEM(v[0])){ box.appendChild(el("span","ecem", EM_DEPT)); return box; }
-  if (v[0]) box.appendChild(el("span","ecdept", v[0]));
+  if (v[0] && !inline) box.appendChild(el("span","ecdept", v[0]));
   if (v[1]){
     var nm = ecroName(v[1]), a = document.createElement(v[2] ? "a" : "span");
     a.className = "ecname"; a.textContent = nm + (v[2] ? " ☎" : "");
     if (v[2]){ a.href = telHref(v[2]); a.title = "Call " + nm; }
     box.appendChild(a);
   }
+  if (v[0] && inline) box.appendChild(el("span","ecdept", v[0]));
   return box;
 }
 function ecroCtl(){
@@ -2369,23 +2523,339 @@ function ecroRow(host){
   var now = ecroNow(), m = ecroMeta(now.k), v = ecroCell(now.key, now.k);
   var row = el("div","trow ecro"), tl = el("div","tl");
   tl.appendChild(el("b", null, "ECRO"));
-  tl.appendChild(document.createTextNode(m[1] + " " + m[2]));
+  tl.appendChild(document.createTextNode(m[2]));
+  var c = ecroCtl(); if (c){ c.className = "ecctlmini noprint"; tl.appendChild(c); }
   row.appendChild(tl);
   var tv = el("div","tv");
-  if (v) tv.appendChild(ecroWho(v));
+  if (v) tv.appendChild(ecroWho(v, true));
   else tv.appendChild(el("span","ecnone", ECRO.days && Object.keys(ECRO.days).some(function(k){ return k.slice(0,7) === now.key.slice(0,7); })
     ? "Not given for this shift" : "The " + ecroMonthName(now.key.slice(0,7)) + " ECRO roster is not in yet"));
-  var c = ecroCtl(); if (c) tv.appendChild(c);
   row.appendChild(tv); host.appendChild(row);
 }
 /* the ECRO tab: the whole month, today marked, earlier days folded away */
+/* ---------- the CMO roster (EMO Supervisor duty roster) ----------
+   The department's signed monthly roster: morning 8 am-2 pm, evening 2-8 pm,
+   night 8 pm-8 am, night off, and week off / leave with its reason. It comes
+   from the Sheet with every load, like the ECRO roster. Numbers are not on the
+   roster: a name can be called when that CMO has given a number on signing in. */
+var CMOR = (typeof SEED !== "undefined" && SEED && SEED.cmor) || null;
+var CMOR_MONTH = null, CMOR_PAST = false;
+var CMOR_SHIFTS = [["M","Morning","08:00-14:00","8 am - 2 pm","8-2"],["E","Evening","14:00-20:00","2 pm - 8 pm","2-8"],["N","Night","20:00-08:00","8 pm - 8 am","8-8"]];
+/* The CMO screen: HOD Sir, faculty, the JR in-charge, the CMO in-charge and the CMOs.
+   Not PGs, JRs or nursing. (ecroFull is the same list without the CMOs.) */
+function cmorOn(){ return (ecroFull() || ROLE === "cmo") && !!(CMOR && CMOR.days && Object.keys(CMOR.days).length); }
+function cmorMonths(){ var m = {}; Object.keys((CMOR && CMOR.days) || {}).forEach(function(k){ m[k.slice(0,7)] = 1; }); return Object.keys(m).sort(); }
+/* "KIRAN MS" -> "Dr Kiran MS", "SHREYAS BL" -> "Dr Shreyas BL" */
+function cmorName(n){
+  return "Dr " + String(n || "").trim().split(/\s+/).map(function(w){ return w.length <= 2 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }).join(" ");
+}
+/* the number a CMO gave when signing in (the latest one), matched by name */
+function cmorPhone(n){
+  var want = String(n || "").toUpperCase().replace(/^DR\.?\s+/, "").trim(), best = null;
+  [DATA && DATA.cmos, OTHER && OTHER.data && OTHER.data.cmos].forEach(function(src){
+    Object.keys(src || {}).forEach(function(k){
+      var v = src[k]; if (!v || !v.phone) return;
+      var got = String(v.name || "").toUpperCase().replace(/^DR\.?\s+/, "").trim();
+      if (got === want || got.split(/\s+/)[0] === want.split(/\s+/)[0] && (got.indexOf(want) === 0 || want.indexOf(got) === 0)){
+        if (!best || (v.createdAt || 0) > (best.createdAt || 0)) best = v;
+      }
+    });
+  });
+  return best ? best.phone : "";
+}
+function cmorPerson(n){
+  var nm = cmorName(n), ph = cmorPhone(n), a = document.createElement(ph ? "a" : "span");
+  a.className = "ecname cmorn"; a.textContent = nm + (ph ? " ☎" : "");
+  if (ph){ a.href = telHref(ph); a.title = "Call " + nm; }
+  return a;
+}
+function cmorShiftNow(){ var sd = shiftAndDate(); return {key: sd.key, k: sd.slot}; }
+function cmorCtl(cls){
+  if (!CMOR || !CMOR.phone) return null;
+  var a = document.createElement("a"); a.className = (cls || "ecctl") + " noprint"; a.href = telHref(CMOR.phone);
+  a.textContent = "☎ EMO Supervisor"; a.title = "Call the EMO Supervisor mobile (" + CMOR.phone + ")";
+  return a;
+}
+/* one row on Today: the CMOs on the shift running now, from the roster */
+function cmorRow(host){
+  if (!CMOR || !CMOR.days) return;
+  var now = cmorShiftNow(), d = CMOR.days[now.key], list = (d && d[now.k]) || [];
+  var m = null; CMOR_SHIFTS.forEach(function(s){ if (s[0] === now.k) m = s; });
+  var row = el("div","trow ecro cmor"), tl = el("div","tl");
+  tl.appendChild(el("b", null, "EMO"));
+  tl.appendChild(document.createTextNode(m[2]));
+  var c = cmorCtl("ecctlmini"); if (c) tl.appendChild(c);
+  row.appendChild(tl);
+  var tv = el("div","tv");
+  if (list.length) list.forEach(function(n){ tv.appendChild(cmorPerson(n)); });
+  else tv.appendChild(el("span","ecnone", d ? "Not given for this shift" : "The " + ecroMonthName(now.key.slice(0,7)) + " EMO roster is not in yet"));
+  row.appendChild(tv); host.appendChild(row);
+}
+/* the CMO screen: 7 days (day by day) or 30 days (one grid, a row per CMO) */
+var CMOR_VIEW = "7", CMOR_FROM = null, CMOR_PICK = "";
+function cmorCode(note){
+  var n = String(note || "").toUpperCase();
+  if (/^WO\b/.test(n)) return "WO";
+  if (/^(EL|CL|RH|GH)\b/.test(n)) return n.slice(0,2);
+  if (/^PENDING/.test(n)) return "PO";
+  if (/^DUTY OFF/.test(n)) return "DO";
+  if (/^GH/.test(n)) return "GH";
+  return "L";
+}
+function cmorWhere(day, name){
+  if (!day) return null;
+  var r = null;
+  CMOR_SHIFTS.forEach(function(s){ if ((day[s[0]] || []).indexOf(name) >= 0) r = {code:s[0], note:s[1] + " " + s[3]}; });
+  if (r) return r;
+  if ((day.O || []).indexOf(name) >= 0) return {code:"NO", note:"Night off"};
+  (day.L || []).forEach(function(x){ if (x[0] === name) r = {code:cmorCode(x[1]), note:x[1]}; });
+  return r;
+}
+function cmorDayCard(k, now){
+  var day = (CMOR.days || {})[k] || {}, dt = new Date(msOf(k)), tr = el("tr", k === now.key ? "ectoday" : null);
+  tr.setAttribute("data-date", k);
+  var td0 = el("td","ecdate", DOW[dt.getUTCDay()] + " " + dt.getUTCDate() + " " + MON[dt.getUTCMonth()]);
+  if (k === todayKey()) td0.appendChild(el("span","todaychip","Today"));
+  tr.appendChild(td0);
+  CMOR_SHIFTS.forEach(function(s){
+    var isNow = k === now.key && s[0] === now.k, td = el("td", isNow ? "ecnow" : null), who = el("span","ecwho");
+    td.setAttribute("data-l", s[1] + " " + s[4]);
+    if (isNow) who.appendChild(el("span","nowtag","Now"));
+    (day[s[0]] || []).forEach(function(n){ who.appendChild(cmorPerson(n)); });
+    if (!(day[s[0]] || []).length) who.appendChild(el("span","ecnone","-"));
+    td.appendChild(who); tr.appendChild(td);
+  });
+  var tdo = el("td","cmoroff"); tdo.setAttribute("data-l","Night off");
+  tdo.appendChild(el("span","cmorsmall", (day.O || []).map(cmorName).join(", ") || "-"));
+  tr.appendChild(tdo);
+  var tdl = el("td","cmoroff"); tdl.setAttribute("data-l","Off / leave");
+  tdl.appendChild(el("span","cmorsmall", (day.L || []).map(function(x){ return cmorName(x[0]) + " (" + x[1] + ")"; }).join(", ") || "-"));
+  tr.appendChild(tdl);
+  return tr;
+}
+function renderCmor(){
+  var sec = document.getElementById("cmoRSec"), box = document.getElementById("cmoRBox");
+  if (!sec || !box) return;
+  var on = cmorOn();
+  sec.hidden = !on; box.innerHTML = "";
+  if (!on){ applyEcroScreen(); return; }
+  var now = cmorShiftNow();
+  if (!CMOR_FROM) CMOR_FROM = now.key;
+  var top = el("div","bar ecbar");
+  [["7","7 days"],["30","30 days"]].forEach(function(v){
+    var b = el("button","noprint " + (CMOR_VIEW === v[0] ? "primary" : "ghost"), v[1]); b.type = "button"; b.id = "cmorV" + v[0];
+    b.onclick = function(){ CMOR_VIEW = v[0]; CMOR_PICK = ""; renderCmor(); };
+    top.appendChild(b);
+  });
+  top.appendChild(el("span","grow"));
+  var c = cmorCtl(); if (c) top.appendChild(c);
+  box.appendChild(top);
+  var span = CMOR_VIEW === "30" ? 30 : 7, from = msOf(CMOR_FROM), keys = [];
+  for (var i = 0; i < span; i++) keys.push(iso(from + i * DAY));
+  var nav = el("div","bar");
+  var pv = el("button","ghost noprint","← Earlier"); pv.type = "button"; pv.id = "cmorPrev";
+  pv.onclick = function(){ CMOR_FROM = iso(from - span * DAY); CMOR_PICK = ""; renderCmor(); };
+  var nx = el("button","ghost noprint","Later →"); nx.type = "button"; nx.id = "cmorNext";
+  nx.onclick = function(){ CMOR_FROM = iso(from + span * DAY); CMOR_PICK = ""; renderCmor(); };
+  var a = new Date(from), z = new Date(from + (span - 1) * DAY);
+  nav.appendChild(pv);
+  nav.appendChild(el("span","blocklabel", a.getUTCDate() + " " + MON[a.getUTCMonth()] + " – " + z.getUTCDate() + " " + MON[z.getUTCMonth()] + " " + z.getUTCFullYear()));
+  nav.appendChild(nx);
+  if (CMOR_FROM !== now.key){
+    var tb0 = el("button","ghost noprint","Back to today"); tb0.type = "button";
+    tb0.onclick = function(){ CMOR_FROM = now.key; CMOR_PICK = ""; renderCmor(); };
+    nav.appendChild(tb0);
+  }
+  box.appendChild(nav);
+  var sv = CMOR.saved && CMOR.saved[CMOR_FROM.slice(0,7)];
+  if (sv && sv.by) box.appendChild(el("p","note ecsaved","Last changed by the " + sv.by + (sv.at ? ", " + fmt(Date.parse(sv.at)) : "") + "."));
+  if (!keys.some(function(k){ return CMOR.days[k]; })){
+    box.appendChild(el("p","note","No EMO roster for these dates yet."));
+    applyEcroScreen(); return;
+  }
+  if (CMOR_VIEW === "7"){
+    var tbl = el("table","ectbl cmortbl"), th = el("thead"), hr = el("tr");
+    hr.appendChild(el("th", null, "Date"));
+    CMOR_SHIFTS.forEach(function(s){ var h = el("th", null, s[1]); h.appendChild(el("small", null, s[3])); hr.appendChild(h); });
+    hr.appendChild(el("th", null, "Night off")); hr.appendChild(el("th", null, "Week off / leave"));
+    th.appendChild(hr); tbl.appendChild(th);
+    var tb = el("tbody");
+    keys.forEach(function(k){ tb.appendChild(cmorDayCard(k, now)); });
+    tbl.appendChild(tb);
+    var sc = el("div","scroller"); sc.appendChild(tbl); box.appendChild(sc);
+  } else {
+    /* 30 days: a row per CMO, a short code per day; tap a day to read it in full */
+    var names = [];
+    keys.forEach(function(k){
+      var d = CMOR.days[k]; if (!d) return;
+      ["M","E","N","O"].forEach(function(s){ (d[s] || []).forEach(function(n){ if (names.indexOf(n) < 0) names.push(n); }); });
+      (d.L || []).forEach(function(x){ if (names.indexOf(x[0]) < 0) names.push(x[0]); });
+    });
+    names.sort();
+    var g = el("table","cmorgrid"), gh = el("thead"), gr = el("tr");
+    gr.appendChild(el("th","plain","EMO"));
+    keys.forEach(function(k){
+      var dt = new Date(msOf(k)), h = el("th", k === now.key ? "todaycol" : null, String(dt.getUTCDate()));
+      h.appendChild(el("span","mon", DOW[dt.getUTCDay()].slice(0,3)));
+      gr.appendChild(h);
+    });
+    gh.appendChild(gr); g.appendChild(gh);
+    var gb = el("tbody");
+    names.forEach(function(n){
+      var tr = el("tr"), nh = el("th"); nh.setAttribute("scope","row");
+      nh.appendChild(cmorPerson(n)); tr.appendChild(nh);
+      keys.forEach(function(k){
+        var w = cmorWhere(CMOR.days[k], n), code = w ? w.code : "", td = el("td","cm-" + (code || "none") + (k === now.key ? " todaycol" : ""), code === "NO" ? "NO" : code || "·");
+        if (CMOR_PICK === n + "|" + k) td.className += " picked";
+        td.onclick = function(){ CMOR_PICK = CMOR_PICK === n + "|" + k ? "" : n + "|" + k; renderCmor(); };
+        tr.appendChild(td);
+      });
+      gb.appendChild(tr);
+    });
+    g.appendChild(gb);
+    var sc2 = el("div","scroller"); sc2.appendChild(g); box.appendChild(sc2);
+    var pick = el("p","note cmorpick");
+    if (CMOR_PICK){
+      var pp = CMOR_PICK.split("|"), w2 = cmorWhere(CMOR.days[pp[1]], pp[0]), d2 = new Date(msOf(pp[1]));
+      pick.textContent = cmorName(pp[0]) + " · " + DOW[d2.getUTCDay()] + " " + d2.getUTCDate() + " " + MON[d2.getUTCMonth()] + ": " + (w2 ? w2.note : "not on the roster this day");
+    } else pick.textContent = "M morning · E evening · N night · NO night off · WO week off · EL / CL / RH leave · PO pending off · DO duty off. Tap a day to read it in full.";
+    box.appendChild(pick);
+  }
+  applyEcroScreen();
+}
+
+/* Setup (the CMO in-charge, and HOD Sir): type in a month of the CMO roster */
+function cmorParseLeave(t){
+  var out = [], re = /\s*([^,(]+?)\s*(?:\(([^)]*)\))?\s*(?:,|$)/g, m, s = String(t || "").trim();
+  while (s && (m = re.exec(s)) && m[0].length){
+    var n = m[1].replace(/^dr\.?\s+/i, "").trim().toUpperCase();
+    if (n) out.push([n, (m[2] || "").trim()]);
+    if (re.lastIndex >= s.length) break;
+  }
+  return out;
+}
+function cmorParseNames(t){
+  return String(t || "").split(",").map(function(x){ return x.replace(/^\s*dr\.?\s+/i, "").trim().toUpperCase(); }).filter(function(x){ return x; });
+}
+function cmorSetup(host){
+  var wrap = el("div","ecset cmset"); host.appendChild(wrap);
+  wrap.appendChild(el("h3","sethead","EMO Supervisor roster"));
+  wrap.appendChild(el("p","note","The EMO Supervisor roster, one month at a time. Write the names separated by commas, e.g. Shalini, Anupriya, Shreyas BL. "
+    + "For week off / leave put the reason in brackets, e.g. Shweta (WO), Kiran MS (CL, out of station). Saved on its own, with its own button."));
+  var ph = document.createElement("input"); ph.type = "tel"; ph.id = "cmPhone"; ph.value = (CMOR && CMOR.phone) || ""; ph.placeholder = "EMO Supervisor mobile";
+  var mIn = document.createElement("input"); mIn.type = "month"; mIn.id = "cmMonth";
+  mIn.value = (CMOR_FROM || cmorShiftNow().key).slice(0,7);
+  var row1 = el("div","inline"); row1.appendChild(field("Month", mIn)); row1.appendChild(field("EMO Supervisor mobile", ph)); wrap.appendChild(row1);
+  var work = {};
+  var grid = el("div"); wrap.appendChild(grid);
+  var COLS = [["M","Morning 8-2"],["E","Evening 2-8"],["N","Night 8-8"],["O","Night off"],["L","Week off / leave"]];
+  function monthWork(mk){
+    if (!work[mk]){
+      work[mk] = {};
+      var y = +mk.slice(0,4), mo = +mk.slice(5) - 1, last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+      for (var d = 1; d <= last; d++){
+        var k = mk + "-" + (d < 10 ? "0" : "") + d, src = (CMOR && CMOR.days && CMOR.days[k]) || {};
+        var nm = function(x){ return cmorName(x).replace(/^Dr /, ""); };     /* "Shreyas BL", "Kiran MS" */
+        work[mk][k] = {M:(src.M||[]).map(nm).join(", "), E:(src.E||[]).map(nm).join(", "), N:(src.N||[]).map(nm).join(", "),
+          O:(src.O||[]).map(nm).join(", "), L:(src.L||[]).map(function(x){ return nm(x[0]) + (x[1] ? " (" + x[1] + ")" : ""); }).join(", ")};
+      }
+    }
+    return work[mk];
+  }
+  function draw(){
+    grid.innerHTML = "";
+    var mk = mIn.value; if (!/^\d{4}-\d{2}$/.test(mk)) return;
+    var w = monthWork(mk), tbl = el("table","ecedit cmedit"), th = el("thead"), hr = el("tr");
+    hr.appendChild(el("th", null, "Date"));
+    COLS.forEach(function(c){ hr.appendChild(el("th", null, c[1])); });
+    th.appendChild(hr); tbl.appendChild(th);
+    var tb = el("tbody");
+    Object.keys(w).sort().forEach(function(k){
+      var dd = new Date(msOf(k)), tr = el("tr");
+      tr.appendChild(el("td","ecdate", DOW[dd.getUTCDay()] + " " + dd.getUTCDate()));
+      COLS.forEach(function(c){
+        var td = el("td","eccell"); td.setAttribute("data-l", c[1]);
+        var inp = document.createElement(c[0] === "L" ? "textarea" : "input");
+        if (c[0] !== "L") inp.type = "text"; else inp.rows = 2;
+        inp.value = w[k][c[0]]; inp.className = "cm" + c[0];
+        inp.setAttribute("aria-label", dd.getUTCDate() + " " + MON[dd.getUTCMonth()] + " " + c[1]);
+        inp.oninput = function(){ w[k][c[0]] = inp.value; };
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    var sc = el("div","scroller"); sc.appendChild(tbl); grid.appendChild(sc);
+  }
+  mIn.onchange = draw; draw();
+  var bar = el("div","inline"); bar.style.marginTop = "10px";
+  var save = el("button","primary","Save EMO roster"); save.type = "button"; save.id = "cmSave";
+  var st = el("span","status"); st.id = "cmStat";
+  bar.appendChild(save); bar.appendChild(st); wrap.appendChild(bar);
+  function say(t, bad){ st.textContent = t; st.className = "status" + (bad ? " bad" : ""); }
+  save.onclick = function(){
+    var mk = mIn.value; if (!/^\d{4}-\d{2}$/.test(mk)){ say("Choose the month first.", true); return; }
+    var w = monthWork(mk), days = {}, errs = [];
+    var phone = ph.value.replace(/[^0-9+]/g, "");
+    if (phone && phone.replace(/^\+?91/, "").length !== 10) errs.push("EMO Supervisor mobile: 10 digits, please");
+    Object.keys(w).sort().forEach(function(k){
+      var dd = new Date(msOf(k)), dn = dd.getUTCDate() + " " + MON[dd.getUTCMonth()];
+      var d = {M:cmorParseNames(w[k].M), E:cmorParseNames(w[k].E), N:cmorParseNames(w[k].N), O:cmorParseNames(w[k].O), L:cmorParseLeave(w[k].L)};
+      var all = d.M.concat(d.E, d.N, d.O, d.L.map(function(x){ return x[0]; })), seen = {};
+      all.forEach(function(n){ if (seen[n]) errs.push(dn + ": " + title(n) + " is written twice"); seen[n] = 1; });
+      days[k] = d;
+    });
+    if (errs.length){ say(errs.slice(0,3).join(" · ") + (errs.length > 3 ? " · and " + (errs.length - 3) + " more" : ""), true); return; }
+    save.disabled = true; say("Saving…");
+    STORE.saveCmor({month:mk, phone:phone, days:days}).then(function(res){
+      if (res && res.cmor) CMOR = res.cmor;
+      else {
+        CMOR = CMOR || {phone:"", days:{}, saved:{}};
+        Object.keys(CMOR.days).forEach(function(k){ if (k.slice(0,7) === mk) delete CMOR.days[k]; });
+        Object.keys(days).forEach(function(k){ CMOR.days[k] = days[k]; });
+        CMOR.phone = phone; CMOR.saved = CMOR.saved || {};
+        CMOR.saved[mk] = {by: HOD ? "HOD" : "EMO in-charge", at: new Date().toISOString()};
+        STORE.keepLocal();
+      }
+      delete work[mk];
+      save.disabled = false; say("Saved - " + ecroMonthName(mk) + ". Everyone sees it on their next refresh.");
+      renderCmor(); renderToday();
+    }, function(e){
+      save.disabled = false;
+      var m = String((e && e.message) || e);
+      say(m === "hod" ? "Only HOD Sir or the EMO in-charge can change the EMO roster." : m === "unreachable" ? "No connection just now - nothing was saved. Please try again." : "Could not save (" + m + ").", true);
+    });
+  };
+}
+
+/* The ECRO roster is a screen of its own, like the PG and JR rosters: the
+   address ends in #ecro, and nothing else of the roster page shows. */
+/* the ECRO screen: HOD Sir, faculty, the JR in-charge and the CMO in-charge.
+   PGs, JRs, CMOs and nursing see the ECRO on now, on Today. */
+function ecroFull(){ return HOD || ["faculty","maam","cmoic"].indexOf(ROLE) >= 0; }   /* not PG, JR, CMO or nursing */
+function ecroOn(){ return ecroFull() && !!(ECRO && (ecroMonths().length || ECRO.phone)); }
+function ecroScreen(){ return location.hash === "#ecro" && ecroOn(); }
+function cmorScreen(){ return location.hash === "#cmo" && cmorOn(); }
+function altScreen(){ return ecroScreen() ? "ecro" : cmorScreen() ? "cmo" : ""; }
+function applyEcroScreen(){
+  var sc = altScreen(), was = document.body.getAttribute("data-screen") || "";
+  document.body.classList.toggle("ecroscreen", sc === "ecro");
+  document.body.classList.toggle("cmoscreen", sc === "cmo");
+  document.body.classList.toggle("altscreen", !!sc);
+  document.body.setAttribute("data-screen", sc);
+  try { renderHeader(); } catch(e){}
+  var nav = document.getElementById("mnav");
+  if (nav && sc) [].forEach.call(nav.querySelectorAll("button"), function(b){ b.className = (sc === "ecro" && b.id === "mnavEcro") ? "on" : ""; });
+  if (sc !== was) window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", applyEcroScreen);
 function renderEcro(){
   var sec = document.getElementById("ecroSec"), box = document.getElementById("ecroBox"), nb = document.getElementById("mnavEcro");
   if (!sec || !box) return;
-  var months = ecroMonths(), on = !!(ECRO && (months.length || ECRO.phone));
+  var months = ecroMonths(), on = ecroOn();
   sec.hidden = !on; if (nb) nb.hidden = !on;
   box.innerHTML = "";
-  if (!on) return;
+  if (!on){ applyEcroScreen(); return; }
   var now = ecroNow(), cur = now.key.slice(0,7);
   if (!ECRO_MONTH || months.indexOf(ECRO_MONTH) < 0) ECRO_MONTH = months.indexOf(cur) >= 0 ? cur : (months[months.length - 1] || cur);
   var top = el("div","bar ecbar");
@@ -2432,8 +2902,9 @@ function renderEcro(){
   });
   tbl.appendChild(tb);
   var sc = el("div","scroller"); sc.appendChild(tbl); box.appendChild(sc);
+  applyEcroScreen();
 }
-/* Setup (HOD, and the in-charge): type in a month of the ECRO roster */
+/* Setup (HOD Sir, every month): type in a month of the ECRO roster */
 function ecroSetup(host){
   var wrap = el("div","ecset"); host.appendChild(wrap);
   wrap.appendChild(el("h3","sethead","ECRO roster"));
@@ -2707,7 +3178,7 @@ try { PASSKEY = localStorage.getItem(lsName("rml_key")) || ""; } catch(e){}
 /* a PG looking at the JR roster uses the PG passphrase already on the phone */
 try { if (!PASSKEY && CADRE === "jr") PASSKEY = localStorage.getItem("rml_key") || ""; } catch(e){}
 /* the JR in-charge is faculty too: his passphrase also opens the PG roster, to look at */
-try { if (!PASSKEY && CADRE === "pg") PASSKEY = localStorage.getItem("rml_maam") || ""; } catch(e){}
+try { if (!PASSKEY && CADRE === "pg") PASSKEY = localStorage.getItem("rml_maam") || localStorage.getItem("rml_cmoic") || ""; } catch(e){}
 var ROLE = null;           /* who the server says this device is: pg, jr, maam or hod */
 var MAAM = false;          /* the faculty who keeps the JR roster */
 var GATED = false;         /* the server would not show this roster without a passphrase */
@@ -2720,7 +3191,7 @@ try { HODKEY = localStorage.getItem("rml_hod") || ""; } catch(e){}
    HOD's it is kept once for the whole site, not per roster. */
 var FACKEY = "";
 try { FACKEY = localStorage.getItem("rml_fac") || ""; } catch(e){}
-var CMO = false, FAC = false, NURSE = false;   /* NURSE: nursing staff - on duty, roster and numbers only */
+var CMO = false, FAC = false, NURSE = false, CMOIC = false;   /* CMOIC: the CMO in-charge (Sameeksha ma'am) */   /* NURSE: nursing staff - on duty, roster and numbers only */
 /* The CMO passphrase is shared, so each CMO types their own name; it is
    written on every absence and posting they enter. */
 var CMONAME = "";
@@ -2772,7 +3243,7 @@ var STORE = (function(){
     catch(e){ return null; }
   }
   function writeLocal(){
-    try { localStorage.setItem(KEY, JSON.stringify({config:CFG, data:DATA, ecro:ECRO})); return true; }
+    try { localStorage.setItem(KEY, JSON.stringify({config:CFG, data:DATA, ecro:ECRO, cmor:CMOR})); return true; }
     catch(e){ return false; }
   }
 
@@ -2840,13 +3311,13 @@ var STORE = (function(){
     /* what this phone held last time: shown at once, before the Sheet answers */
     loadLocal: function(){
       var o = readLocal();
-      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; applyQ(); }
+      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; if (o.cmor) CMOR = o.cmor; applyQ(); }
       return !!(o && o.config);
     },
     load: function(){
       var self = this;
       var o = readLocal();
-      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; }
+      if (o){ if (o.config) CFG = o.config; if (o.data) DATA = o.data; if (o.ecro) ECRO = o.ecro; if (o.cmor) CMOR = o.cmor; }
       if (!ENDPOINT) return Promise.resolve();
       self.shared = true;
       return call({action:"load", key:wkey(), both:"1"}).then(function(res){
@@ -2855,6 +3326,7 @@ var STORE = (function(){
         self.lastOther = res.other || null;
         if (res.config) CFG = res.config;
         if (res.hasOwnProperty("ecro")) ECRO = res.ecro;     /* an older server does not send it: keep what we had */
+        if (res.hasOwnProperty("cmor")) CMOR = res.cmor;
         ELSEWHERE = res.elsewhere || null;
         EMAILS = res.emails || null;
         FLAGS = res.flags || null;
@@ -2890,11 +3362,18 @@ var STORE = (function(){
     /* the ECRO roster: one month, always in small parts; the last one saves it */
     saveEcro: function(o){
       if (!ENDPOINT) return Promise.resolve({});
-      var key = (MAAM && !HODKEY ? PASSKEY : HODKEY), body = JSON.stringify(o);
+      return this.saveMonth("ecropart", HODKEY, o);
+    },
+    saveCmor: function(o){
+      if (!ENDPOINT) return Promise.resolve({});
+      return this.saveMonth("cmorpart", HOD ? HODKEY : PASSKEY, o);
+    },
+    saveMonth: function(action, key, o){
+      var body = JSON.stringify(o);
       var size = 1500, n = Math.max(1, Math.ceil(body.length / size)), up = "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       var p = Promise.resolve(), last = null;
       for (var i = 0; i < n; i++) (function(i){
-        p = p.then(function(){ return call({action:"ecropart", key:key, up:up, i:i, n:n, part:body.slice(i * size, (i + 1) * size)}); })
+        p = p.then(function(){ return call({action:action, key:key, up:up, i:i, n:n, part:body.slice(i * size, (i + 1) * size)}); })
              .then(function(r){ last = r; });
       })(i);
       return p.then(function(){ if (!last || !last.done) throw new Error("part"); writeLocal(); return last; });
@@ -3137,9 +3616,9 @@ function can(a){
     case "change":    return HOD;                  /* JR exchange / move / cover: the HOD only, for emergencies */
     case "leave":     return ROLE === "jr" || HOD;
     case "absent":    return MAAM || HOD;          /* marking absent: the in-charge and the HOD */
-    case "post":      return CMO || MAAM || HOD;
-    case "setup":     return MAAM || HOD;
-    case "statement": return CMO || MAAM || HOD || FAC;
+    case "post":      return CMO || CMOIC || MAAM || HOD;
+    case "setup":     return MAAM || HOD || CMOIC;     /* the CMO in-charge: the CMO roster only */
+    case "statement": return CMO || CMOIC || MAAM || HOD || FAC;
   }
   return false;
 }
@@ -3147,6 +3626,7 @@ function can(a){
 function whoName(){
   if (HOD) return "HOD";
   if (MAAM) return CFG.incharge || "the in-charge";
+  if (CMOIC) return "EMO in-charge";
   if (CMO) return CMONAME ? "Dr " + title(CMONAME.replace(/^dr\.?\s+/i,"")) + " (CMO)" : "";
   return ME || "";
 }
@@ -3157,7 +3637,7 @@ if (CADRE === "pg" && PREVIEW_ROLE !== "hod" && PREVIEW_ROLE !== "faculty") PREV
 function applyPreviewRole(){
   ROLE = PREVIEW_ROLE;
   HOD = HODAUTH = (ROLE === "hod");
-  MAAM = (ROLE === "maam"); CMO = (ROLE === "cmo"); FAC = (ROLE === "faculty");
+  MAAM = (ROLE === "maam"); CMO = (ROLE === "cmo"); FAC = (ROLE === "faculty"); CMOIC = (ROLE === "cmoic");
   UNLOCKED = !FAC;
   if (CMO && !CMONAME) CMONAME = "Preview";
 }
@@ -3181,7 +3661,7 @@ function applyLock(){
   var cb = document.getElementById("cmoBar");
   if (cb) cb.hidden = !CMO;
   var ww = document.getElementById("whoWrap");
-  if (ww) ww.hidden = !!CMO;              /* a CMO has no duties of their own here */
+  if (ww) ww.hidden = !!(CMO || CMOIC);   /* a CMO (or the CMO in-charge) has no duties of their own here */
   cmoState();
   var cn = document.getElementById("cmoName");
   if (cn && document.activeElement !== cn) cn.value = CMONAME;
@@ -3669,32 +4149,22 @@ function renderLedger(){
 /* The HOD: approve many at once. "Up to today" approves only the days that
    have come (a leave running past today keeps its later days waiting);
    "everything" approves all that is waiting. Each asks for a second tap. */
-/* HOD Sir: tenures ending in the next 30 days - extend by 6 months, or let it end */
+/* HOD Sir: a quiet note when a JR completes 6 months (this week or the next).
+   Nothing to decide: the tenure carries on until HOD Sir sets a last day in Setup. */
 function tenureBar(){
   var tk = todayKey(), rows = [];
   (CFG.groups || []).forEach(function(g){ if (!isTeamGroup(g)) return; teamsOn(g, msOf(tk)).forEach(function(t){ (t.members || []).forEach(function(n){
-    var e = postEnd(n), j = recOf("joining", n);
-    if (!e || e < tk || msOf(e) - msOf(tk) > 30 * DAY || (j && j.endAgreed === e)) return;
-    rows.push({n:n, e:e, j:j});
+    if (lastDayOf(n)) return;
+    sixMonthDays(n).forEach(function(d){
+      if (Math.abs(msOf(d) - msOf(tk)) <= 7 * DAY) rows.push({n:n, d:d});
+    });
   }); }); });
   if (!rows.length) return null;
-  var box = el("div","apprall tenure");
-  box.appendChild(el("b", null, "Tenure ending soon"));
-  rows.forEach(function(r){
-    var line = el("div","tenrow");
-    line.appendChild(el("span", null, "Dr " + title(r.n) + " - ends " + fmt(msOf(r.e))));
-    var ext = el("button","primary","Extend 6 months"), end = el("button","ghost","Let it end");
-    function save(patch, msg){
-      var b = JSON.parse(JSON.stringify(r.j || {resident:r.n})); for (var f in patch) b[f] = patch[f];
-      ext.disabled = end.disabled = true;
-      STORE.put("joining", rid(r.n), b).then(function(){ renderAll(); setStatus(msg); },
-        function(){ ext.disabled = end.disabled = false; setStatus("Could not save. Please try again.", true); });
-    }
-    ext.onclick = function(){ save({extendedTill: iso(msOf(addMonthsKey(iso(msOf(r.e) + DAY), TENURE_MONTHS)) - DAY)}, "Extended. The balance carries over."); };
-    end.onclick = function(){ save({endAgreed: r.e}, "Noted - the tenure ends on " + fmt(msOf(r.e)) + "."); };
-    line.appendChild(ext); line.appendChild(end);
-    box.appendChild(line);
-  });
+  rows.sort(function(a, b){ return a.d < b.d ? -1 : 1; });
+  var box = el("div","tennote");
+  box.appendChild(el("b", null, "6 months completed"));
+  box.appendChild(el("span", null, " " + rows.map(function(r){ return "Dr " + title(r.n) + " (" + fmt(msOf(r.d)) + ")"; }).join(", ")
+    + ". Their tenure carries on; to end one, set a last day in Setup."));
   return box;
 }
 function approveAllBar(groups){
@@ -3774,6 +4244,10 @@ function renderApprovals(){
       ? groups.length + (groups.length === 1 ? " request awaiting approval" : " requests awaiting approval")
       : (HOD ? "Nothing awaiting approval" : "");
   }
+  /* HOD Sir: "6 months completed" - a note under the button, not inside it */
+  var tn = document.getElementById("tenNote");
+  if (!tn && btn){ tn = el("div"); tn.id = "tenNote"; btn.parentNode.insertBefore(tn, btn.nextSibling); }
+  if (tn){ tn.innerHTML = ""; if (HOD && hasTeams()){ var tb1 = tenureBar(); if (tb1) tn.appendChild(tb1); } }
   if (!list) return;
   list.innerHTML = "";
   if (!groups.length){
@@ -3799,7 +4273,6 @@ function renderApprovals(){
     });
     list.appendChild(al);
   }
-  if (HOD && hasTeams()) { var tb0 = tenureBar(); if (tb0) list.appendChild(tb0); }
   if (HOD) list.appendChild(approveAllBar(groups));
   groups.forEach(function(g){
     var row = el("div","apprrow");
@@ -4199,7 +4672,8 @@ function renderToday(){
     host.appendChild(row);
   });
   anaesRow(host);
-  cmoNowRow(host);
+  if (!CMOR) cmoNowRow(host);       /* the roster's CMO row takes over from the sign-in row once there is a roster */
+  cmorRow(host);
   ecroRow(host);
   var offRow = hasTeams() ? [] : [["Night off", inSlot(eff,"OFF")]];
   if (hasTeams()){
@@ -4619,8 +5093,8 @@ function renderRoster(){
     tdE.appendChild(addBtn(key,"move"));
     tdE.appendChild(addBtn(key,"newcover"));
     if (hasTeams()) tdE.appendChild(addBtn(key,"post"));
-    if (academicCanEdit() && !academicKind(key)){       /* same as the phone view */
-      var acD = el("button","addbtn","+ class"); acD.type = "button";
+    if (academicCanEdit()){                              /* same as the phone view - any day */
+      var acD = el("button","addbtn","+ Class / case"); acD.type = "button";
       acD.onclick = function(){ openAcademicNew(key); };
       tdE.appendChild(acD);
     }
@@ -5334,8 +5808,8 @@ function renderCards(){
     coversOn(key).forEach(function(it){ la.appendChild(chipFor("newcover",it)); });
     var opts = ["leave"].concat(hasTeams() ? ["absent"] : []).concat(["swap","move","newcover"])
       .map(function(k){ return addBtn(key, k); }).filter(function(x){ return x.nodeType === 1; });
-    if (academicCanEdit() && !academicKind(key)){
-      var ac = el("button","addbtn","+ class"); ac.type = "button";
+    if (academicCanEdit()){
+      var ac = el("button","addbtn","+ Class / case"); ac.type = "button";
       ac.onclick = function(){ openAcademicNew(key); };
       opts.push(ac);
     }
@@ -5736,20 +6210,35 @@ function addMonthsKey(key, k){
   return iso(Date.UTC(y, m, Math.min(d, last)));
 }
 var TENURE_MONTHS = 6;
-/* A JR is posted for 6 months at a time, counted from the joining date.
-   The tenure running on 1 Nov 2026 is the current one, unless HOD Sir has
-   extended it (or ended it early) - then his date is the end. */
+/* A JR's tenure runs in blocks of 6 months from the joining date and carries
+   on by itself, block after block, until HOD Sir sets a last day. The end
+   shown is the end of the 6 months running today (or the last day, if one is
+   set). An older "let it end" choice counts as the last day. */
+function lastDayOf(n){ var j = recOf("joining", n); return (j && (j.lastDay || j.endAgreed)) || ""; }
 function postEnd(n){
   var j = recOf("joining", n);
   if (!j) return "";
-  if (j.extendedTill) return j.extendedTill;
-  if (!j.date) return "";
-  var from = j.date > CL_FROM ? j.date : CL_FROM;
+  var ld = lastDayOf(n);
+  if (!j.date) return ld;
+  var tk = todayKey(), from = tk > CL_FROM ? tk : CL_FROM;
+  if (j.date > from) from = j.date;
+  if (ld && ld < from) return ld;
   for (var k = TENURE_MONTHS; k < 600; k += TENURE_MONTHS){
     var e = iso(msOf(addMonthsKey(j.date, k)) - DAY);
-    if (e >= from) return e;
+    if (e >= from) return ld && ld < e ? ld : e;
   }
-  return "";
+  return ld;
+}
+/* the days a JR completes each 6 months (up to the end of the current block) */
+function sixMonthDays(n){
+  var j = recOf("joining", n), out = [], e = postEnd(n);
+  if (!j || !j.date || !e) return out;
+  for (var k = TENURE_MONTHS; k < 600; k += TENURE_MONTHS){
+    var d = iso(msOf(addMonthsKey(j.date, k)) - DAY);
+    if (d > e) break;
+    out.push(d);
+  }
+  return out;
 }
 function clCreditDays(n){
   var j = recOf("joining", n), st = clStart(n), end = postEnd(n), out = [];
@@ -5812,7 +6301,7 @@ function leaveBalance(n, extra, skip){
 }
 /* where a JR's posting stands: "past" (ended), "soon" (within 30 days) or "" */
 function postFlag(n){
-  var e = postEnd(n), t = todayKey();
+  var e = lastDayOf(n), t = todayKey();        /* only a set last day ends a tenure now */
   if (!e) return "";
   if (e < t) return "past";
   if (msOf(e) - msOf(t) <= 30 * DAY) return "soon";
@@ -5831,13 +6320,15 @@ function leaveSummaryCard(n){
   var b = leaveBalance(n), box = el("div","lsum");
   box.appendChild(el("div","lsumhead", "Dr " + title(n) + " - leave this tenure"));
   var j = recOf("joining", n);
-  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date)) + (b.end ? " \u00B7 tenure till " + fmt(msOf(b.end))
-    + (j.extendedTill ? " (extended)" : "") : "")));
+  var six = sixMonthDays(n).filter(function(d){ return d <= todayKey(); });
+  if (j && j.date) box.appendChild(el("div","lsumsub", "Joined " + fmt(msOf(j.date))
+    + (six.length ? " \u00B7 6 months completed on " + fmt(msOf(six[six.length - 1])) : "")
+    + (lastDayOf(n) ? " \u00B7 last day " + fmt(msOf(lastDayOf(n))) : " \u00B7 tenure continues")));
   var four = el("div","lsumfour");
   function line4(label, val, cls){ var r = el("div","l4" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("b", null, val)); four.appendChild(r); }
   line4("Balance now", fmtBal(b.left), b.left < 0 ? "minus" : "good");
   line4("Next credit", b.next ? "+" + monthCap() + " on " + fmt(msOf(b.next)) : "-");
-  line4("Tenure ends", b.end ? fmt(msOf(b.end)) : "-");
+  line4(lastDayOf(n) ? "Last day" : "These 6 months end", b.end ? fmt(msOf(b.end)) : "-");
   line4("Can still take", fmtBal(b.canTake), b.canTake < 0 ? "minus" : "good");
   box.appendChild(four);
   if (b.beyond) box.appendChild(el("div","overcap", b.beyond + " day" + (b.beyond === 1 ? "" : "s") + " of leave beyond what can be paid back - counted absent."));
@@ -5883,7 +6374,7 @@ function leaveSummaryCard(n){
     box.appendChild(fl);
   }
   var f = postFlag(n);
-  if (f) box.appendChild(el("div","lsumflag", f === "past" ? "Posting has ended (" + fmt(msOf(b.end)) + ") - not extended in setup." : "Posting ends on " + fmt(msOf(b.end)) + "."));
+  if (f) box.appendChild(el("div","lsumflag", f === "past" ? "Left on " + fmt(msOf(lastDayOf(n))) + " (last day set by HOD Sir)." : "Leaving on " + fmt(msOf(lastDayOf(n))) + "."));
   return box;
 }
 /* nothing is without pay any more: a minus balance is made up later */
@@ -6065,10 +6556,10 @@ function renderCounter(){
       if (bal.credited) bc.appendChild(el("div","subnum", "+" + bal.credited + " credited"));
       tr.appendChild(bc);
       var ct = el("td","num" + (bal.canTake < 0 ? " minuscell" : ""), fmtBal(bal.canTake));
-      if (bal.end) ct.appendChild(el("div","subnum", "till " + fmt(msOf(bal.end))));
+      if (lastDayOf(n)) ct.appendChild(el("div","subnum", "last day " + fmt(msOf(lastDayOf(n)))));
       tr.appendChild(ct);
       var pf = postFlag(n);
-      if (pf) th.appendChild(el("span","endflag " + pf, pf === "past" ? "posting ended" : "ends " + fmt(msOf(bal.end))));
+      if (pf) th.appendChild(el("span","endflag " + pf, pf === "past" ? "left" : "leaving " + fmt(msOf(lastDayOf(n)))));
       /* tap the name: the whole yearly picture */
       th.style.cursor = "pointer";
       th.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a,button")) return; openSheet("Leave - Dr " + title(n), leaveSummaryCard(n)); };
@@ -6301,7 +6792,7 @@ function renderJrSetup(host){
   teams.forEach(function(t){ (t.members||[]).forEach(function(n){
     var j = recOf("joining", n);
     var o = recOf("opening", n);
-    rows.push({name:n, orig:n, group:t.name, join:(j && j.date) || "", ext:(j && j.extendedTill) || "", phone:phoneOf(n),
+    rows.push({name:n, orig:n, group:t.name, join:(j && j.date) || "", ext:(j && (j.lastDay || j.endAgreed)) || "", phone:phoneOf(n),
                bal:(o && o.balance != null) ? String(o.balance) : "", mail:(EMAILS && EMAILS[n]) || "",
                gone:false, fresh:false});
   }); });
@@ -6327,7 +6818,7 @@ function renderJrSetup(host){
   host.appendChild(bar);
 
   var tbl = el("table","ptable jrsetup"), tb = el("tbody");
-  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Tenure ends (if changed)",""];
+  var COLS = ["Name","Group","Mobile","Gmail (for the leave code)","Joining date","Balance on 31 Oct","Last day (only if leaving)",""];
   var hr = el("tr"); COLS.forEach(function(h){ hr.appendChild(el("th",null,h)); });
   var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0); tbl.appendChild(tb);
   var wrap = el("div","scroller"); wrap.appendChild(tbl); host.appendChild(wrap);
@@ -6357,11 +6848,17 @@ function renderJrSetup(host){
       var mi = document.createElement("input"); mi.type = "email"; mi.value = r.mail; mi.placeholder = "name@gmail.com";
       mi.autocomplete = "off"; mi.oninput = function(){ r.mail = mi.value; };
       if (!EMAILS){ mi.disabled = true; mi.placeholder = "needs a connection"; }
+      /* the last day: empty means the tenure carries on. HOD Sir sets it, clears it to undo. */
       var xi = document.createElement("input"); xi.type = "date"; xi.value = r.ext;
-      xi.onchange = function(){ r.ext = xi.value; };
-      var end = r.ext || (r.join ? iso(Date.UTC(+r.join.slice(0,4) + 1, +r.join.slice(5,7) - 1, +r.join.slice(8,10)) - DAY) : "");
+      xi.onchange = function(){ r.ext = xi.value; draw(); };
+      if (!HOD){ xi.disabled = true; xi.title = "HOD Sir sets the last day"; }
       var xw = el("div","extwrap"); xw.appendChild(xi);
-      if (end) xw.appendChild(el("small", "posttill" + (end < todayKey() ? " past" : ""), "posting till " + fmt(msOf(end))));
+      if (r.ext && HOD){
+        var undo = el("button","ghost small","Clear"); undo.type = "button"; undo.title = "Carry the tenure on";
+        undo.onclick = function(){ r.ext = ""; draw(); };
+        xw.appendChild(undo);
+      }
+      xw.appendChild(el("small", "posttill" + (r.ext && r.ext < todayKey() ? " past" : ""), r.ext ? (r.ext < todayKey() ? "left on " : "leaving on ") + fmt(msOf(r.ext)) : "continues"));
       var rm = el("button","ghost rm", r.gone ? "Keep" : "Remove");
       rm.title = r.gone ? "Keep this JR" : "This JR has left - remove from the date below";
       rm.onclick = function(){
@@ -6480,7 +6977,7 @@ function renderJrSetup(host){
       var ml = String(r.mail || "").trim().toLowerCase();
       if (ml && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ml)) problems.push(title(n) + "'s Gmail does not look right");
       r.cleanMail = ml;
-      if (r.ext && r.join && r.ext < r.join) problems.push(title(n) + ": extended till is before joining");
+      if (r.ext && r.join && r.ext < r.join) problems.push(title(n) + ": the last day is before joining");
     });
     if (problems.length){ msg.textContent = "Not saved: " + problems.join("; ") + "."; return; }
     /* the new groups: people keep their order, newcomers go to the end */
@@ -6526,9 +7023,9 @@ function renderJrSetup(host){
     rows.forEach(function(r){
       if (!r.clean || !r.join) return;
       var old = recOf("joining", r.clean);
-      if (!old || old.date !== r.join || (old.extendedTill || "") !== (r.ext || "")){
+      if (!old || old.date !== r.join || (old.lastDay || old.endAgreed || "") !== (r.ext || "")){
         var jb = {resident:r.clean, date:r.join};
-        if (r.ext) jb.extendedTill = r.ext;
+        if (r.ext) jb.lastDay = r.ext;
         if (old && old.source) jb.source = old.source;
         items.push({id:rid(r.clean), body:jb});
       }
@@ -6598,7 +7095,8 @@ function renderSetup(){
   host.innerHTML = "";
   var it0 = document.getElementById("setupIntro");
   if (it0) it0.textContent = "";
-  if (hasTeams()){ renderJrSetup(host); ecroSetup(host); return; }
+  if (CMOIC){ cmorSetup(host); return; }              /* the CMO in-charge: the CMO roster only */
+  if (hasTeams()){ renderJrSetup(host); if (HOD){ cmorSetup(host); ecroSetup(host); } return; }
   renderPgSetup(host);
   var adv = document.createElement("details"); adv.className = "moreset"; adv.id = "pgAdvanced";
   var sm = document.createElement("summary"); sm.textContent = "Advanced setup - every setting, as before"; adv.appendChild(sm);
@@ -6606,7 +7104,7 @@ function renderSetup(){
   adv.addEventListener("toggle", function(){ PG_ADV_OPEN = adv.open; if (adv.open && !ah.firstChild) renderPgAdvanced(ah); });
   host.appendChild(adv);
   if (PG_ADV_OPEN){ adv.open = true; renderPgAdvanced(ah); }
-  ecroSetup(host);
+  if (HOD){ cmorSetup(host); ecroSetup(host); }
   if (HOD) host.appendChild(passPanel());
 }
 function renderPgSetup(host){
@@ -7502,14 +8000,40 @@ function decisionFor(n, run){
   }
   return out;
 }
+/* the cadre of the person applying: JR, PG, or EMO (CMO) */
+function pdfLeaveCadre(n){
+  if (hasTeams()) return {tag:"JR", long:"JUNIOR RESIDENT", style:"solid"};
+  return {tag:"PG", long:"POST GRADUATE RESIDENT", style:"outline"};
+}
+function pdfCadreMark(doc, cad, R){
+  var w = 62, h = 40, x = R - w, y = 30;
+  if (cad.style === "solid"){                       /* JR: black box, white letters */
+    doc.rect(x, y, w, h, INK);
+    doc.text(x + (w - textWidth(cad.tag, 22, true)) / 2, y + 28, 22, true, cad.tag, [1,1,1]);
+  } else {                                          /* PG: outlined; EMO: double outline */
+    [[x, y, x + w, y], [x, y + h, x + w, y + h], [x, y, x, y + h], [x + w, y, x + w, y + h]].forEach(function(l){ doc.line(l[0], l[1], l[2], l[3], INK, 2); });
+    if (cad.style === "double")
+      [[x + 4, y + 4, x + w - 4, y + 4], [x + 4, y + h - 4, x + w - 4, y + h - 4], [x + 4, y + 4, x + 4, y + h - 4], [x + w - 4, y + 4, x + w - 4, y + h - 4]]
+        .forEach(function(l){ doc.line(l[0], l[1], l[2], l[3], INK, 1); });
+    doc.text(x + (w - textWidth(cad.tag, 22, true)) / 2, y + 28, 22, true, cad.tag, INK);
+  }
+  /* the strip down the left edge, for picking them out of a pile */
+  if (cad.style === "solid") doc.rect(0, 0, 10, 842, INK);
+  else if (cad.style === "double") for (var yy = 0; yy < 842; yy += 24) doc.rect(0, yy, 10, 12, INK);
+}
 function pdfLeaveApplication(n, run){
   var doc = new PDFDoc(595, 842);           /* A4 portrait */
   var L = 42, R = 595-42, y = 0;
 
+  /* Which cadre, told apart at a glance - even on a black-and-white
+     photocopy: a tag in the corner, the cadre in the title, and a strip
+     down the left edge (JR solid, EMO dashed, PG none). */
+  var cad = pdfLeaveCadre(n);
+  pdfCadreMark(doc, cad, R);
   doc.text(L, 52, 10, true, pdfAscii(CFG.dept.hospital.toUpperCase()), INK);
   doc.text(L, 66, 9, false, CFG.dept.department, GREY);
-  doc.line(L, 74, R, 74, INK, 1.2);
-  var t = "APPLICATION FOR LEAVE";
+  doc.line(L, 74, R - 70, 74, INK, 1.2);
+  var t = "APPLICATION FOR LEAVE - " + cad.long;
   doc.text((595 - textWidth(t, 13, true))/2, 100, 13, true, t, INK);
 
   y = 132;
@@ -8199,17 +8723,23 @@ function pdfAbsenceStatement(y, m){
   head();
   if (!rows.length){ doc.text(L, y0, 10, false, "No absences recorded this month.", INK); y0 += 20; }
   var total = 0;
+  /* each cell wraps inside its own column, and the row grows to fit -
+     a long list of dates or reasons never runs into the next column */
+  var W = [cols[1]-cols[0]-4, cols[2]-cols[1]-6, cols[3]-cols[2]-6, cols[4]-cols[3]-8, cols[5]-cols[4]-4, R-cols[5]];
   rows.forEach(function(r, i){
-    if (y0 > 760){ pdfStamp(doc); doc.newPage(); y0 = 50; head(); }
-    if (i % 2) doc.rect(L, y0-9, R-L, 13, SHADE);
-    doc.text(cols[0], y0, 8.5, false, String(i+1), INK);
-    doc.text(cols[1], y0, 8.5, false, "Dr " + title(r.name), INK);
-    doc.text(cols[2], y0, 8.5, false, r.group, INK);
-    doc.text(cols[3], y0, 8.5, false, r.days.join(", ") + " " + MON[m], INK);
-    doc.text(cols[4], y0, 8.5, true, String(r.days.length), INK);
-    doc.text(cols[5], y0, 7, false, Object.keys(r.how).join("; "), GREY);
+    var cells = [
+      {t:[String(i+1)], s:8.5, b:false, c:INK},
+      {t:wrapText("Dr " + title(r.name), 8.5, false, W[1]), s:8.5, b:false, c:INK},
+      {t:wrapText(r.group || "", 8.5, false, W[2]), s:8.5, b:false, c:INK},
+      {t:wrapText(r.days.join(", ") + " " + MON[m], 8.5, false, W[3]), s:8.5, b:false, c:INK},
+      {t:[String(r.days.length)], s:8.5, b:true, c:INK},
+      {t:wrapText(Object.keys(r.how).join("; "), 7, false, W[5]), s:7, b:false, c:GREY}];
+    var lines = Math.max.apply(null, cells.map(function(c){ return c.t.length; })), h = 4 + lines * 10.5;
+    if (y0 + h > 780){ pdfStamp(doc); doc.newPage(); y0 = 50; head(); }
+    if (i % 2) doc.rect(L, y0-9, R-L, h, SHADE);
+    cells.forEach(function(c, k){ c.t.forEach(function(tx, li){ doc.text(cols[k], y0 + li * 10.5, c.s, c.b, tx, c.c); }); });
     total += r.days.length;
-    y0 += 14;
+    y0 += h + 1;
   });
   doc.line(L, y0-9, R, y0-9, LINE);
   y0 += 8;
@@ -8302,16 +8832,32 @@ function renderHeader(){
   var a = document.getElementById("hHospital"), b = document.getElementById("hTitle"),
       c = document.getElementById("hSub");
   if (a) a.textContent = CFG.dept.hospital + " · " + CFG.dept.department;
-  if (b) b.textContent = CFG.dept.title;
+  var scr0 = (typeof altScreen === "function") ? altScreen() : "";
+  var ttl0 = scr0 === "cmo" ? "EMO Supervisor Duty Roster" : scr0 === "ecro" ? "ECRO Duty Roster" : CFG.dept.title;
+  if (b) b.textContent = ttl0;
+  try { document.title = ttl0; } catch(e){}
   if (c){
     c.textContent = "";
     /* the HOD moves between the two rosters from here */
-    if ((HOD || FAC || MAAM) && (ENDPOINT || (SEED && SEED.preview))){
-      /* the HOD and faculty: both rosters as two tabs, one tap apart */
+    var both = (HOD || FAC || MAAM || CMOIC) && (ENDPOINT || (SEED && SEED.preview)), eTab = ecroOn(), cTab = cmorOn(), eScr = !!altScreen(), scN = altScreen();
+    if (both || eTab || cTab){
+      /* the HOD and faculty: both rosters as tabs, one tap apart; everyone: the ECRO roster as a tab */
       var tabs = el("div","rtabs noprint"), waiting0 = ELSEWHERE && ELSEWHERE.pending;
       tabs.setAttribute("role","tablist");
-      [["pg","PG roster"],["jr","JR roster"]].forEach(function(t){
-        var on = CADRE === t[0], x = document.createElement(on ? "span" : "a");
+      var list = both ? [["pg","PG roster"],["jr","JR roster"]] : [[CADRE, CADRE === "jr" ? "JR roster" : "PG roster"]];
+      if (cTab) list.push(["cmo", (list.length + (eTab ? 1 : 0)) > 1 ? "EMO" : "EMO roster"]);
+      if (eTab) list.push(["ecro","ECRO"]);
+      list.forEach(function(t){
+        if (t[0] === "ecro" || t[0] === "cmo" || (eScr && CADRE === t[0])){
+          /* moving to and from the CMO and ECRO screens stays on this page */
+          var onE = (t[0] === "ecro" || t[0] === "cmo") ? scN === t[0] : false, y = document.createElement(onE ? "span" : "a");
+          y.className = "rtab" + (onE ? " on" : ""); y.setAttribute("role","tab");
+          y.setAttribute("aria-selected", onE ? "true" : "false"); y.textContent = t[1];
+          if (!onE){ y.href = t[0] === "ecro" ? "#ecro" : t[0] === "cmo" ? "#cmo" : "#"; y.id = t[0] === "ecro" ? "tabEcro" : t[0] === "cmo" ? "tabCmo" : "tabBack"; }
+          tabs.appendChild(y);
+          return;
+        }
+        var on = CADRE === t[0] && !eScr, x = document.createElement(on ? "span" : "a");
         x.className = "rtab" + (on ? " on" : ""); x.setAttribute("role","tab");
         x.setAttribute("aria-selected", on ? "true" : "false");
         x.textContent = t[1];
@@ -8339,11 +8885,11 @@ function renderHeader(){
     n.innerHTML = "";
     n.appendChild(el("b", null, "Leave rules for Junior Residents"));
     var ul0 = el("ul","rules");
-    ["You are posted for 6 months at a time from your joining date. HOD Sir may extend it by 6 months.",
+    ["Your tenure runs in blocks of 6 months from your joining date and carries on by itself until HOD Sir sets a last day.",
      "You get " + monthCap() + " CL for every month you complete, counted from your joining date.",
-     "30 days before your tenure ends, the last month's " + monthCap() + " is added, so you can use it before you go.",
-     "Leave you do not use carries forward. If your tenure is extended, your balance (even minus) carries into the next one.",
-     "You may go into minus, but only up to what you will still get before your tenure ends. Leave beyond that is counted absent.",
+     "30 days before each 6 months ends, the last month's " + monthCap() + " is added, so you can use it in time.",
+     "Leave you do not use carries forward into the next 6 months - and so does a minus balance.",
+     "You may go into minus, but only up to what you will still get before the current 6 months end. Leave beyond that is counted absent.",
      "A night duty counts as 2 days, a half day as half.",
      "Leave counts once HOD Sir approves it. While it waits, it is not absent."]
       .forEach(function(t0){ ul0.appendChild(el("li", null, t0)); });
@@ -8406,17 +8952,136 @@ function renderSpec(){
   var f = document.getElementById("footNote");
   if (f) f.textContent = "";
 }
+/* ---------- festivals: a short greeting when the roster opens that day ----------
+   Once a day on each phone, about five seconds, gone at a tap. Days of
+   mourning (Muharram, Good Friday) get nothing. Phones set to reduce motion
+   get only the greeting. Try one with ?festival=diwali (holi, christmas,
+   national, eid, petals, newyear). */
+var FESTIVALS = {"2026-10-02": "Gandhi Jayanti", "2026-10-20": "Dussehra", "2026-11-08": "Diwali", "2026-11-24": "Guru Nanak Jayanti", "2026-12-25": "Christmas", "2027-01-26": "Republic Day", "2027-03-10": "Id-ul-Fitr", "2027-03-23": "Holi", "2027-03-26": "Good Friday", "2027-04-15": "Ram Navami", "2027-04-19": "Mahavir Jayanti", "2027-05-17": "Id-ul-Zuha (Bakrid)", "2027-05-20": "Buddha Purnima", "2027-06-16": "Muharram", "2027-08-15": "Independence Day · Milad-un-Nabi", "2027-08-25": "Janmashtami", "2027-10-02": "Gandhi Jayanti", "2027-10-09": "Dussehra", "2027-10-29": "Diwali", "2027-11-14": "Guru Nanak Jayanti", "2027-12-25": "Christmas", "2027-01-01": "New Year", "2028-01-01": "New Year"};   /* filled in by build.py from the hospital's holiday list */
+function festKind(name){
+  var n = String(name || "").toLowerCase();
+  if (/muharram|good friday/.test(n)) return "";
+  if (/diwali|deepavali/.test(n)) return "diwali";
+  if (/holi\b/.test(n)) return "holi";
+  if (/christmas/.test(n)) return "christmas";
+  if (/republic|independence|gandhi/.test(n)) return "national";
+  if (/\bid\b|eid|id-ul|bakrid|milad/.test(n)) return "eid";
+  if (/new year/.test(n)) return "newyear";
+  return "petals";
+}
+function festGreeting(name, kind){
+  var n = String(name || "");
+  if (kind === "national"){
+    if (/gandhi/i.test(n)) return "Gandhi Jayanti";
+    return "Happy " + n.replace(/\s*·.*$/, "");
+  }
+  if (kind === "eid") return n.replace(/\s*\(.*\)/, "") + " Mubarak";
+  if (/jayanti|purnima|navami/i.test(n)) return "Greetings on " + n;
+  return "Happy " + n;
+}
+function festivalToday(){
+  var q = (location.search.match(/[?&]festival=([a-z]+)/) || [])[1];
+  if (q) return {name: {diwali:"Diwali", holi:"Holi", christmas:"Christmas", national:"Republic Day", eid:"Id-ul-Fitr", petals:"Guru Nanak Jayanti", newyear:"New Year"}[q] || q, kind: q, test: true};
+  var tk = todayKey(), nm = (FESTIVALS || {})[tk] || ((CFG && CFG.holidays) || {})[tk];
+  if (!nm) return null;
+  var k = festKind(nm);
+  return k ? {name: nm, kind: k} : null;
+}
+function festival(){
+  var f = festivalToday();
+  if (!f) return;
+  var seen = "rml_fest_" + todayKey();
+  try { if (!f.test && localStorage.getItem(seen)) return; localStorage.setItem(seen, "1"); } catch(e){}
+  var still = false;
+  try { still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+  var wrap = document.createElement("div"); wrap.className = "festwrap noprint"; wrap.setAttribute("role","status");
+  var pill = document.createElement("button"); pill.type = "button"; pill.className = "festpill fest-" + f.kind;
+  pill.textContent = festGreeting(f.name, f.kind) + " ✕";
+  pill.setAttribute("aria-label", festGreeting(f.name, f.kind) + " - close");
+  wrap.appendChild(pill);
+  var cv = null, raf = 0, stopAt = 0;
+  function close(){
+    if (raf) cancelAnimationFrame(raf);
+    wrap.classList.add("festgone");
+    setTimeout(function(){ if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 450);
+  }
+  pill.onclick = close;
+  document.body.appendChild(wrap);
+  if (still || !window.requestAnimationFrame){ setTimeout(close, 6000); return; }
+  cv = document.createElement("canvas"); cv.className = "festcanvas"; wrap.insertBefore(cv, pill);
+  var cx = cv.getContext && cv.getContext("2d");
+  if (!cx){ setTimeout(close, 6000); return; }
+  var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function size(){ W = window.innerWidth; H = window.innerHeight; cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  size(); window.addEventListener("resize", size);
+  var P = [], kind = f.kind, rnd = Math.random;
+  var PAL = {holi:["#E91E63","#FFC107","#4CAF50","#2196F3","#9C27B0","#FF5722"], national:["#FF9933","#FFFFFF","#138808"],
+             newyear:["#FFC107","#E91E63","#2196F3","#4CAF50","#9C27B0"], diwali:["#FFD54F","#FFB300","#FF8F00","#FFF3C4"],
+             petals:["#FF9800","#FFB300","#F57C00","#FFCA28"], eid:["#F5B700","#E0A800","#FFD54F"], christmas:["#B8CCE0","#9FB8D1","#D6E4F0"]}[kind] || ["#FFC107"];
+  function add(){
+    var c = PAL[(rnd() * PAL.length) | 0];
+    if (kind === "diwali") P.push({x: rnd() * W, y: H + 10, vx: (rnd() - .5) * .6, vy: -(1.2 + rnd() * 2.2), r: 1.5 + rnd() * 2.5, c: c, a: 1, t: "spark"});
+    else if (kind === "holi"){ var bx = rnd() * W, by = rnd() * H * .8; for (var i = 0; i < 14; i++){ var an = rnd() * 6.28, sp = 1 + rnd() * 3.5;
+      P.push({x: bx, y: by, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, r: 3 + rnd() * 7, c: c, a: .85, t: "puff"}); } }
+    else if (kind === "christmas") P.push({x: rnd() * W, y: -10, vx: (rnd() - .5) * .5, vy: .6 + rnd() * 1.4, r: 1.5 + rnd() * 3, c: c, a: .9, t: "snow"});
+    else if (kind === "eid") P.push({x: rnd() * W, y: rnd() * H * .7, vx: 0, vy: 0, r: 1 + rnd() * 2.5, c: c, a: 0, t: "star", ph: rnd() * 6.28});
+    else if (kind === "petals") P.push({x: rnd() * W, y: -10, vx: (rnd() - .5) * 1, vy: 1 + rnd() * 1.6, r: 4 + rnd() * 4, c: c, a: .95, t: "petal", rot: rnd() * 6.28, vr: (rnd() - .5) * .1});
+    else P.push({x: rnd() * W, y: -10, vx: (rnd() - .5) * 2, vy: 1.5 + rnd() * 2.5, r: 3 + rnd() * 4, c: c, a: 1, t: "conf", rot: rnd() * 6.28, vr: (rnd() - .5) * .3});
+  }
+  var start = performance.now(); stopAt = start + 4500;
+  function frame(now){
+    cx.clearRect(0, 0, W, H);
+    if (now < stopAt){ var k = kind === "holi" ? (rnd() < .06 ? 1 : 0) : kind === "eid" ? (P.length < 70 ? 2 : 0) : kind === "petals" ? (rnd() < .6 ? 1 : 0) : 2; for (var j = 0; j < k; j++) add(); }
+    if (kind === "eid"){                         /* the crescent */
+      var mx = W * .82, my = Math.min(H * .16, 110), mr = 26;
+      cx.globalAlpha = Math.min(1, (now - start) / 800) * (now > stopAt ? Math.max(0, 1 - (now - stopAt) / 900) : 1);
+      cx.fillStyle = "#FFE082"; cx.beginPath(); cx.arc(mx, my, mr, 0, 6.28); cx.fill();
+      cx.globalCompositeOperation = "destination-out"; cx.beginPath(); cx.arc(mx + 11, my - 6, mr, 0, 6.28); cx.fill();
+      cx.globalCompositeOperation = "source-over";
+    }
+    for (var i = P.length - 1; i >= 0; i--){
+      var q = P[i];
+      q.x += q.vx; q.y += q.vy;
+      if (q.t === "spark"){ q.vy += .015; q.a -= .007; }
+      else if (q.t === "puff"){ q.vx *= .96; q.vy *= .96; q.a -= .012; q.r += .15; }
+      else if (q.t === "star"){ q.ph += .08; q.a = now > stopAt ? Math.max(0, q.a - .02) : (.5 + .5 * Math.sin(q.ph)); }
+      else { q.vx += (rnd() - .5) * .05; if (q.rot != null) q.rot += q.vr; }
+      if (q.a <= 0 || q.y > H + 20 || q.y < -40){ P.splice(i, 1); continue; }
+      cx.globalAlpha = Math.max(0, Math.min(1, q.a)); cx.fillStyle = q.c;
+      if (q.t === "conf" || q.t === "petal"){
+        cx.save(); cx.translate(q.x, q.y); cx.rotate(q.rot); cx.beginPath();
+        if (q.t === "petal") cx.ellipse(0, 0, q.r, q.r * .5, 0, 0, 6.28); else cx.rect(-q.r / 2, -q.r / 4, q.r, q.r / 2);
+        if (kind === "national" && q.c === "#FFFFFF"){ cx.strokeStyle = "rgba(0,0,0,.15)"; cx.lineWidth = .5; cx.fill(); cx.stroke(); } else cx.fill();
+        cx.restore();
+      } else { cx.beginPath(); cx.arc(q.x, q.y, q.r, 0, 6.28); cx.fill(); }
+    }
+    cx.globalAlpha = 1;
+    if (now < stopAt + 2600 && (P.length || now < stopAt)) raf = requestAnimationFrame(frame);
+    else { cx.clearRect(0, 0, W, H); setTimeout(close, 800); }
+  }
+  raf = requestAnimationFrame(frame);
+}
+
 /* the bottom bar on a phone: jump to a part of the page */
 function wireNav(){
   var nav = document.getElementById("mnav");
   if (!nav) return;
   [].forEach.call(nav.querySelectorAll("button[data-go]"), function(b){
     b.onclick = function(){
-      var t = document.getElementById(b.getAttribute("data-go"));
+      var go = b.getAttribute("data-go");
+      if (go === "ecroSec"){ if (location.hash !== "#ecro") location.hash = "ecro"; return; }
+      if (altScreen()){
+        location.hash = "";
+        applyEcroScreen();
+        setTimeout(function(){ var t0 = document.getElementById(go); if (t0) t0.scrollIntoView({block:"start"}); }, 30);
+        return;
+      }
+      var t = document.getElementById(go);
       if (t) t.scrollIntoView({behavior:"smooth", block:"start"});
     };
   });
   var mark = function(){
+    if (altScreen()) return;
     var best = null, y = window.innerHeight * 0.35;
     [].forEach.call(nav.querySelectorAll("button[data-go]"), function(b){
       var t = document.getElementById(b.getAttribute("data-go"));
@@ -8541,8 +9206,11 @@ function applyRoleView(){
     tc.hidden = !any && !(document.getElementById("dbstatus") || {}).textContent;
   }
 }
+var FEST_DONE = false;
+function tryFestival(){ if (GATED || FEST_DONE) return; FEST_DONE = true; try { festival(); } catch(e){} }
 function renderAll(){
   EXCESS = null;
+  if (!GATED && !FEST_DONE) setTimeout(tryFestival, 700);   /* once the roster is open */
   /* residents see their own record only; the office and faculty always see everyone */
   if (ENDPOINT || (SEED && SEED.preview)) counterAll = seesEveryone();
   try { myDetailsBox(); } catch(e){}
@@ -8556,7 +9224,7 @@ function renderAll(){
   var ab0 = document.getElementById("applyBtn");
   if (ab0 && CADRE === "jr") ab0.hidden = !can("leave");
   renderHeader(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
-  renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro();
+  renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro(); renderCmor();
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
   applyRoleView();
@@ -8742,11 +9410,13 @@ function setRole(r){
   ROLE = r || ROLE;
   MAAM = (ROLE === "maam" && CADRE === "jr");
   CMO  = (ROLE === "cmo"  && CADRE === "jr");
+  CMOIC = (ROLE === "cmoic" && CADRE === "jr");
   /* on the PG roster the JR in-charge is simply faculty: look only */
   NURSE = (ROLE === "nursing");
-  FAC  = (ROLE === "faculty") || (ROLE === "maam" && CADRE === "pg") || NURSE;
+  FAC  = (ROLE === "faculty") || (ROLE === "maam" && CADRE === "pg") || (ROLE === "cmoic" && CADRE === "pg") || NURSE;   /* both in-charges: look only on the PG roster */
   document.body.className = document.body.className.replace(/\bnurse\b/g, "").trim() + (NURSE ? " nurse" : "");
   if (MAAM && PASSKEY){ try { localStorage.setItem("rml_maam", PASSKEY); } catch(e){} }
+  if (CMOIC && PASSKEY){ try { localStorage.setItem("rml_cmoic", PASSKEY); } catch(e){} }
   if (CMO){ try { CMONAME = localStorage.getItem(lsName("rml_cmo_name")) || ""; } catch(e){} }
 }
 function afterOpen(){
@@ -8878,10 +9548,11 @@ function useOther(o){
     try { navigator.serviceWorker.register("/sw.js", {scope: location.pathname.replace(/[^\/]*$/, "")}); } catch(e){}
   }
   var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-  if (standalone) return;
+  var ib = document.getElementById("pInstall");
+  if (standalone){ if (ib) ib.hidden = true; return; }
   function get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
-  if (Date.now() < +(get("rml_inst_later") || 0)) return;
+  var later = Date.now() < +(get("rml_inst_later") || 0);   /* "Not now": no bar by itself; the button still works */
   var ua = navigator.userAgent || "";
   var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var touch = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
@@ -8901,7 +9572,7 @@ function useOther(o){
     return bar;
   }
   var SHARE = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" style="vertical-align:-3px"><path d="M10 2v11M6 6l4-4 4 4M4 10v7h12v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  if (ios){
+  if (ios && !later){
     setTimeout(function(){
       var b = show('<div class="insttext"><b>Put EM Roster on your home screen</b>'
         + '<ol><li>Tap <b>Share</b> ' + SHARE + ' (bottom bar in Safari, top right in Chrome)</li>'
@@ -8910,12 +9581,28 @@ function useOther(o){
         + '<button type="button" class="instlater">Not now</button></div></div>');
       if (b) b.querySelector(".instdone").onclick = function(){ hide(3650); };
     }, 2500);
-    return;
   }
-  if (!touch) return;                                     /* computers: no bar */
   var ev = null;
+  /* the "Install app" button at the bottom of every page - always there until installed */
+  if (ib){
+    ib.hidden = false;
+    ib.onclick = function(){
+      if (ev){
+        ev.prompt(); var c = ev.userChoice; ev = null;
+        if (c && c.then) c.then(function(r){ if (r && r.outcome === "accepted"){ ib.hidden = true; hide(3650); } });
+        return;
+      }
+      set("rml_inst_later", "0");
+      var steps = ios
+        ? '<div class="insttext"><b>Put EM Roster on your home screen</b><ol><li>Tap <b>Share</b> ' + SHARE + ' (bottom bar in Safari, top right in Chrome)</li><li>Scroll and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li></ol>'
+        : '<div class="insttext"><b>Install EM Roster</b><span>Open the browser menu (\u22EE) and tap <b>Install app</b> or <b>Add to Home screen</b>.</span>';
+      if (bar) hide(0);
+      show(steps + '<div class="instbtns"><button type="button" class="instlater">Close</button></div></div>');
+    };
+  }
   window.addEventListener("beforeinstallprompt", function(e){
     e.preventDefault(); ev = e;
+    if (!touch || later) return;                          /* computers, or "Not now": the button only */
     setTimeout(function(){
       var b = show('<div class="insttext"><b>Put EM Roster on your home screen</b>'
         + '<span>Opens in one tap, like an app.</span>'
@@ -8929,7 +9616,7 @@ function useOther(o){
       };
     }, 1500);
   });
-  window.addEventListener("appinstalled", function(){ hide(3650); });
+  window.addEventListener("appinstalled", function(){ hide(3650); if (ib) ib.hidden = true; });
 })();
 
 </script>
