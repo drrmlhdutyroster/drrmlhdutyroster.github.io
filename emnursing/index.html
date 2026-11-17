@@ -941,6 +941,40 @@ body.altscreen #ecroSec > h2, body.altscreen #cmoRSec > h2{display:none}
 @keyframes festin{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.festpill{animation:none}}
 @media print{.festwrap{display:none}}
+
+/* ---- the notice board ---- */
+#noticeList{display:flex;flex-direction:column;gap:8px}
+.notice{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:10px 14px}
+.notice.unread{border-color:var(--accent)}
+.noticehead{display:flex;align-items:baseline;gap:8px;width:100%;background:none;border:0;padding:2px 0;text-align:left;min-height:0;cursor:pointer;color:var(--ink)}
+.noticehead .ntitle{flex:1 1 auto;font-size:15px;font-weight:600}
+.noticehead .ndate{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.ndot{width:8px;height:8px;border-radius:50%;background:var(--red-ink);flex:0 0 auto;align-self:center}
+.ntags{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 0}
+.ntag{font-size:12px;font-weight:600;padding:0 7px;border-radius:6px;background:var(--today-wash);color:var(--accent)}
+.nmeta{font-size:12.5px;color:var(--muted);margin-top:4px}
+.ntext{font-size:15px;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.nfiles{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.nfile.photo img{display:block;max-width:100%;max-height:260px;border-radius:8px;border:1px solid var(--rule);cursor:zoom-in}
+.nfilebtn{font-size:13px}
+.nfilebtn .nsize{color:var(--muted)}
+.nacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button.danger{color:var(--red-ink);border-color:var(--red-ink)}
+details.noticeold>summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6px 0}
+details.noticeold .notice{margin-top:8px;opacity:1;background:var(--panel2)}
+.noticeform{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.noticeform input[type=text],.noticeform textarea,.noticeform input[type=date]{width:100%;font-size:16px}
+.noticeform textarea{font-family:inherit;padding:8px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);resize:vertical}
+.nfhead{font-size:15px;font-weight:700;margin-bottom:4px}
+.nflabel{font-size:12.5px;color:var(--muted);margin-top:6px}
+.nfauds{display:flex;flex-wrap:wrap;gap:6px}
+.nfaud{font-size:13px;padding:4px 10px;min-height:0}
+.nfaud.on{background:var(--today-wash);color:var(--accent);border-color:var(--accent);font-weight:600}
+.nfchosen{display:flex;flex-wrap:wrap;gap:6px}
+.nfchip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;border:1px solid var(--rule);border-radius:6px;padding:2px 2px 2px 8px;background:var(--panel2)}
+.nfx{min-height:0;padding:0 8px;border:0;background:none;font-size:16px;line-height:1.4}
+.nfpick{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.nfpickbtn{display:inline-block;align-self:flex-start;font-size:13px;color:var(--accent);border:1px dashed var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:4px}
 </style>
 
 </head>
@@ -977,6 +1011,16 @@ body.altscreen #ecroSec > h2, body.altscreen #cmoRSec > h2{display:none}
     <p class="hint" id="gateHelp">Needed once on this phone. Ask whoever keeps the roster.</p>
     <p class="status" id="gateMsg"></p>
   </div>
+</section>
+
+<!-- The notice board: HOD Sir posts; each group sees the notices meant for it. -->
+<section id="noticeSec" class="noprint" hidden>
+  <div class="bar" style="margin-bottom:8px">
+    <h2 style="margin:0;border:0;padding:0">Notices</h2>
+    <span class="grow"></span>
+    <button class="ghost" id="noticeNew" type="button" hidden>+ New notice</button>
+  </div>
+  <div id="noticeList"></div>
 </section>
 
 <section id="todaySec">
@@ -3359,6 +3403,61 @@ var STORE = (function(){
         function(e){ if (isKeyError(e)) throw e; return null; });
     },
     keepLocal: function(){ writeLocal(); },
+    /* ---- the notice board ---- */
+    noticeKey: function(){ return HOD ? (HODKEY || wkey()) : wkey(); },
+    notices: function(){
+      if (!ENDPOINT) return Promise.resolve({notices: noticeLocal()});
+      return call({action:"notices", key:this.noticeKey()});
+    },
+    noticeFile: function(fid){
+      if (!ENDPOINT){
+        var hit = null;
+        noticeLocal().forEach(function(n){ (n.files || []).forEach(function(f){ if (f.id === fid) hit = f; }); });
+        return hit ? Promise.resolve({name:hit.name, mime:hit.mime, data:hit.data}) : Promise.reject(new Error("gone"));
+      }
+      return call({action:"noticefile", key:this.noticeKey(), id:fid});
+    },
+    noticeSeen: function(id){
+      if (!ENDPOINT) return Promise.resolve({});
+      return call({action:"noticeseen", key:this.noticeKey(), id:id, dev:devId()});
+    },
+    noticeDrop: function(id){
+      if (!ENDPOINT){ noticeLocal(noticeLocal().filter(function(n){ return n.id !== id; })); return Promise.resolve({}); }
+      return call({action:"noticedel", key:HODKEY || wkey(), id:id});
+    },
+    /* Photos and PDFs are too big for a link, so a notice is posted as a form.
+       If the browser does not let the page read the answer, the notice list
+       is read again to make sure it arrived. */
+    noticeSave: function(o, files){
+      if (!ENDPOINT){
+        var had = null;
+        noticeLocal().forEach(function(n){ if (n.id === o.id) had = n; });
+        var list = noticeLocal().filter(function(n){ return n.id !== o.id; });
+        var kept = ((had && had.files) || []).filter(function(f){ return (o.keep || []).indexOf(f.id) >= 0; });
+        files.forEach(function(f, k){ kept.push({id:o.id + "_f" + Date.now().toString(36) + Math.floor(Math.random()*1e8).toString(36) + k, name:f.name, mime:f.mime, size:Math.round(f.data.length*3/4), data:f.data}); });
+        list.push({id:o.id, title:o.title, text:o.text, aud:o.aud, until:o.until || "", at:had ? had.at : Date.now(),
+          edited:had ? Date.now() : 0, by:"HOD", files:kept, rev:o.rev});
+        if (!noticeLocal(list)) return Promise.reject(new Error("filesize"));
+        return Promise.resolve({ok:true, id:o.id});
+      }
+      var self = this, form = "action=noticesave&cadre=" + CADRE + "&key=" + encodeURIComponent(HODKEY || wkey())
+        + "&body=" + encodeURIComponent(JSON.stringify(o)) + "&files=" + encodeURIComponent(JSON.stringify(files));
+      function arrived(){
+        return self.notices().then(function(r){
+          var hit = (r.notices || []).filter(function(n){ return n.id === o.id && n.rev === o.rev; });
+          if (!hit.length) throw new Error("unreachable");
+          return {ok:true, id:o.id};
+        });
+      }
+      if (!window.fetch) return Promise.reject(new Error("old"));
+      return fetch(ENDPOINT, {method:"POST", body:form, headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+        .then(function(r){ return r.json(); }, function(){ return null; })
+        .then(function(res){
+          if (res && res.ok) return res;
+          if (res && res.error) throw new Error(res.error);
+          return arrived();             /* the answer could not be read: look */
+        }, function(){ return arrived(); });
+    },
     /* the ECRO roster: one month, always in small parts; the last one saves it */
     saveEcro: function(o){
       if (!ENDPOINT) return Promise.resolve({});
@@ -9223,11 +9322,346 @@ function renderAll(){
   renderHours();
   var ab0 = document.getElementById("applyBtn");
   if (ab0 && CADRE === "jr") ab0.hidden = !can("leave");
-  renderHeader(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
+  renderHeader(); renderNotices(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
   renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro(); renderCmor();
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
   applyRoleView();
+}
+
+/* ---------- the notice board ----------
+   HOD Sir posts a notice for one or more groups (all, JR, PG, CMO/EMO,
+   faculty), with photos or PDFs if he wants. Everyone else sees only what is
+   meant for them, newest first, at the top of the page. A notice not yet
+   opened on this phone has a red dot and is shown open; once read it folds to
+   one line. Old notices (past their "show until" date) are Sir's alone. */
+var NOTICES = null;          /* as the server last sent them; null = not asked yet */
+var NOTICE_FORM = null;      /* HOD: the notice being written or edited */
+var NOTICE_OPEN = {};        /* read notices opened again by a tap */
+var NOTICE_FILES = {};       /* file id -> {name, mime, data} once fetched */
+var NOTICE_DEL = null;       /* HOD: the notice whose Remove was tapped once */
+var NOTICE_FRESH = {};       /* new to this phone when the page was opened */
+var NOTICE_AUDS = [["all","All"],["jr","JR"],["pg","PG"],["cmo","CMO / EMO"],["faculty","Faculty"]];
+function noticeLocal(list){
+  if (list === undefined){
+    try { return JSON.parse(localStorage.getItem("rml_notices_local") || "[]"); } catch(e){ return []; }
+  }
+  try { localStorage.setItem("rml_notices_local", JSON.stringify(list)); return true; } catch(e){ return false; }
+}
+function noticeRead(id, set){
+  var k = "rml_notice_read";
+  var o = {};
+  try { o = JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch(e){}
+  if (!set) return !!o[id];
+  o[id] = 1;
+  try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){}
+  return true;
+}
+/* who this phone is, for the board: the same groups the server uses */
+function noticeGroupsOf(v){
+  if (v === "jr" || v === "pg" || v === "cmo" || v === "faculty") return [v];
+  if (v === "maam") return ["faculty"];
+  if (v === "cmoic") return ["cmo","faculty"];
+  return [];
+}
+function noticeViewer(){ return CMOIC && !HOD ? "cmoic" : viewer(); }
+function noticeSees(n){
+  var v = noticeViewer();
+  if (v === "hod") return true;
+  var g = noticeGroupsOf(v), a = n.aud || [];
+  if (a.indexOf("all") >= 0) return g.length > 0;
+  return g.some(function(x){ return a.indexOf(x) >= 0; });
+}
+function noticeToday(){ return iso(Date.now() + 330 * 60000); }
+function noticeIsOld(n){ return !!(n.until && n.until < noticeToday()); }
+function noticeDate(ms){
+  var d = new Date(+ms + 330 * 60000);
+  return d.getUTCDate() + " " + MON[d.getUTCMonth()] + " " + String(d.getUTCFullYear()).slice(2);
+}
+function noticeDay(isoDay){ return noticeDate(Date.parse(isoDay + "T00:00:00Z") - 330 * 60000); }
+function fetchNotices(){
+  if (GATED) return;
+  STORE.notices().then(function(r){
+    var list = r.notices || [];
+    /* a copy with no server keeps everything: show each phone only its own */
+    if (!ENDPOINT) list = list.filter(noticeSees).filter(function(n){ return HOD || !noticeIsOld(n); })
+      .map(function(n){ var c = {}; for (var k in n) if (k !== "data") c[k] = n[k]; c.old = noticeIsOld(n); return c; })
+      .sort(function(a, b){ return b.at - a.at; });
+    NOTICES = list;
+    renderNotices();
+  }, function(){ renderNotices(); });
+}
+function noticeAudLabel(a){
+  var m = {}; NOTICE_AUDS.forEach(function(x){ m[x[0]] = x[1]; });
+  return (a || []).map(function(x){ return m[x] || x; });
+}
+function renderNotices(){
+  var sec = document.getElementById("noticeSec"), host = document.getElementById("noticeList");
+  if (!sec || !host) return;
+  var v = noticeViewer();
+  var list = NOTICES || [];
+  var cur = list.filter(function(n){ return !n.old; }), old = list.filter(function(n){ return n.old; });
+  sec.hidden = GATED || v === "nursing" || (!HOD && !cur.length);
+  var nb = document.getElementById("noticeNew");
+  if (nb){ nb.hidden = !HOD || !!NOTICE_FORM; nb.onclick = function(){ noticeStartForm(null); }; }
+  if (sec.hidden) return;
+  host.innerHTML = "";
+  if (NOTICE_FORM) host.appendChild(noticeFormBox());
+  if (!cur.length && HOD && !NOTICE_FORM)
+    host.appendChild(el("p","hint","No notices up. Tap + New notice to put one up for the JRs, PGs, CMOs or faculty."));
+  cur.forEach(function(n){ host.appendChild(noticeItem(n)); });
+  if (HOD && old.length){
+    var d = document.createElement("details"); d.className = "noticeold";
+    d.appendChild(el("summary", null, "Old notices (" + old.length + ") · only you see these"));
+    old.forEach(function(n){ d.appendChild(noticeItem(n)); });
+    host.appendChild(d);
+  }
+}
+function noticeItem(n){
+  /* new to this phone: dotted and open until the page is opened again */
+  var fresh = !HOD && (NOTICE_FRESH[n.id] || !noticeRead(n.id));
+  if (fresh && !NOTICE_FRESH[n.id]){ NOTICE_FRESH[n.id] = true; noticeMarkRead(n); }
+  var read = !fresh;
+  var open = NOTICE_OPEN.hasOwnProperty(n.id) ? NOTICE_OPEN[n.id] : (fresh || (HOD && !n.old));
+  var box = el("div", "notice" + (read ? "" : " unread") + (open ? " open" : ""));
+  box.setAttribute("data-id", n.id);
+  var head = el("button", "noticehead");
+  head.type = "button";
+  head.setAttribute("aria-expanded", open ? "true" : "false");
+  if (!read){ var dot = el("span", "ndot"); dot.setAttribute("aria-label", "new"); head.appendChild(dot); }
+  head.appendChild(el("span", "ntitle", n.title));
+  head.appendChild(el("span", "ndate", noticeDate(n.at)));
+  head.onclick = function(){ NOTICE_OPEN[n.id] = !open; renderNotices(); };
+  box.appendChild(head);
+  if (HOD){
+    var tags = el("div", "ntags");
+    noticeAudLabel(n.aud).forEach(function(t){ tags.appendChild(el("span", "ntag", t)); });
+    box.appendChild(tags);
+  }
+  if (!open) return box;
+  var meta = "From HOD Sir · " + noticeDate(n.at) + (n.edited ? " · edited " + noticeDate(n.edited) : "");
+  box.appendChild(el("div", "nmeta", meta));
+  if (n.text) box.appendChild(el("div", "ntext", n.text));
+  if ((n.files || []).length){
+    var fl = el("div", "nfiles");
+    n.files.forEach(function(f){ fl.appendChild(noticeFileBox(f)); });
+    box.appendChild(fl);
+  }
+  if (HOD){
+    var info = [];
+    if (n.until) info.push((n.old ? "Ended " : "Shows until ") + noticeDay(n.until));
+    else info.push("No end date");
+    if (ENDPOINT && n.seen != null) info.push("seen on " + n.seen + " phone" + (n.seen === 1 ? "" : "s"));
+    box.appendChild(el("div", "nmeta", info.join(" · ")));
+    var acts = el("div", "nacts");
+    var ed = el("button", "ghost", "Edit"); ed.type = "button";
+    ed.onclick = function(){ noticeStartForm(n); };
+    var rm = el("button", "ghost" + (NOTICE_DEL === n.id ? " danger" : ""), NOTICE_DEL === n.id ? "Tap again to remove" : "Remove");
+    rm.type = "button";
+    rm.onclick = function(){
+      if (NOTICE_DEL !== n.id){ NOTICE_DEL = n.id; renderNotices(); return; }
+      rm.disabled = true; rm.textContent = "Removing…";
+      STORE.noticeDrop(n.id).then(function(){ NOTICE_DEL = null; fetchNotices(); },
+        function(){ NOTICE_DEL = null; rm.disabled = false; rm.textContent = "Could not remove. Try again."; });
+    };
+    acts.appendChild(ed); acts.appendChild(rm);
+    box.appendChild(acts);
+  }
+  return box;
+}
+/* shown on this phone: the dot goes on the next visit, and Sir's count goes up once */
+function noticeMarkRead(n){
+  if (noticeRead(n.id)) return;
+  noticeRead(n.id, true);
+  STORE.noticeSeen(n.id).then(null, function(){});
+}
+function noticeFileBox(f){
+  var isPdf = f.mime === "application/pdf";
+  var wrap = el("div", "nfile" + (isPdf ? " pdf" : " photo"));
+  var have = NOTICE_FILES[f.id];
+  if (!isPdf && have){
+    var img = document.createElement("img");
+    img.src = "data:" + have.mime + ";base64," + have.data;
+    img.alt = f.name || "Photo";
+    img.onclick = function(){ noticeOpenFile(f); };
+    wrap.appendChild(img);
+    wrap.appendChild(el("div", "nmeta", "Tap the photo to see it full size"));
+    return wrap;
+  }
+  var b = el("button", "nfilebtn", isPdf ? "PDF · " + (f.name || "notice.pdf") : "Photo · tap to load");
+  b.type = "button";
+  if (f.size) b.appendChild(el("span", "nsize", " " + Math.max(1, Math.round(f.size / 1024)) + " KB"));
+  b.onclick = function(){ noticeOpenFile(f, b); };
+  wrap.appendChild(b);
+  if (!isPdf && !have) setTimeout(function(){ noticeGetFile(f).then(function(){ renderNotices(); }, function(){}); }, 0);
+  return wrap;
+}
+function noticeGetFile(f){
+  if (NOTICE_FILES[f.id]) return Promise.resolve(NOTICE_FILES[f.id]);
+  if (f._p) return f._p;
+  f._p = STORE.noticeFile(f.id).then(function(r){
+    NOTICE_FILES[f.id] = {name:r.name || f.name, mime:r.mime || f.mime, data:r.data};
+    return NOTICE_FILES[f.id];
+  }, function(e){ f._p = null; throw e; });
+  return f._p;
+}
+/* full size: a photo in its own tab to zoom; a PDF in the phone's PDF viewer */
+function noticeOpenFile(f, btn){
+  var w = null;
+  try { w = window.open("", "_blank"); } catch(e){}
+  if (btn){ btn.disabled = true; btn.firstChild.textContent = "Opening…"; }
+  noticeGetFile(f).then(function(r){
+    var bin = atob(r.data), u8 = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    var url = URL.createObjectURL(new Blob([u8], {type:r.mime}));
+    if (w) w.location.href = url; else location.href = url;
+    if (btn){ btn.disabled = false; renderNotices(); }
+  }, function(){
+    if (w) try { w.close(); } catch(e){}
+    if (btn){ btn.disabled = false; btn.firstChild.textContent = "Could not open. Tap to try again."; }
+  });
+}
+
+/* ---- HOD Sir writes or edits a notice ---- */
+function noticeStartForm(n){
+  NOTICE_FORM = n ? {id:n.id, isNew:false, title:n.title, text:n.text || "", aud:(n.aud || []).slice(), until:n.until || "",
+                     keep:(n.files || []).slice(), add:[], msg:""}
+                  : {id:"n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), isNew:true,
+                     title:"", text:"", aud:[], until:"", keep:[], add:[], msg:""};
+  renderNotices();
+  var t = document.getElementById("nfTitle"); if (t) t.focus();
+}
+function noticeFormBox(){
+  var F = NOTICE_FORM, box = el("div", "noticeform");
+  box.appendChild(el("div", "nfhead", F.isNew ? "New notice" : "Edit notice"));
+  var lt = el("label", null, "Title"); lt.htmlFor = "nfTitle"; box.appendChild(lt);
+  var ti = document.createElement("input"); ti.id = "nfTitle"; ti.type = "text"; ti.maxLength = 120; ti.value = F.title;
+  ti.oninput = function(){ F.title = ti.value; };
+  box.appendChild(ti);
+  var lx = el("label", null, "Text"); lx.htmlFor = "nfText"; box.appendChild(lx);
+  var tx = document.createElement("textarea"); tx.id = "nfText"; tx.rows = 4; tx.maxLength = 4000; tx.value = F.text;
+  tx.oninput = function(){ F.text = tx.value; };
+  box.appendChild(tx);
+  box.appendChild(el("div", "nflabel", "For"));
+  var auds = el("div", "nfauds");
+  NOTICE_AUDS.forEach(function(a){
+    var on = F.aud.indexOf(a[0]) >= 0;
+    var b = el("button", "nfaud" + (on ? " on" : ""), (on ? "✓ " : "") + a[1]);
+    b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.onclick = function(){
+      if (a[0] === "all") F.aud = on ? [] : ["all"];
+      else {
+        F.aud = F.aud.filter(function(x){ return x !== "all" && x !== a[0]; });
+        if (!on) F.aud.push(a[0]);
+      }
+      renderNotices();
+    };
+    auds.appendChild(b);
+  });
+  box.appendChild(auds);
+  box.appendChild(el("div", "nflabel", "Photos and PDFs"));
+  var files = el("div", "nfchosen");
+  F.keep.forEach(function(f, i){
+    files.appendChild(noticeChip((f.mime === "application/pdf" ? "PDF · " : "Photo · ") + (f.name || ""), function(){ F.keep.splice(i, 1); renderNotices(); }));
+  });
+  F.add.forEach(function(f, i){
+    files.appendChild(noticeChip((f.mime === "application/pdf" ? "PDF · " : "Photo · ") + f.name + " · " + Math.max(1, Math.round(f.data.length * 3 / 4 / 1024)) + " KB",
+      function(){ F.add.splice(i, 1); renderNotices(); }));
+  });
+  box.appendChild(files);
+  var pick = document.createElement("input"); pick.type = "file"; pick.id = "nfFile"; pick.multiple = true;
+  pick.accept = "image/*,application/pdf"; pick.className = "nfpick";
+  var pl = el("label", "nfpickbtn", "+ Add photo or PDF"); pl.htmlFor = "nfFile";
+  pick.onchange = function(){
+    var list = [].slice.call(pick.files || []);
+    F.msg = list.length ? "Getting the file ready…" : ""; noticeSay(F.msg);
+    var p = Promise.resolve();
+    list.forEach(function(file){
+      p = p.then(function(){ return noticePrepare(file); }).then(function(r){
+        if (F.keep.length + F.add.length >= 6) throw new Error("Six files at most on one notice.");
+        F.add.push(r);
+      });
+    });
+    p.then(function(){ F.msg = ""; renderNotices(); }, function(e){ F.msg = e.message; renderNotices(); });
+  };
+  box.appendChild(pick); box.appendChild(pl);
+  var lu = el("label", null, "Show until (leave empty to keep it up)"); lu.htmlFor = "nfUntil"; box.appendChild(lu);
+  var un = document.createElement("input"); un.type = "date"; un.id = "nfUntil"; un.value = F.until;
+  un.onchange = function(){ F.until = un.value; };
+  box.appendChild(un);
+  var acts = el("div", "nacts");
+  var go = el("button", "primary", F.isNew ? "Post notice" : "Save changes"); go.type = "button"; go.id = "nfPost";
+  go.onclick = noticePost;
+  var cx = el("button", "ghost", "Cancel"); cx.type = "button";
+  cx.onclick = function(){ NOTICE_FORM = null; renderNotices(); };
+  acts.appendChild(go); acts.appendChild(cx);
+  box.appendChild(acts);
+  var st = el("p", "status" + (/^(Getting|Posting)/.test(F.msg) ? "" : " bad"), F.msg); st.id = "nfMsg";
+  box.appendChild(st);
+  return box;
+}
+function noticeSay(m, bad){
+  var st = document.getElementById("nfMsg");
+  if (st){ st.textContent = m; st.className = "status" + (bad ? " bad" : ""); }
+}
+function noticeChip(label, drop){
+  var c = el("span", "nfchip", label);
+  var x = el("button", "nfx", "×"); x.type = "button"; x.setAttribute("aria-label", "Take off " + label);
+  x.onclick = drop;
+  c.appendChild(x);
+  return c;
+}
+/* a photo is made smaller on the phone (longest side 1600, JPEG) before it is
+   sent; a PDF goes as it is, up to 2 MB */
+function noticePrepare(file){
+  return new Promise(function(resolve, reject){
+    var name = String(file.name || "").slice(0, 80);
+    if (file.type === "application/pdf" || /\.pdf$/i.test(name)){
+      if (file.size > 2 * 1024 * 1024){ reject(new Error("\"" + name + "\" is over 2 MB. Send a smaller PDF, or photos of its pages.")); return; }
+      var fr = new FileReader();
+      fr.onload = function(){ resolve({name:name, mime:"application/pdf", data:String(fr.result).split(",")[1] || ""}); };
+      fr.onerror = function(){ reject(new Error("\"" + name + "\" could not be read.")); };
+      fr.readAsDataURL(file);
+      return;
+    }
+    if (!/^image\//.test(file.type || "") && !/\.(jpe?g|png|heic|webp)$/i.test(name)){ reject(new Error("Only photos and PDFs can go on a notice.")); return; }
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, 1600 / Math.max(w, h));
+      var c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+      var g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var q = 0.82, d = c.toDataURL("image/jpeg", q);
+      while (d.length > 1400000 && q > 0.45){ q -= 0.12; d = c.toDataURL("image/jpeg", q); }
+      resolve({name:name.replace(/\.[^.]*$/, "") + ".jpg", mime:"image/jpeg", data:d.split(",")[1] || ""});
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("\"" + name + "\" could not be read as a photo. Try a screenshot of it.")); };
+    img.src = url;
+  });
+}
+function noticePost(){
+  var F = NOTICE_FORM;
+  if (!F) return;
+  F.title = F.title.trim();
+  if (!F.title){ F.msg = "Give the notice a title."; renderNotices(); return; }
+  if (!F.aud.length){ F.msg = "Choose whom it is for."; renderNotices(); return; }
+  var o = {id:F.id, isNew:F.isNew, title:F.title, text:F.text.trim(), aud:F.aud, until:F.until,
+           keep:F.keep.map(function(f){ return f.id; }), rev:Date.now().toString(36)};
+  var go = document.getElementById("nfPost"); if (go) go.disabled = true;
+  F.msg = "Posting…"; noticeSay(F.msg);
+  STORE.noticeSave(o, F.add).then(function(){
+    NOTICE_FORM = null; NOTICE_OPEN[o.id] = true;
+    fetchNotices();
+  }, function(e){
+    var m = String(e && e.message || e);
+    F.msg = m === "hod" ? "Only HOD Sir's passphrase can post notices."
+          : m === "filesize" ? "A file is too big. Photos up to about 1 MB each, PDFs up to 2 MB."
+          : m === "filetype" ? "Only photos and PDFs can go on a notice."
+          : m === "gone" ? "This notice was removed meanwhile."
+          : "Could not post. Check the internet and try again.";
+    renderNotices();
+  });
 }
 
 /* ---------- copy helper ---------- */
@@ -9521,6 +9955,7 @@ function useOther(o){
   applyLock();
   if (!ENDPOINT && SEED && SEED.preview) loadOther();
   renderAll();
+  if (!ENDPOINT) fetchNotices();
   idleStatus();
   if (!ENDPOINT || GATED) return;
   STORE.load().then(function(){
@@ -9535,6 +9970,7 @@ function useOther(o){
     if (STORE.lastOther) useOther(STORE.lastOther);   /* never kept on the phone */
     if (HODKEY && r !== "hod") checkHodLater();
     applyLock(); renderAll(); idleStatus();
+    fetchNotices();
   });
 })();
 
