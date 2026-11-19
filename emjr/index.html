@@ -1814,7 +1814,7 @@ function movesOn(key){
   return changesOn(key).filter(function(x){ return isMove(x.v); });
 }
 function effective(ms){
-  var key=iso(ms), duty={}, changed={}, extra={}, half={}, auto={}, lwp={}, i;
+  var key=iso(ms), duty={}, changed={}, extra={}, half={}, auto={}, lwp={}, refused={}, i;
   var all=everyone(ms);
   for(i=0;i<all.length;i++) duty[all[i]]=baseDuty(all[i],ms);
   var sw=swapsOn(key);
@@ -1830,13 +1830,11 @@ function effective(ms){
     var r=lv[i].v.resident, vacated=duty[r];
     if(!vacated) continue;
     /* Where the roster says so (the junior residents), a day the person was
-       due off anyway is not leave at all, and leave the Head of the Department
-       did not approve is an absence on every day it took them off duty. */
+       due off anyway is not leave at all. Leave the Head of the Department did
+       not approve leaves the person on duty (HOD Sir, 19 Nov 2026): it is an
+       absence only if the CMO's posting shows they did not come (below). */
     if (CFG.offFree && vacated==="OFF") continue;
-    if(!isLive(lv[i].v)){
-      if (CFG.refusedAbsent && vacated!=="OFF" && vacated!=="LEAVE"){ duty[r]="ABSENT"; changed[r]=true; }
-      continue;
-    }
+    if(!isLive(lv[i].v)){ refused[r]=true; continue; }
     if (lv[i].v.half){ half[r]=true; if (isExcess(lv[i].id)) lwp[r]=true; continue; }   /* half a duty off: still on the shift */
     duty[r]="LEAVE";
     if (isExcess(lv[i].id)) lwp[r]=true;
@@ -1906,7 +1904,7 @@ function effective(ms){
       }
     });
   }
-  return {duty:duty, changed:changed, extra:extra, half:half, auto:auto, lwp:lwp, people:all};
+  return {duty:duty, changed:changed, extra:extra, half:half, auto:auto, lwp:lwp, refused:refused, people:all};
 }
 /* absences that come from a posted shift, shaped like the ones entered by hand */
 function autoAbsOn(key){
@@ -2057,7 +2055,8 @@ function slotName(k){
 }
 /* why a day shows absent, in plain words */
 function absentWhy(n, key, eff){
-  if (eff && eff.auto && eff.auto[n]) return "not recorded on duty for this shift - tell Dr Praveen Singh Sir if you were on duty";
+  if (eff && eff.auto && eff.auto[n]) return (eff.refused && eff.refused[n] ? "leave not approved, and " : "")
+    + "not recorded on duty for this shift - tell Dr Praveen Singh Sir if you were on duty";
   var L = DATA.leaves || {};
   for (var id in L){ var v = L[id]; if (v && v.resident === n && v.date === key && statusOf(v) === "declined") return "leave not approved by HOD Sir"; }
   return "marked absent";
@@ -2643,14 +2642,16 @@ function cmorCode(note){
   if (/^(EL|CL|RH|GH)\b/.test(n)) return n.slice(0,2);
   if (/^PENDING/.test(n)) return "PO";
   if (/^DUTY OFF/.test(n)) return "DO";
+  if (/^EXCHANGE/.test(n)) return "EX";
   if (/^GH/.test(n)) return "GH";
   return "L";
 }
 function cmorWhere(day, name){
   if (!day) return null;
-  var r = null;
-  CMOR_SHIFTS.forEach(function(s){ if ((day[s[0]] || []).indexOf(name) >= 0) r = {code:s[0], note:s[1] + " " + s[3]}; });
-  if (r) return r;
+  var r = null, on = [];
+  /* one person may work two shifts in a day, e.g. by a mutual exchange: "M+E" */
+  CMOR_SHIFTS.forEach(function(s){ if ((day[s[0]] || []).indexOf(name) >= 0) on.push(s); });
+  if (on.length) return {code:on.map(function(s){ return s[0]; }).join("+"), note:on.map(function(s){ return s[1] + " " + s[3]; }).join(" and ")};
   if ((day.O || []).indexOf(name) >= 0) return {code:"NO", note:"Night off"};
   (day.L || []).forEach(function(x){ if (x[0] === name) r = {code:cmorCode(x[1]), note:x[1]}; });
   return r;
@@ -2749,7 +2750,7 @@ function renderCmor(){
       var tr = el("tr"), nh = el("th"); nh.setAttribute("scope","row");
       nh.appendChild(cmorPerson(n)); tr.appendChild(nh);
       keys.forEach(function(k){
-        var w = cmorWhere(CMOR.days[k], n), code = w ? w.code : "", td = el("td","cm-" + (code || "none") + (k === now.key ? " todaycol" : ""), code === "NO" ? "NO" : code || "·");
+        var w = cmorWhere(CMOR.days[k], n), code = w ? w.code : "", td = el("td","cm-" + (code.split("+")[0] || "none") + (k === now.key ? " todaycol" : ""), code === "NO" ? "NO" : code || "·");
         if (CMOR_PICK === n + "|" + k) td.className += " picked";
         td.onclick = function(){ CMOR_PICK = CMOR_PICK === n + "|" + k ? "" : n + "|" + k; renderCmor(); };
         tr.appendChild(td);
@@ -2762,7 +2763,7 @@ function renderCmor(){
     if (CMOR_PICK){
       var pp = CMOR_PICK.split("|"), w2 = cmorWhere(CMOR.days[pp[1]], pp[0]), d2 = new Date(msOf(pp[1]));
       pick.textContent = cmorName(pp[0]) + " · " + DOW[d2.getUTCDay()] + " " + d2.getUTCDate() + " " + MON[d2.getUTCMonth()] + ": " + (w2 ? w2.note : "not on the roster this day");
-    } else pick.textContent = "M morning · E evening · N night · NO night off · WO week off · EL / CL / RH leave · PO pending off · DO duty off. Tap a day to read it in full.";
+    } else pick.textContent = "M morning · E evening · N night · NO night off · WO week off · EL / CL / RH leave · PO pending off · DO duty off · EX exchange. Tap a day to read it in full.";
     box.appendChild(pick);
   }
   applyEcroScreen();
@@ -2845,8 +2846,18 @@ function cmorSetup(host){
     Object.keys(w).sort().forEach(function(k){
       var dd = new Date(msOf(k)), dn = dd.getUTCDate() + " " + MON[dd.getUTCMonth()];
       var d = {M:cmorParseNames(w[k].M), E:cmorParseNames(w[k].E), N:cmorParseNames(w[k].N), O:cmorParseNames(w[k].O), L:cmorParseLeave(w[k].L)};
-      var all = d.M.concat(d.E, d.N, d.O, d.L.map(function(x){ return x[0]; })), seen = {};
-      all.forEach(function(n){ if (seen[n]) errs.push(dn + ": " + title(n) + " is written twice"); seen[n] = 1; });
+      /* twice in one list, or working and also off / on leave, is a mistake; two
+         working shifts (a mutual exchange) is allowed */
+      var off = {};
+      d.O.concat(d.L.map(function(x){ return x[0]; })).forEach(function(n){ if (off[n]) errs.push(dn + ": " + title(n) + " is written twice"); off[n] = 1; });
+      ["M","E","N"].forEach(function(s){
+        var seen = {};
+        d[s].forEach(function(n){
+          if (seen[n]) errs.push(dn + ": " + title(n) + " is written twice");
+          else if (off[n]) errs.push(dn + ": " + title(n) + " is both on duty and off");
+          seen[n] = 1;
+        });
+      });
       days[k] = d;
     });
     if (errs.length){ say(errs.slice(0,3).join(" · ") + (errs.length > 3 ? " · and " + (errs.length - 3) + " more" : ""), true); return; }
@@ -3947,7 +3958,7 @@ function requestDetail(g){
     var involved = g.kind === "exchange" ? [v.a, v.b] : g.kind === "move" ? [v.resident] : [v.by];
     involved.forEach(function(n){ restIssues(n, msOf(v.date)).forEach(function(x){ bits.push("REST: " + x); }); });
   }
-  if (g.kind === "leave" && CFG.refusedAbsent) bits.push("if not approved, these days are marked absent");
+  if (g.kind === "leave" && CFG.refusedAbsent) bits.push("if not approved, still on duty these days - absent only if not posted by the CMO");
   if (v.by || v.requestedBy) bits.push("entered by Dr " + title(v.by || v.requestedBy));
   return bits.join("  ·  ");
 }
@@ -4331,7 +4342,8 @@ function renderApprovals(){
   var groups = groupRequests(pendingRequests());
   var showHodBox = hodRequested() && !HOD && !FAC;
   sec.hidden = !groups.length && !showHodBox && !HOD;
-  if (hbox) hbox.hidden = !((hodRequested() && !FAC) || HOD);
+  /* asked for only while this phone does not yet hold it - never again once opened with it */
+  if (hbox) hbox.hidden = !(hodRequested() && !FAC && !HODAUTH);
   /* Arriving at his own address, the Head of the Department should find the
      box open rather than behind another tap. */
   if (box && hodRequested() && !HOD && box.hidden){
@@ -5236,7 +5248,7 @@ function chipFor(kind, it){
   if (isPending(it.v) || isDeclined(it.v)){
     var tag = el("span","sttag", isPending(it.v)
       ? "awaiting approval"
-      : (kind === "leave" && CFG.refusedAbsent ? "not approved - absent" : "not approved"));
+      : (kind === "leave" && CFG.refusedAbsent ? "not approved - still on duty" : "not approved"));
     ch.appendChild(tag);
   }
   /* A decided entry belongs to the Head of the Department. Residents may
@@ -6261,9 +6273,12 @@ function leaveYear(n){
 }
 /* How much a day of leave counts. A half day is half. On the JR roster a
    night costs two: the night itself and the rest day that goes with it. */
+/* A night is two days of leave. JRs: always. PGs: for nights from 19 Nov 2026
+   (asked by Dr Vivek, 19 Nov 2026), so leave already counted does not change. */
+var PG_NIGHT_TWO_FROM = "2026-11-19";
 function leaveWeight(n, dateKey, half){
   var w = half ? 0.5 : 1;
-  if (hasTeams() && baseDuty(n, msOf(dateKey)) === "N") w *= 2;
+  if ((hasTeams() || dateKey >= PG_NIGHT_TWO_FROM) && baseDuty(n, msOf(dateKey)) === "N") w *= 2;
   return w;
 }
 /* ---------- 2.5 days a month (JRs) ---------- */
@@ -6507,7 +6522,7 @@ function leaveTaken(n, ly){
     if (fromMs!==null && ms<fromMs) continue;
     if (isDeclined(lv)) continue;              /* refused: never charged */
     if (CFG.offFree && baseDuty(n, ms) === "OFF") continue;   /* due off anyway: not leave */
-    var w = leaveWeight(n, lv.date, lv.half);   /* half a day is half; a JR night is two */
+    var w = leaveWeight(n, lv.date, lv.half);   /* half a day is half; a night is two */
     if (isExcess(k)) continue;                  /* over the monthly limit: without pay, not from the entitlement */
     if (lv.coveredBy){ covered++; continue; }  /* older entries, before covers stood alone */
     if (isPending(lv)){ pending += w; continue; } /* charged only once approved */
@@ -8264,7 +8279,7 @@ function pdfLeaveApplication(n, run){
       doc.text(L, y, 9.5, true,
         (dec.status === "approved" ? "Approved" : "Not approved")
         + " by " + APPROVER + (dec.at ? " on " + fmt(dec.at) : ""), INK);
-      if (dec.status !== "approved" && CFG.refusedAbsent){ y += 13; doc.text(L, y, 8.5, false, "Marked absent on the duty days of this period.", GREY); }
+      if (dec.status !== "approved" && CFG.refusedAbsent){ y += 13; doc.text(L, y, 8.5, false, "Still on duty on these days; absent only on a shift where the CMO's posting does not show them.", GREY); }
     }
     if (dec.remark){ y += 13; doc.text(L, y, 9, false, "Remark: " + dec.remark, GREY); }
     if (dec.directed && dec.by !== "FACULTY"){ y += 13; doc.text(L, y, 8, false, "Directed by the Head of the Department.", GREY); }
@@ -8498,7 +8513,7 @@ function pdfRegister(fromMs, toMs){
     doc.text(cols[3], y, 8.5, false, String(r.n || "-"), INK);
     doc.text(cols[4], y, 8.5, false,
       (r.status === "approved" ? (r.by === "FACULTY" ? "By faculty" : r.directed ? "Directed" : "Approved")
-        : (r.leave && CFG.refusedAbsent ? "Not approved - absent" : "Not approved")),
+        : (r.leave && CFG.refusedAbsent ? "Not approved - on duty" : "Not approved")),
       r.status === "approved" ? INK : GREY);
     y += 15;
   }
@@ -8801,7 +8816,7 @@ function absenceRows(y, m){
       if (!by[n]){ by[n] = {name:n, group:groupLabel(n, t), days:[], how:{}}; order.push(n); }
       by[n].days.push(new Date(t).getUTCDate());
       var how = marks[n] ? "marked" + (marks[n].by && marks[n].by !== "posting" ? " by " + marks[n].by : "")
-              : (e.auto && e.auto[n]) ? "absent" : "leave not approved";
+              : (e.refused && e.refused[n]) ? "absent - leave not approved" : "absent";
       by[n].how[how] = 1;
     }
   }
@@ -8999,9 +9014,10 @@ function renderHeader(){
       + "is an exchange, not leave, so it is not counted."
     : "Entitlement is " + CFG.annualLeave + " days in every " + leaveMonths()
       + " months, counted from each resident's own joining date, with nothing carried over."
+      + (!hasTeams() ? " Leave on a night duty counts as 2 days (from 19 Nov 2026)." : "")
       + (CFG.offFree ? " A day your group was due off anyway is not counted as leave." : "")
       + " Leave is counted only once the Head of the Department approves it"
-      + (CFG.refusedAbsent ? "; leave he does not approve is marked absent on the days it took you off duty." : ".");
+      + (CFG.refusedAbsent ? "; leave he does not approve leaves you on duty, and a duty you then miss is marked absent from the CMO's posting." : ".");
   var mb = document.getElementById("maintBy");
   if (mb) mb.textContent = CFG.maintainedBy
     ? "Maintained by " + CFG.maintainedBy
@@ -9296,7 +9312,10 @@ function applyRoleView(){
   /* the roster PDF stays for everyone who works on the roster; the changes register is the office's */
   var dl = document.querySelector(".dlgrid"); if (dl) dl.hidden = (v === "nursing" || v === "cmo");
   show("pReg", office);
-  show("whoWrap", isCandidate());
+  /* residents: "I am"; HOD Sir, faculty and the JR in-charge: see anyone's duties */
+  show("whoWrap", isCandidate() || seesEveryone());
+  var wl = document.querySelector('label[for="whoami"]');
+  if (wl) wl.textContent = isCandidate() ? "I am" : "See duties of";
   show("counterSec", v !== "cmo" && v !== "nursing");
   /* the tools card only if something is left in it */
   var tc = document.getElementById("toolsCard");
