@@ -975,6 +975,36 @@ details.noticeold .notice{margin-top:8px;opacity:1;background:var(--panel2)}
 .nfx{min-height:0;padding:0 8px;border:0;background:none;font-size:16px;line-height:1.4}
 .nfpick{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .nfpickbtn{display:inline-block;align-self:flex-start;font-size:13px;color:var(--accent);border:1px dashed var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:4px}
+
+/* ================= the makeover (19 Nov 2026) =================
+   Three sizes: titles 20, names and main text 15, labels/times/notes 12.5.
+   Colour only where something needs action. Secondary things fold away. */
+body{font-size:15px}
+h1,.pagehead h1{font-size:20px !important;line-height:1.2}
+.creditname,.credit .creditname{font-size:20px !important}   /* Sir's name stays clearly larger than the developer line */
+section>h2,.nfhead{font-size:20px !important}
+.blocklabel,.dnum,.mdate,.daycard>header .dd,#counter td.num,#ledger td.num,.stat b,.lsumcell b,.lsumfour .l4 b,.acadtopic,.noticehead .ntitle,.reasonbox{font-size:15px !important}
+.eyebrow,.note,.hint,.status,.tag,.todaychip,.holi,.nowtag,.creditlead,.creditrole,.creditby,.daycard>header .dw,.daycard>header .holflag,.daycard>header .todayflag,.tdate,.nmeta,.ndate,.subnum,.overnote,.yr,.spec h3,.spec p,.groupcards ol,.dlgrid .dlhead,.apprline{font-size:12.5px !important}
+/* 1. one call style: the name, then a small phone mark */
+.callbtn,.callbtn.small{background:none !important;color:var(--accent) !important;padding:0 2px !important;margin-left:3px !important;border-radius:0 !important;font-size:12.5px !important;font-weight:600;vertical-align:0}
+/* 3. day headers light; only today in colour */
+.daycard>header{background:var(--panel2);color:var(--ink);border-bottom:1px solid var(--rule)}
+.daycard.today>header{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.apprline{background:var(--panel);color:var(--red-ink);border:1px solid var(--red-ink);border-radius:12px;font-weight:700}
+.absnote{display:block;font-size:12.5px;font-weight:600;color:var(--red-ink)}
+/* 4. folded until tapped */
+.mkfold,.mkfold2{display:none !important}   /* the makeover's own fold ("folded" is the today card's) */
+.foldbtn{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--rule);border-radius:0;padding:10px 2px;margin:6px 0 0;font-size:12.5px;font-weight:600;color:var(--accent);min-height:0}
+.foldbtn[hidden]{display:none}
+#toolsCard .foldbtn{margin-top:12px}
+/* the leave table on a phone: name and balance; tap the name for the rest */
+@media (max-width:780px){
+  #counter tr > :not(.keep):not([scope=row]):not(.plain){display:none}
+  #counter th[scope=row]{cursor:pointer}
+  #counter .rowmore{display:block;font-size:12.5px;font-weight:400;color:var(--muted);white-space:normal}
+}
+/* + Add only while editing is unlocked */
+body.locked .addbtn{display:none}
 </style>
 
 </head>
@@ -1258,6 +1288,7 @@ var SEED = {"configs":{},"data":{},"shell":{"dept":{"hospital":"A.B.V.I.M.S. & D
 /* Minimal PDF writer — Helvetica only, no dependencies.
    Origin is top-left in every call; the writer flips to PDF space. */
 function PDFDoc(w, h){
+  if (typeof FMT_FULL !== "undefined") FMT_FULL = true;   /* a PDF keeps the full year */
   this.w = w; this.h = h;
   this.pages = [];
   this.newPage();
@@ -1334,6 +1365,7 @@ function wrapText(s, size, bold, maxW){
   return lines;
 }
 PDFDoc.prototype.build = function(){
+  if (typeof FMT_FULL !== "undefined") FMT_FULL = false;
   var objs = [], self = this;
   var fontA = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
   var fontB = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
@@ -1391,7 +1423,9 @@ var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function iso(ms){ return new Date(ms).toISOString().slice(0,10); }
 function msOf(s){ var p = String(s).split("-"); return Date.UTC(+p[0], +p[1]-1, +p[2]); }
-function fmt(ms){ var d = new Date(ms); return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+d.getUTCFullYear(); }
+/* "16 Mar 26" on screen, so a date stays on one line; a PDF keeps the full year */
+var FMT_FULL = false;
+function fmt(ms){ var d = new Date(ms), y = d.getUTCFullYear(); return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+(FMT_FULL ? y : String(y).slice(2)); }
 /* "SAMEER KHAN" -> "Sameer Khan": each word, so two-word names read properly */
 function title(n){ return String(n).toLowerCase().replace(/(^|[\s.\-])([a-z])/g, function(m, a, c){ return a + c.toUpperCase(); }); }
 /* the viewer's own calendar date - UTC would read as yesterday in India */
@@ -4341,7 +4375,9 @@ function renderApprovals(){
   if (!sec) return;
   var groups = groupRequests(pendingRequests());
   var showHodBox = hodRequested() && !HOD && !FAC;
-  sec.hidden = !groups.length && !showHodBox && !HOD;
+  var tenure0 = HOD && hasTeams() ? tenureBar() : null;
+  sec.hidden = !groups.length && !showHodBox && !tenure0;
+  if (btn) btn.hidden = !groups.length;
   /* asked for only while this phone does not yet hold it - never again once opened with it */
   if (hbox) hbox.hidden = !(hodRequested() && !FAC && !HODAUTH);
   /* Arriving at his own address, the Head of the Department should find the
@@ -4352,13 +4388,13 @@ function renderApprovals(){
   }
   if (btn){
     btn.textContent = groups.length
-      ? groups.length + (groups.length === 1 ? " request awaiting approval" : " requests awaiting approval")
-      : (HOD ? "Nothing awaiting approval" : "");
+      ? (HOD ? "Needs you \u00B7 " : "") + groups.length + (groups.length === 1 ? " request awaiting approval" : " requests awaiting approval")
+      : "";
   }
   /* HOD Sir: "6 months completed" - a note under the button, not inside it */
   var tn = document.getElementById("tenNote");
   if (!tn && btn){ tn = el("div"); tn.id = "tenNote"; btn.parentNode.insertBefore(tn, btn.nextSibling); }
-  if (tn){ tn.innerHTML = ""; if (HOD && hasTeams()){ var tb1 = tenureBar(); if (tb1) tn.appendChild(tb1); } }
+  if (tn){ tn.innerHTML = ""; if (tenure0) tn.appendChild(tenure0); }
   if (!list) return;
   list.innerHTML = "";
   if (!groups.length){
@@ -4887,7 +4923,7 @@ function callBtn(n, small){
   var a = document.createElement("a");
   a.className = "callbtn noprint" + (small ? " small" : "");
   a.href = telHref(p);
-  a.textContent = small ? "\u260E" : "\u260E Call";
+  a.textContent = "\u260E";
   a.title = "Call Dr " + title(n);
   a.setAttribute("aria-label", "Call Dr " + title(n));
   a.onclick = function(ev){ ev.stopPropagation(); };
@@ -6628,7 +6664,7 @@ function renderCounter(){
     ? ["Resident","Date of joining","Balance on 31 Oct","Taken since 1 Nov","Balance now","Can still take this year"]
     : ["Resident","Date of joining", leaveMonths()===12 ? "Leave taken this year" : "Leave taken this period","Remaining of " + CFG.annualLeave])
     .concat(absCount ? ["Absent this period"] : [])
-    .forEach(function(h,i){ hr.appendChild(el("th", i===0?"plain":null, h)); });
+    .forEach(function(h,i){ hr.appendChild(el("th", i===0?"plain":(i===(hasTeams()?4:3)?"keep":null), h)); });
   thead.appendChild(hr); t.appendChild(thead);
   var tb = el("tbody"), shown = 0, total = 0;
   var ms0 = msOf(todayKey()) < epochMs() ? epochMs() : msOf(todayKey());
@@ -6666,7 +6702,7 @@ function renderCounter(){
         tk2.appendChild(ah2);
       }
       tr.appendChild(tk2);
-      var bc = el("td","num" + (bal.left < 0 ? " minuscell" : ""), fmtBal(bal.left));
+      var bc = el("td","num keep" + (bal.left < 0 ? " minuscell" : ""), fmtBal(bal.left));
       if (bal.credited) bc.appendChild(el("div","subnum", "+" + bal.credited + " credited"));
       tr.appendChild(bc);
       var ct = el("td","num" + (bal.canTake < 0 ? " minuscell" : ""), fmtBal(bal.canTake));
@@ -6679,7 +6715,7 @@ function renderCounter(){
       th.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a,button")) return; openSheet("Leave - Dr " + title(n), leaveSummaryCard(n)); };
       if (absCount){
         var an0 = absCount[n] || 0, ac0 = el("td","num", String(an0));
-        if (an0) ac0.style.color = "var(--warn-ink)";
+        if (an0){ ac0.style.color = "var(--red-ink)"; th.appendChild(el("span","absnote", an0 + " absent")); }
         tr.appendChild(ac0);
       }
       tb.appendChild(tr);
@@ -6695,7 +6731,9 @@ function renderCounter(){
     }
     tr.appendChild(tot);
     var left = CFG.annualLeave - tk.taken - (ly? tk.ahead : 0);
-    var cl = el("td","num", ly? String(left) : "-");
+    var cl = el("td","num keep", ly? String(left) : "-");
+    th.style.cursor = "pointer";
+    th.onclick = function(ev){ if (ev.target.closest && ev.target.closest("a,button")) return; rowMore(tr); };
     if (ly && left<=5) cl.style.color = "var(--warn-ink)";
     if (ly && left<=0) cl.style.background = "var(--warn-bg)";
     tr.appendChild(cl);
@@ -9343,6 +9381,7 @@ function renderAll(){
   if (ab0 && CADRE === "jr") ab0.hidden = !can("leave");
   renderHeader(); renderNotices(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
   renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro(); renderCmor();
+  try { makeoverLayout(); } catch(e){}
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
   applyRoleView();
@@ -9681,6 +9720,75 @@ function noticePost(){
           : "Could not post. Check the internet and try again.";
     renderNotices();
   });
+}
+
+/* ---------- the makeover: what needs action first, the rest folded ----------
+   HOD Sir: "Needs you" (only when something waits) -> notices -> on duty today
+   -> roster -> everything else folded. For everyone: rules, notes, cover
+   balance, the at-a-glance summary and the PDF tools open on a tap. */
+var FOLD_OPEN = {};
+function foldBtn(key, label, targets, cls){
+  cls = cls || "mkfold";
+  var first = targets.filter(function(x){ return x; })[0];
+  if (!first) return;
+  var b = document.getElementById("fold_" + key);
+  if (!b){
+    b = el("button", "foldbtn noprint"); b.type = "button"; b.id = "fold_" + key;
+    first.parentNode.insertBefore(b, first);
+    b.onclick = function(){ FOLD_OPEN[key] = !FOLD_OPEN[key]; makeoverLayout(); };
+  }
+  var open = !!FOLD_OPEN[key];
+  b.textContent = label + (open ? " \u25BE" : " \u25B8");
+  b.setAttribute("aria-expanded", open ? "true" : "false");
+  var any = false;
+  targets.forEach(function(x){ if (!x) return; x.classList.toggle(cls, !open); if (!x.hidden) any = true; });
+  b.hidden = !any;
+}
+function foldSection(id, label){
+  var sec = document.getElementById(id);
+  if (!sec) return;
+  var kids = [].slice.call(sec.children).filter(function(c){ return c.tagName !== "H2" && !c.classList.contains("foldbtn") && !(c.querySelector && c.querySelector("h2") && c.children.length && c.firstElementChild.tagName === "H2"); });
+  foldBtn("sec_" + id, label, kids);
+  sec.classList.toggle("foldsec", true);
+}
+/* the leave table on a phone: tap a name for the figures not shown in the row */
+function rowMore(tr){
+  var th = tr.querySelector("th"), old = th && th.querySelector(".rowmore");
+  if (old){ old.parentNode.removeChild(old); return; }
+  var bits = [].slice.call(tr.children).filter(function(c){ return c.tagName === "TD" && !c.classList.contains("keep"); })
+    .map(function(c){ return (c.getAttribute("data-h") || "") + " " + c.textContent.trim(); });
+  if (th && bits.length) th.appendChild(el("span", "rowmore", bits.join(" \u00B7 ")));
+}
+function makeoverLayout(){
+  var $ = function(id){ return document.getElementById(id); };
+  /* HOD Sir's order: Needs you, notices, today, roster */
+  if (HOD){
+    var ap = $("apprSec"), ns = $("noticeSec");
+    if (ap && ns && ap.nextElementSibling !== ns) ns.parentNode.insertBefore(ap, ns);
+    var rs = $("rosterSec"), tc = $("toolsCard");
+    if (rs && tc && rs.nextElementSibling !== tc) rs.parentNode.insertBefore(tc, rs.nextElementSibling);
+  }
+  var dl = document.querySelector("#toolsCard .dlgrid");
+  foldBtn("pdf", "PDF and print", [dl]);
+  foldBtn("tip", "How to change a duty", [$("rosterTip")]);
+  foldBtn("rules", "Leave rules", [$("counterNote")]);
+  foldBtn("ledger", "Cover balance", [$("ledgerHead"), $("ledgerWrap"), $("ledgerNote")]);
+  foldBtn("ind", "Show everyone\u2019s month", [document.querySelector("#indSec .scroller")]);
+  /* the leave table on a phone: each hidden figure carries its column name */
+  var heads = [].slice.call(document.querySelectorAll("#counter thead th")).map(function(h){ return h.textContent; });
+  [].forEach.call(document.querySelectorAll("#counter tbody tr"), function(tr){
+    [].forEach.call(tr.children, function(c, i){ if (heads[i]) c.setAttribute("data-h", heads[i]); });
+  });
+  /* HOD Sir: the leave record stays under its title, opened on a tap */
+  if (HOD){
+    var cs = $("counterSec");
+    if (cs){
+      var kids = [].slice.call(cs.children).filter(function(c){ return c.tagName !== "H2" && c.id !== "fold_counter"; });
+      var h2 = cs.querySelector("h2");
+      foldBtn("counter", "Show the leave record", kids, "mkfold2");   /* its own class: the folds inside stay as they are */
+      var fb = $("fold_counter"); if (fb && h2 && fb.previousElementSibling !== h2) h2.parentNode.insertBefore(fb, h2.nextSibling);
+    }
+  }
 }
 
 /* ---------- copy helper ---------- */
