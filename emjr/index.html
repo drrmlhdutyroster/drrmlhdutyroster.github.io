@@ -6312,9 +6312,27 @@ function leaveYear(n){
 /* A night is two days of leave. JRs: always. PGs: for nights from 19 Nov 2026
    (asked by Dr Vivek, 19 Nov 2026), so leave already counted does not change. */
 var PG_NIGHT_TWO_FROM = "2026-11-19";
+/* PGs: every day of leave counts, the night-off days too. So when the
+   night-off day that goes with a night is itself on the leave, the rest is
+   already counted and the night counts 1, not 2 (Dr Akshay, 24 Nov 2026:
+   14 days applied showed as 16). Each night pairs with the night-off day one
+   block later (N N OFF OFF: 1st night with 1st off, 2nd with 2nd). */
+var LW_EXTRA = null;   /* {date:true} for days being applied for right now */
+function leaveOnDay(n, key){
+  if (LW_EXTRA && LW_EXTRA[key]) return true;
+  var lv = (DATA.leaves || {})[safeId(rid(n), key)];
+  return !!(lv && lv.resident === n && !isDeclined(lv));
+}
+function nightOffOnLeave(n, dateKey){
+  var g = groupOf(n, msOf(dateKey));
+  if (!g || !g.blockDays) return false;
+  var offMs = msOf(dateKey) + g.blockDays * DAY;
+  return baseDuty(n, offMs) === "OFF" && leaveOnDay(n, iso(offMs));
+}
 function leaveWeight(n, dateKey, half){
   var w = half ? 0.5 : 1;
-  if ((hasTeams() || dateKey >= PG_NIGHT_TWO_FROM) && baseDuty(n, msOf(dateKey)) === "N") w *= 2;
+  if ((hasTeams() || dateKey >= PG_NIGHT_TWO_FROM) && baseDuty(n, msOf(dateKey)) === "N"
+      && (hasTeams() || CFG.offFree || !nightOffOnLeave(n, dateKey))) w *= 2;
   return w;
 }
 /* ---------- 2.5 days a month (JRs) ---------- */
@@ -6425,10 +6443,14 @@ function leaveDays(n, extra, skip){
     if (av && av.resident === n && av.converted && av.status !== "withdrawn" && av.date >= st)
       out.push({id:k, date:av.date, w:leaveWeight(n, av.date, false), pending:false, ahead:false});
   }
-  (extra || []).forEach(function(b, i){
-    if (CFG.offFree && baseDuty(n, msOf(b.date)) === "OFF") return;
-    out.push({id:"new" + i, date:b.date, w:leaveWeight(n, b.date, b.half), pending:true, ahead:b.date > today, fresh:true});
-  });
+  LW_EXTRA = {};
+  (extra || []).forEach(function(b){ LW_EXTRA[b.date] = true; });
+  try {
+    (extra || []).forEach(function(b, i){
+      if (CFG.offFree && baseDuty(n, msOf(b.date)) === "OFF") return;
+      out.push({id:"new" + i, date:b.date, w:leaveWeight(n, b.date, b.half), pending:true, ahead:b.date > today, fresh:true});
+    });
+  } finally { LW_EXTRA = null; }
   return out;
 }
 /* where a JR stands today */
