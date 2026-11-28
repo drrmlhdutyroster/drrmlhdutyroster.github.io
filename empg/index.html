@@ -4426,6 +4426,8 @@ function approveAllBar(groups){
     + " - their balance goes into minus. Please decide those one by one."));
   return bar;
 }
+var SOON_NOW = [];   /* the urgent requests showing now (their first ids) */
+function apprFolded(){ try { var v = localStorage.getItem(lsName("rml_appr_folded")); return v ? JSON.parse(v) : null; } catch(e){ return null; } }
 function renderApprovals(){
   var sec = document.getElementById("apprSec"),
       btn = document.getElementById("apprToggle"),
@@ -4468,8 +4470,11 @@ function renderApprovals(){
   function startsIn(g){ return g.kind === "leave" ? Math.round((msOf(g.from) - today0) / DAY) : 99; }
   groups.sort(function(a, b){ return startsIn(a) - startsIn(b); });
   var soon = groups.filter(function(g){ return startsIn(g) <= 2; });
+  SOON_NOW = soon.map(function(g){ return String((g.ids && g.ids[0]) || g.id || ""); });
   if (HOD && soon.length){
-    if (box && box.hidden){ box.hidden = false; if (btn) btn.setAttribute("aria-expanded","true"); }
+    /* open by itself only if Sir has not folded it, or a new urgent request has come since */
+    var fd = apprFolded(), fresh = !fd || SOON_NOW.some(function(id){ return fd.indexOf(id) < 0; });
+    if (box && box.hidden && fresh){ box.hidden = false; if (btn) btn.setAttribute("aria-expanded","true"); }
     if (btn) btn.textContent += " - " + soon.length + " start" + (soon.length === 1 ? "s" : "") + " soon";
     var al = el("div","soonbox");
     al.appendChild(el("b", null, soon.length === 1 ? "1 leave starts soon - please decide" : soon.length + " leaves start soon - please decide"));
@@ -4560,6 +4565,9 @@ function wireApprovals(){
       var open = box.hidden;
       box.hidden = !open;
       btn.setAttribute("aria-expanded", open?"true":"false");
+      /* folded by hand: it stays folded (Dr Vivek, 28 Nov 2026). Remember which urgent
+         requests were there, so only a NEW one opens it again. */
+      try { localStorage.setItem(lsName("rml_appr_folded"), open ? "" : JSON.stringify(SOON_NOW)); } catch(e){}
     };
   }
   if (save) save.onclick = function(){
@@ -5794,7 +5802,9 @@ function openAbsList(f){
   ABS_TICK = {};
   if (f && f.date){ ABSF.date = f.date; ABSF.month = f.date.slice(0,7); ABSF.status = "all"; ABSF.name = ""; ABSF.group = ""; ABSF.view = "each"; }
   if (f && f.name){ ABSF.name = f.name; ABSF.date = ""; ABSF.view = "each"; }
+  FOLD_OPEN.abs = true;
   renderAbsList();
+  try { makeoverLayout(); } catch(e){}
   var sec = document.getElementById("absSec");
   if (sec){ try { sec.scrollIntoView({behavior:"smooth", block:"start"}); } catch(e){ sec.scrollIntoView(); } }
 }
@@ -10194,6 +10204,8 @@ function makeoverLayout(){
   foldBtn("rules", "Leave rules", [$("counterNote")]);
   foldBtn("ledger", "Cover balance", [$("ledgerHead"), $("ledgerWrap"), $("ledgerNote")]);
   foldBtn("ind", "Show everyone\u2019s month", [document.querySelector("#indSec .scroller")]);
+  /* the Absences section: folded under its title until tapped (Dr Vivek, 28 Nov 2026: "taking too much space") */
+  foldBtn("abs", "Show absences", [$("absNote"), $("absBox")]);
   /* the leave table on a phone: each hidden figure carries its column name */
   var heads = [].slice.call(document.querySelectorAll("#counter thead th")).map(function(h){ return h.textContent; });
   [].forEach.call(document.querySelectorAll("#counter tbody tr"), function(tr){
