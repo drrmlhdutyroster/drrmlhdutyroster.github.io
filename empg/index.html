@@ -1005,6 +1005,56 @@ section>h2,.nfhead{font-size:20px !important}
 }
 /* + Add only while editing is unlocked */
 body.locked .addbtn{display:none}
+/* ---- tidy roster table + all absences in one place (28 Nov 2026) ---- */
+#roster td.lvcell{text-align:left;min-width:260px;max-width:440px}
+#roster td.chcell{text-align:center;min-width:150px}
+.lvsum{font-size:13.5px;line-height:1.5}
+.lvsum b{font-weight:600}
+.lvn{white-space:nowrap}
+.lvn.pend{color:var(--muted);font-style:italic}
+.lvn.decl{color:var(--muted);text-decoration:line-through}
+.lvmore,.linkbtn{background:none;border:0;padding:0;min-height:0;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer}
+.lvbox{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:6px;padding:6px;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}
+.lvnone{color:var(--muted)}
+.abstag{display:inline-block;margin-top:5px;min-height:0;padding:2px 10px;border:0;border-radius:999px;background:var(--red-bg);color:var(--red-ink);font-size:12.5px;font-weight:600}
+.abstag.done{background:var(--panel2);color:var(--muted)}
+#roster td.chcell .addopts{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 0}
+#roster td.chcell .addbtn{margin:2px}
+.abscard{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px}
+.absfilters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
+.absf label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.absf input,.absf select{min-width:150px}
+.abspills{display:flex;flex-wrap:wrap;gap:6px}
+.abspills .pill{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--panel2)}
+.abspills .pill.r{background:var(--red-bg);color:var(--red-ink);font-weight:600}
+.absday,.abswho{font-size:13.5px;background:var(--panel2);border-radius:8px;padding:7px 12px;margin-bottom:8px}
+.absbulk{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--today-wash);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13.5px}
+.absbulkbtns{display:flex;gap:6px}
+.abstbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.abstbl th{text-align:left;font-size:12.5px;font-weight:600;color:var(--muted);background:var(--panel2);padding:7px 8px}
+.abstbl td{padding:6px 8px;border-top:1px solid var(--rule);vertical-align:middle;text-align:left}
+.abstbl .nowrap{white-space:nowrap}
+.absgl,.abshow{color:var(--muted);font-size:12.5px}
+.absst{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.absst.absent{background:var(--red-bg);color:var(--red-ink)}
+.absst.cl{background:var(--warn-bg);color:var(--warn-ink)}
+.absst.present{background:var(--green-bg);color:var(--green-ink)}
+.absact button{min-height:30px;padding:3px 10px;font-size:13px;margin:2px 4px 2px 0}
+.absempty{color:var(--muted);text-align:center;padding:14px}
+@media (max-width:700px){
+  .abstbl thead{display:none}
+  .abstbl tr{display:block;border-top:1px solid var(--rule);padding:6px 0}
+  .abstbl td{display:inline-block;border:0;padding:2px 6px}
+  .abspills{margin-left:0}
+}
+.absseg{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:2px 0 10px}
+.segbtns{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.segbtns button{border:0;border-radius:0;min-height:34px;padding:5px 14px;font-size:14px;background:var(--panel);color:var(--ink)}
+.segbtns button.on{background:var(--accent);color:var(--accent-ink)}
+.absdl{margin-left:auto}
+.abscap{text-align:left;font-weight:700;font-size:15px;padding:4px 0 8px}
+/* "+ Add" only while editing is unlocked */
+body.locked .addmenu{display:none}
 </style>
 
 </head>
@@ -1173,6 +1223,7 @@ body.locked .addbtn{display:none}
     <!-- one button only: Apply for leave. The printable form is on each leave entry. -->
     <button class="ghost" id="leaveFormBtn" aria-expanded="false" aria-controls="leaveFormBox" hidden>Leave application</button>
     <button class="ghost" id="attBtn" aria-expanded="false" aria-controls="attBox">Attendance</button>
+    <button class="ghost" id="absListBtn" hidden>Absences</button>
     <button class="ghost" id="cAll" aria-pressed="false">Show everyone</button>
   </div>
   <div id="attBox" class="lockbox noprint" hidden>
@@ -1229,6 +1280,13 @@ body.locked .addbtn{display:none}
   <div class="note" style="margin-top:10px" id="counterNote"></div>
 </section>
 
+<!-- This roster's absences, all in one place (HOD Sir changes them; the in-charge, faculty and CMOs look) -->
+<section id="absSec" class="noprint" hidden>
+  <h2>Absences</h2>
+  <p class="note" style="margin-top:-4px" id="absNote">Everyone&rsquo;s absences, newest first. Type a name to see one person.</p>
+  <div id="absBox"></div>
+</section>
+
 <section id="hoursSec" hidden>
   <div class="bar" style="margin-bottom:8px">
     <h2 style="margin:0;border:0;padding:0">Duty hours</h2>
@@ -1280,6 +1338,7 @@ body.locked .addbtn{display:none}
   <button type="button" data-go="rosterSec"><span class="ic">&#9638;</span>Roster</button>
   <button type="button" data-go="ecroSec" id="mnavEcro" hidden><span class="ic">&#9742;</span>ECRO</button>
   <button type="button" data-go="counterSec"><span class="ic">&#9998;</span>Leave</button>
+  <button type="button" data-go="absSec" id="mnavAbs" hidden><span class="ic">&#10007;</span>Absent</button>
   <button type="button" data-go="indSec"><span class="ic">&#9776;</span>Glance</button>
 </nav>
 
@@ -1419,6 +1478,7 @@ PDFDoc.prototype.build = function(){
 var BUILD = "site-0.1";
 var DAY = 86400000;
 var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function iso(ms){ return new Date(ms).toISOString().slice(0,10); }
@@ -4606,7 +4666,7 @@ function monthBlock(){
   return b < epochMs() ? epochMs() : b;
 }
 
-var ME = null;
+var ME = null, ME_PICKED = false;   /* ME_PICKED: chosen during this visit */
 try { ME = localStorage.getItem("rml_me") || null; } catch(e){}
 var editing = null;
 var counterAll = false;
@@ -5193,10 +5253,10 @@ function renderRoster(){
     th.appendChild(el("span","ht",s.time));
     hr.appendChild(th);
   });
-  ["Leave","Exchange"].forEach(function(h,i){
+  ["Leave","Changes"].forEach(function(h,i){
     var th = el("th","plain");
     th.appendChild(el("span","hz",h));
-    th.appendChild(el("span","ht", i? "who swapped":"who is off"));
+    th.appendChild(el("span","ht", i? "exchange, move, cover":"who is off"));
     hr.appendChild(th);
   });
   thead.appendChild(hr); t.appendChild(thead);
@@ -5225,26 +5285,19 @@ function renderRoster(){
       tr.appendChild(td);
     });
 
-    var tdL = el("td","z-act");
-    leavesOn(key).forEach(function(it){ tdL.appendChild(chipFor("leave", it)); });
-    absFold(tdL, key, absencesOn(key).concat(autoAbsOn(key)));
-    tdL.appendChild(addBtn(key,"leave"));
-    if (hasTeams()) tdL.appendChild(addBtn(key,"absent"));
+    /* Tidy table (approved by Dr Vivek from a mock-up, 28 Nov 2026): leave is
+       one line of names that opens on a tap; absences one red tag; all the
+       "+" buttons sit behind one "+ Add". */
+    var tdL = el("td","z-act lvcell");
+    leaveSummary(tdL, key);
     tr.appendChild(tdL);
 
-    var tdE = el("td","z-act");
+    var tdE = el("td","z-act chcell");
     swapsOn(key).forEach(function(it){ tdE.appendChild(chipFor("swap", it)); });
     movesOn(key).forEach(function(it){ tdE.appendChild(chipFor("move", it)); });
     coversOn(key).forEach(function(it){ tdE.appendChild(chipFor("newcover", it)); });
-    tdE.appendChild(addBtn(key,"swap"));
-    tdE.appendChild(addBtn(key,"move"));
-    tdE.appendChild(addBtn(key,"newcover"));
-    if (hasTeams()) tdE.appendChild(addBtn(key,"post"));
-    if (academicCanEdit()){                              /* same as the phone view - any day */
-      var acD = el("button","addbtn","+ Class / case"); acD.type = "button";
-      acD.onclick = function(){ openAcademicNew(key); };
-      tdE.appendChild(acD);
-    }
+    addMenuInto(tdE, key, ["leave"].concat(hasTeams() ? ["absent"] : []).concat(["swap","move","newcover"]));
+    if (hasTeams()){ var pb = addBtn(key,"post"); if (pb.nodeType === 1 && /\baddbtn\b/.test(pb.className)) tdE.appendChild(pb); }
     tr.appendChild(tdE);
 
     tb.appendChild(tr);
@@ -5265,6 +5318,68 @@ function renderRoster(){
   }
   var nt = document.getElementById("nowBtn");
   if (nt) nt.style.display = viewOffset===0 ? "none" : "";
+}
+/* ---------- the tidy roster table ---------- */
+var LV_OPEN = {};       /* days whose leave details are open (desktop table) */
+function tableOpenAll(){ return !!window.TABLE_OPEN_ALL; }   /* test switch: every fold open */
+/* "+ Add" that opens the day's choices - the same as the phone cards */
+function addMenuInto(host, key, kinds){
+  var opts = kinds.map(function(k){ return addBtn(key, k); }).filter(function(x){ return x.nodeType === 1; });
+  if (academicCanEdit()){
+    var ac = el("button","addbtn","+ Class / case"); ac.type = "button";
+    ac.onclick = function(){ openAcademicNew(key); };
+    opts.push(ac);
+  }
+  var real = opts.filter(function(x){ return /\baddbtn\b/.test(x.className); });
+  if (!real.length){ opts.forEach(function(x){ host.appendChild(x); }); return; }
+  var open = ADD_OPEN === key || tableOpenAll();
+  var mb = el("button","addmenu" + (open ? " open" : ""), open ? "Close" : "+ Add \u25BE");
+  mb.type = "button";
+  mb.onclick = function(){ ADD_OPEN = ADD_OPEN === key ? null : key; renderViews(); };
+  host.appendChild(mb);
+  if (open){ var box = el("span","addopts"); real.forEach(function(x){ box.appendChild(x); }); host.appendChild(box); }
+}
+/* The leave of a day on one line: "9 on leave · Jr42, Jr47 ... + 4 more",
+   waiting ones in grey. A tap opens the full entries (form, cover, x). */
+function leaveSummary(td, key){
+  var items = leavesOn(key), abs = absencesOn(key).concat(autoAbsOn(key));
+  if (items.length){
+    var rank = function(it){ return isDeclined(it.v) ? 2 : isPending(it.v) ? 0 : 1; };   /* waiting first: it needs Sir */
+    items = items.slice().sort(function(a, b){ return rank(a) - rank(b); });
+    var open = !!LV_OPEN[key] || tableOpenAll(), SHOW = 5;
+    var line = el("div","lvsum");
+    var live = items.filter(function(it){ return !isDeclined(it.v); }).length;
+    line.appendChild(el("b",null, live + " on leave"));
+    var names = items.slice(0, open ? items.length : SHOW);
+    line.appendChild(document.createTextNode(" \u00B7 "));
+    names.forEach(function(it, i){
+      var v = it.v, cls = isDeclined(v) ? "lvn decl" : isPending(v) ? "lvn pend" : "lvn";
+      var t = title(v.resident) + (isPending(v) ? " (waiting)" : isDeclined(v) ? " (not approved)" : "") + (v.half ? " (half)" : "");
+      line.appendChild(el("span", cls, t));
+      if (i < names.length - 1) line.appendChild(document.createTextNode(", "));
+    });
+    var more = items.length - names.length;
+    var tg = el("button","lvmore", open ? "hide \u25B4" : more > 0 ? "+ " + more + " more \u25B8" : "details \u25B8");
+    tg.type = "button";
+    tg.onclick = function(ev){ ev.stopPropagation(); LV_OPEN[key] = !LV_OPEN[key]; renderViews(); };
+    line.appendChild(document.createTextNode(" ")); line.appendChild(tg);
+    td.appendChild(line);
+    if (open){
+      var box = el("div","lvbox");
+      items.forEach(function(it){ box.appendChild(chipFor("leave", it)); });
+      td.appendChild(box);
+    }
+  }
+  if (abs.length){
+    var still = abs.filter(function(a){ return a.v.status !== "withdrawn" && !a.v.converted; }).length;
+    if (absListAllowed()){
+      var at = el("button","abstag" + (still ? "" : " done"), still ? still + " absent \u25B8" : abs.length + " absence record" + (abs.length > 1 ? "s" : "") + " \u25B8");
+      at.type = "button";
+      at.onclick = function(ev){ ev.stopPropagation(); openAbsList({date:key}); };
+      td.appendChild(at);
+    } else absFold(td, key, abs);
+  }
+  if (!items.length && !abs.length) td.appendChild(el("span","lvnone","\u2014"));
 }
 function chipFor(kind, it){
   var ch = el("span","chip " + (kind==="leave"?"lv":"ex"));
@@ -5655,12 +5770,284 @@ function absChip(it){
       var b = JSON.parse(JSON.stringify(v));
       if (it.derived){ b.by = "posting"; b.createdAt = Date.now(); }
       if (v.converted){ delete b.converted; delete b.convertedAt; delete b.convertedBy; }
-      else b.converted = true;
+      else { b.converted = true; b.convertedBy = whoName(); b.convertedAt = Date.now(); }
       save(b, v.converted ? "Counted as absent again." : "Turned into CL - charged to Dr " + title(v.resident) + "'s leave.");
     };
     ch.appendChild(c);
   }
   return ch;
+}
+/* ---------- all absences in one place ----------
+   Asked by Dr Vivek (28 Nov 2026, approved from a mock-up): one list of every
+   absence - entered by hand and "not posted" by the CMO - with a name search,
+   month, status and group filters, and HOD Sir's buttons on each row; tick
+   several to make them CL or present at once. JR roster only. HOD Sir changes;
+   the JR in-charge and faculty only look. Every change records who and when. */
+/* A section of its own on each roster's page, after the Leave record (Dr Vivek, 28 Nov 2026:
+   "individual like for jrs and pgs page", "so that all data is in it"): that roster's absences
+   only, every month by default, and the month statement (the old PDF) there too. */
+var ABSF = {month:"all", name:"", status:"all", group:"", date:"", view:"each"}, ABS_TICK = {};
+function absListAllowed(){ return HOD || ROLE === "office"; }   /* HOD Sir and the HOD office only (Dr Vivek, 28 Nov 2026); only HOD Sir changes */
+function cadreWord(){ return CADRE === "jr" ? "Junior Residents" : "Post Graduates"; }
+function absCanChange(){ return CADRE === "jr" && HOD; }
+function openAbsList(f){
+  ABS_TICK = {};
+  if (f && f.date){ ABSF.date = f.date; ABSF.month = f.date.slice(0,7); ABSF.status = "all"; ABSF.name = ""; ABSF.group = ""; ABSF.view = "each"; }
+  if (f && f.name){ ABSF.name = f.name; ABSF.date = ""; ABSF.view = "each"; }
+  renderAbsList();
+  var sec = document.getElementById("absSec");
+  if (sec){ try { sec.scrollIntoView({behavior:"smooth", block:"start"}); } catch(e){ sec.scrollIntoView(); } }
+}
+function absStatus(v){ return v.status === "withdrawn" ? "present" : v.converted ? "cl" : "absent"; }
+/* one absence, changed the way HOD Sir asked: "cl", "present" or "back" */
+function absChanged(it, act){
+  var b = JSON.parse(JSON.stringify(it.v));
+  if (it.derived){ b.by = "posting"; b.createdAt = Date.now(); delete b.auto; }
+  if (act === "present"){ b.status = "withdrawn"; b.withdrawnBy = whoName(); b.withdrawnAt = Date.now(); }
+  else if (act === "cl"){ b.converted = true; b.convertedBy = whoName(); b.convertedAt = Date.now(); }
+  else if (act === "back"){ delete b.converted; delete b.convertedAt; delete b.convertedBy; }
+  return b;
+}
+function absSaveMany(list, act, msgEl){
+  if (!list.length) return;
+  if (msgEl){ msgEl.className = "status"; msgEl.textContent = "Saving…"; }
+  runSeq(list.map(function(it){ return function(){ return STORE.put("absences", it.id, absChanged(it, act)); }; })).then(function(r){
+    ABS_TICK = {};
+    renderAll();
+    var n = list.length, word = n === 1 ? "absence" : "absences";
+    var m = r.decided ? "Only the Head of the Department can change this now."
+      : (r.refused ? "Your passphrase does not allow this."
+      : r.failed ? "Could not save all of them. Please try again."
+      : act === "cl" ? n + " " + word + " made CL - charged to leave."
+      : act === "present" ? n + " " + word + " made present (kept in the record as withdrawn)."
+      : n + " " + word + " counted as absent again.");
+    setStatus(m, !!(r.decided || r.refused || r.failed));
+    var st = document.getElementById("absMsg");
+    if (st){ st.className = "status" + (r.decided || r.refused || r.failed ? " bad" : ""); st.textContent = m; }
+  });
+}
+/* every absence in a month: [{id, v, derived}] newest first */
+function absInMonth(ym){
+  var out = [], last = msOf(todayKey()), from, to;
+  if (ym === "all"){ from = epochMs(); to = last + 60*DAY; }
+  else { var y = +ym.slice(0,4), m = +ym.slice(5,7) - 1; from = Date.UTC(y, m, 1); to = Date.UTC(y, m + 1, 0); }
+  for (var t = Math.max(from, epochMs()); t <= Math.min(to, last + 60*DAY); t += DAY){
+    var key = iso(t);
+    absencesOn(key).concat(t <= last ? autoAbsOn(key) : []).forEach(function(it){ out.push(it); });
+  }
+  out.sort(function(a, b){ return a.v.date < b.v.date ? 1 : a.v.date > b.v.date ? -1 : (a.v.resident < b.v.resident ? -1 : 1); });
+  return out;
+}
+function absMonths(){
+  var out = [], t = new Date(epochMs()), end = new Date(msOf(todayKey()));
+  var y = t.getUTCFullYear(), m = t.getUTCMonth();
+  while (y < end.getUTCFullYear() || (y === end.getUTCFullYear() && m <= end.getUTCMonth())){
+    out.push(y + "-" + ("0" + (m + 1)).slice(-2)); m++; if (m > 11){ m = 0; y++; }
+  }
+  return out.reverse();
+}
+function absShift(v){
+  if (v.slot) return slotMeta(v.slot).label;
+  var d = baseDuty(v.resident, msOf(v.date));
+  return d && d !== "OFF" ? slotMeta(d).label : "";
+}
+function absHow(it){
+  var v = it.v;
+  if (it.derived || v.by === "posting" || v.auto){
+    var refused = false;
+    leavesOn(v.date).forEach(function(l){ if (l.v.resident === v.resident && isDeclined(l.v)) refused = true; });
+    return (refused ? "leave not approved; " : "") + "not posted by the CMO";
+  }
+  return (v.by ? "marked by " + v.by : "marked absent") + (v.reason ? " · " + v.reason : "");
+}
+function renderAbsList(){
+  var sec = document.getElementById("absSec"), box = document.getElementById("absBox");
+  if (!sec || !box) return;
+  var btn = document.getElementById("absListBtn");
+  if (btn) btn.hidden = !absListAllowed();
+  sec.hidden = !absListAllowed();
+  var nb = document.getElementById("mnavAbs"); if (nb) nb.hidden = sec.hidden;
+  var h2 = sec.querySelector("h2"); if (h2) h2.textContent = "Absences \u2014 " + cadreWord();
+  if (sec.hidden) return;
+  var months = absMonths();
+  if (ABSF.month !== "all" && months.indexOf(ABSF.month) < 0) ABSF.month = "all";
+  if (ABSF.view === "statement" && ABSF.month === "all") ABSF.month = months[0] || todayKey().slice(0,7);
+  box.innerHTML = "";
+  var card = el("div","abscard");
+  /* filters */
+  var fl = el("div","absfilters");
+  function fld(lab, node){ var d = el("div","absf"); var l = el("label",null,lab); d.appendChild(l); d.appendChild(node); return d; }
+  var nm = document.createElement("input"); nm.type = "search"; nm.id = "absName"; nm.placeholder = "Type a name…"; nm.value = ABSF.name;
+  nm.oninput = function(){ ABSF.name = nm.value; ABS_TICK = {}; drawRows(); };
+  var mo = document.createElement("select"); mo.id = "absListMonth";
+  if (ABSF.view !== "statement") mo.appendChild(opt("all","All months"));
+  months.forEach(function(ym){ var d = new Date(msOf(ym + "-01")); mo.appendChild(opt(ym, MONTHS_FULL[d.getUTCMonth()] + " " + d.getUTCFullYear())); });
+  mo.value = ABSF.month; mo.onchange = function(){ ABSF.month = mo.value; ABSF.date = ""; ABS_TICK = {}; renderAbsList(); };
+  var stS = document.createElement("select"); stS.id = "absStatus";
+  [["absent","Still absent"],["cl","Made CL"],["present","Made present"],["all","All"]].forEach(function(o){ stS.appendChild(opt(o[0], o[1])); });
+  stS.value = ABSF.status; stS.onchange = function(){ ABSF.status = stS.value; ABS_TICK = {}; drawRows(); };
+  var gS = document.createElement("select"); gS.id = "absGroup"; gS.appendChild(opt("","All groups"));
+  var gseen = {};
+  CFG.groups.forEach(function(g){
+    if (isTeamGroup(g)) teamsOn(g, msOf(todayKey())).forEach(function(t){ if (!gseen[t.name]){ gseen[t.name] = 1; gS.appendChild(opt(t.name, t.name)); } });
+    else if (g.label && !gseen[g.label]){ gseen[g.label] = 1; gS.appendChild(opt(g.label, g.label)); }
+  });
+  gS.value = ABSF.group; gS.onchange = function(){ ABSF.group = gS.value; ABS_TICK = {}; drawRows(); };
+  fl.appendChild(fld("Month", mo)); fl.appendChild(fld("Name", nm)); fl.appendChild(fld("Group", gS));
+  var stW = fld("Show", stS); if (ABSF.view === "statement") stW.hidden = true; fl.appendChild(stW);
+  if (ABSF.view === "statement"){
+    var dl = el("button","primary","Download statement (PDF)"); dl.type = "button"; dl.id = "absPdf";
+    dl.onclick = function(){ downloadAbsenceFor(+ABSF.month.slice(0,4), +ABSF.month.slice(5,7) - 1, msg); };
+    var dw = el("div","absdl"); dw.appendChild(dl); fl.appendChild(dw);
+  }
+  card.appendChild(fl);
+  /* two views of the same data: the month statement and each absence */
+  var seg = el("div","absseg"), sg = el("span","segbtns");
+  [["statement","Month statement"],["each","Each absence"]].forEach(function(v){
+    var x = el("button", ABSF.view === v[0] ? "on" : "", v[1]); x.type = "button"; x.id = "absView_" + v[0];
+    x.onclick = function(){ ABSF.view = v[0]; ABS_TICK = {}; if (v[0] === "each") ABSF.date = ""; renderAbsList(); };
+    sg.appendChild(x);
+  });
+  seg.appendChild(sg);
+  var pills = el("div","abspills"); seg.appendChild(pills);
+  card.appendChild(seg);
+  var dayLine = el("div","absday"); card.appendChild(dayLine);
+  var who = el("div","abswho"); card.appendChild(who);
+  var bulk = el("div","absbulk"); card.appendChild(bulk);
+  var msg = el("p","status"); msg.id = "absMsg"; card.appendChild(msg);
+  var tbl = el("table","abstbl"); tbl.id = "absTable"; card.appendChild(tbl);
+  box.appendChild(card);
+  var all = absInMonth(ABSF.month);
+
+  function drawRows(){
+    var q = ABSF.name.trim().toLowerCase();
+    if (ABSF.view === "statement"){ drawStatement(q); return; }
+    var base = all.filter(function(it){
+      var v = it.v;
+      if (ABSF.date && v.date !== ABSF.date) return false;
+      if (q && (title(v.resident) + " " + v.resident).toLowerCase().indexOf(q) < 0) return false;
+      if (ABSF.group && groupLabel(v.resident, msOf(v.date)) !== ABSF.group) return false;
+      return true;
+    });
+    var cnt = {absent:0, cl:0, present:0};
+    base.forEach(function(it){ cnt[absStatus(it.v)]++; });
+    pills.innerHTML = "";
+    pills.appendChild(el("span","pill r", cnt.absent + " still absent"));
+    pills.appendChild(el("span","pill", cnt.cl + " made CL"));
+    pills.appendChild(el("span","pill", cnt.present + " made present"));
+    var rows = base.filter(function(it){ return ABSF.status === "all" || absStatus(it.v) === ABSF.status; });
+    /* one day, from the red tag on the roster */
+    dayLine.innerHTML = ""; dayLine.hidden = !ABSF.date;
+    if (ABSF.date){
+      dayLine.appendChild(document.createTextNode("Showing " + fmt(msOf(ABSF.date)) + " only. "));
+      var wm = el("button","linkbtn","Show the whole month"); wm.type = "button";
+      wm.onclick = function(){ ABSF.date = ""; ABSF.status = "absent"; renderAbsList(); };
+      dayLine.appendChild(wm);
+    }
+    /* one person: a line about them */
+    who.innerHTML = ""; who.hidden = true;
+    var people = {}; base.forEach(function(it){ people[it.v.resident] = 1; });
+    var pk = Object.keys(people);
+    if (q && pk.length === 1){
+      var n = pk[0], mname = ABSF.month === "all" ? "all months" : MONTHS_FULL[new Date(msOf(ABSF.month + "-01")).getUTCMonth()];
+      var txt = "Dr " + title(n) + " \u2014 " + base.length + (base.length === 1 ? " absence" : " absences") + " in " + mname
+        + ": " + cnt.absent + " still absent, " + cnt.cl + " made CL, " + cnt.present + " made present.";
+      try { var lb = leaveBalance(n); txt += " CL balance " + (Math.round(lb.left * 10) / 10) + "."; } catch(e){}
+      who.textContent = txt; who.hidden = false;
+    }
+    /* tick several (HOD Sir) */
+    var change = absCanChange();
+    bulk.innerHTML = ""; bulk.hidden = true;
+    var ticked = rows.filter(function(it){ return ABS_TICK[it.id] && absStatus(it.v) === "absent"; });
+    if (change && ticked.length){
+      bulk.hidden = false;
+      bulk.appendChild(el("span",null, ticked.length + " ticked — " + ticked.map(function(it){ return "Dr " + title(it.v.resident) + " (" + fmt(msOf(it.v.date)) + ")"; }).join(", ")));
+      var bw = el("span","absbulkbtns");
+      var bc = el("button","primary","Make CL (" + ticked.length + ")"); bc.type = "button"; bc.id = "absBulkCL";
+      bc.onclick = function(){ absSaveMany(ticked, "cl", msg); };
+      var bp = el("button","ghost","Make present (" + ticked.length + ")"); bp.type = "button"; bp.id = "absBulkPresent";
+      bp.onclick = function(){ absSaveMany(ticked, "present", msg); };
+      bw.appendChild(bc); bw.appendChild(bp); bulk.appendChild(bw);
+    }
+    tbl.innerHTML = "";
+    var hr = el("tr");
+    (change ? [""] : []).concat(["Date","Shift","Name","How it came","Status", change ? "HOD Sir" : ""]).forEach(function(h){ hr.appendChild(el("th",null,h)); });
+    var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0);
+    var tb = el("tbody");
+    if (!rows.length){
+      var er = el("tr"), ed = el("td","absempty", base.length ? "Nothing here with these filters." : "No absences " + (ABSF.date ? "that day." : ABSF.month === "all" ? "recorded." : "this month."));
+      ed.colSpan = change ? 7 : 6; er.appendChild(ed); tb.appendChild(er);
+    }
+    rows.forEach(function(it){
+      var v = it.v, st = absStatus(v), tr = el("tr","absrow s-" + st);
+      tr.setAttribute("data-id", it.id);
+      if (change){
+        var tdc = el("td");
+        if (st === "absent"){
+          var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!ABS_TICK[it.id];
+          cb.setAttribute("aria-label", "Tick Dr " + title(v.resident) + ", " + fmt(msOf(v.date)));
+          cb.onchange = function(){ if (cb.checked) ABS_TICK[it.id] = true; else delete ABS_TICK[it.id]; drawRows(); };
+          tdc.appendChild(cb);
+        }
+        tr.appendChild(tdc);
+      }
+      tr.appendChild(el("td","nowrap", fmt(msOf(v.date))));
+      tr.appendChild(el("td",null, absShift(v)));
+      var tn = el("td"); tn.appendChild(el("b",null,"Dr " + title(v.resident)));
+      var gl = groupLabel(v.resident, msOf(v.date)); if (gl) tn.appendChild(el("span","absgl"," " + gl));
+      tr.appendChild(tn);
+      tr.appendChild(el("td","abshow", absHow(it)));
+      var ts = el("td"); ts.appendChild(el("span","absst " + st, st === "cl" ? "made CL" : st === "present" ? "made present" : "absent"));
+      tr.appendChild(ts);
+      var ta = el("td","absact");
+      if (change){
+        var b = function(lbl, act){ var x = el("button","ghost",lbl); x.type = "button"; x.onclick = function(){ absSaveMany([it], act, msg); }; ta.appendChild(x); };
+        if (st === "absent"){ b("Make CL","cl"); b("Make present","present"); }
+        else if (st === "cl") b("Back to absent","back");
+        else ta.appendChild(el("span","abshow", "by " + (v.withdrawnBy || "HOD") + (v.withdrawnAt ? ", " + fmt(v.withdrawnAt) : "")));
+      } else if (st === "cl") ta.appendChild(el("span","abshow", "by " + (v.convertedBy || "HOD")));
+      else if (st === "present") ta.appendChild(el("span","abshow", "by " + (v.withdrawnBy || "HOD")));
+      tr.appendChild(ta);
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+  }
+  /* the month statement: each JR once, the days still counted absent (as the PDF) */
+  function drawStatement(q){
+    var y = +ABSF.month.slice(0,4), m = +ABSF.month.slice(5,7) - 1;
+    dayLine.hidden = true; who.hidden = true; bulk.hidden = true;
+    var rows = absenceRows(y, m).filter(function(r){
+      if (q && (title(r.name) + " " + r.name).toLowerCase().indexOf(q) < 0) return false;
+      if (ABSF.group && r.group !== ABSF.group) return false;
+      return true;
+    });
+    var tot = 0; rows.forEach(function(r){ tot += r.days.length; });
+    pills.innerHTML = "";
+    pills.appendChild(el("span","pill r", tot + (tot === 1 ? " day absent" : " days absent")));
+    var wd = CADRE === "jr" ? "JR" : "PG";
+    pills.appendChild(el("span","pill", rows.length + " " + wd + (rows.length === 1 ? "" : "s")));
+    tbl.innerHTML = "";
+    tbl.appendChild(el("caption","abscap", "Absence statement \u2014 " + MONTHS_FULL[m] + " " + y));
+    var hr = el("tr"); ["#","Name","Group","Absent on","Days","How"].forEach(function(h){ hr.appendChild(el("th",null,h)); });
+    var th0 = el("thead"); th0.appendChild(hr); tbl.appendChild(th0);
+    var tb = el("tbody");
+    if (!rows.length){ var er = el("tr"), ed = el("td","absempty","No absences counted this month."); ed.colSpan = 6; er.appendChild(ed); tb.appendChild(er); }
+    rows.forEach(function(r, i){
+      var tr = el("tr","strow");
+      tr.appendChild(el("td",null,String(i + 1)));
+      var tn = el("td"), a = el("button","linkbtn","Dr " + title(r.name)); a.type = "button";
+      a.title = "See each absence of Dr " + title(r.name);
+      a.onclick = function(){ ABSF.view = "each"; ABSF.name = title(r.name); ABSF.status = "all"; ABS_TICK = {}; renderAbsList(); };
+      tn.appendChild(a); tr.appendChild(tn);
+      tr.appendChild(el("td",null,r.group || ""));
+      tr.appendChild(el("td",null,r.days.join(", ") + " " + MON[m]));
+      tr.appendChild(el("td",null,String(r.days.length)));
+      tr.appendChild(el("td","abshow",Object.keys(r.how).join("; ")));
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+  }
+  drawRows();
 }
 function absenceEditor(key){
   var ms = msOf(key), box = el("div"), eff = effective(ms);
@@ -8887,7 +9274,7 @@ function absenceRows(y, m){
 function pdfAbsenceStatement(y, m){
   var doc = new PDFDoc(595, 842), rows = absenceRows(y, m);
   var mname = ["January","February","March","April","May","June","July","August","September","October","November","December"][m];
-  pdfHeader(doc, "Absence statement - " + mname + " " + y, CFG.dept.title + ". Days a JR was absent from a rostered duty.");
+  pdfHeader(doc, "Absence statement - " + mname + " " + y, CFG.dept.title + ". Days a" + (CADRE === "jr" ? " JR" : " PG") + " was absent from a rostered duty.");
   var L = 30, R = 565, cols = [L, L+24, L+170, L+230, L+380, L+412];
   var y0 = 84;
   function head(){
@@ -8917,7 +9304,7 @@ function pdfAbsenceStatement(y, m){
   });
   doc.line(L, y0-9, R, y0-9, LINE);
   y0 += 8;
-  doc.text(L, y0, 9, false, rows.length + (rows.length === 1 ? " JR, " : " JRs, ") + total + (total === 1 ? " day" : " days") + " in all.", INK);
+  doc.text(L, y0, 9, false, rows.length + " " + (CADRE === "jr" ? "JR" : "PG") + (rows.length === 1 ? ", " : "s, ") + total + (total === 1 ? " day" : " days") + " in all.", INK);
   pdfSignBlock(doc, Math.max(y0 + 60, 720));
   pdfStamp(doc);
   return doc.build();
@@ -8937,6 +9324,16 @@ function fillAbsMonths(){
   }
   if (!sel.options.length) sel.appendChild(opt(e.getUTCFullYear() + "-" + e.getUTCMonth(), MON[e.getUTCMonth()] + " " + e.getUTCFullYear()));
   sel.value = keep && [].some.call(sel.options, function(o){ return o.value === keep; }) ? keep : sel.options[sel.options.length-1].value;
+}
+function downloadAbsenceFor(y, m, st){
+  try {
+    var bytes = pdfAbsenceStatement(y, m), name = "Absence-statement-" + (CADRE === "jr" ? "JR" : "PG") + "-" + MON[m] + "-" + y + ".pdf";
+    var blob = new Blob([bytes], {type:"application/pdf"}), url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
+    if (st){ st.className = "status"; st.textContent = "Downloaded " + name; }
+  } catch(e){ if (st){ st.className = "status bad"; st.textContent = "Could not build the statement."; } }
 }
 function downloadAbsence(){
   var sel = document.getElementById("absMonth"), st = document.getElementById("dlStat");
@@ -9403,6 +9800,7 @@ function renderAll(){
   if (ab0 && CADRE === "jr") ab0.hidden = !can("leave");
   renderHeader(); renderNotices(); renderApprovals(); renderToday(); renderMine(); renderViews(); renderPdfMonths();
   renderInd(); renderCounter(); renderLedger(); renderSpec(); renderEcro(); renderCmor();
+  try { renderAbsList(); } catch(e){}
   try { makeoverLayout(); } catch(e){}
   var mm = document.getElementById("mnavMine"), msec = document.getElementById("mineSec");
   if (mm) mm.hidden = !(msec && !msec.hidden && ME);
@@ -9855,7 +10253,10 @@ function refreshWho(){
     w.appendChild(opt(n, "Dr " + title(n) + (g? " ("+g+")" : "")));
   });
   if (ME && roster().indexOf(ME) < 0) ME = null;   /* a name from the other roster */
-  if (ME) w.value = ME;
+  /* HOD Sir, faculty and the in-charge look at anyone: start at "choose" on every
+     open - a name once picked on this device (Dr Mendraj, 28 Nov 2026) is not brought back */
+  if (seesEveryone() && !ME_PICKED) ME = null;
+  if (ME) w.value = ME; else w.value = "";
 }
 function wire(){
   wireNav();
@@ -9899,8 +10300,8 @@ function wire(){
     };
   }
   w.onchange = function(){
-    ME = w.value || null;
-    try { localStorage.setItem("rml_me", w.value); } catch(e){}
+    ME = w.value || null; ME_PICKED = true;
+    if (!seesEveryone()){ try { localStorage.setItem("rml_me", w.value); } catch(e){} }   /* residents: their own name, remembered */
     renderMine(); renderCounter(); myDetailsBox(); idleStatus();
   };
   function shift(by){
@@ -9938,6 +10339,8 @@ function wire(){
       fa.value = iso(Math.max(cm.from, epochMs())); fb.value = iso(cm.to);
     }
   };
+  var alb = document.getElementById("absListBtn");
+  if (alb) alb.onclick = function(){ ABSF.date = ""; openAbsList(); };
   wireLeaveForm();
   wireApply();
   document.getElementById("pPrint").onclick = function(){ window.print(); };
@@ -10115,6 +10518,7 @@ function useOther(o){
     var r = STORE.lastRole;
     if (!r){ applyLock(); renderAll(); idleStatus(); fallbackStart(); return; }
     useRole(r);
+    refreshWho();                       /* now that the role is known (HOD Sir: start at "choose") */
     try { localStorage.setItem(lsName("rml_role"), r); } catch(e){}
     if (STORE.lastOther) useOther(STORE.lastOther);   /* never kept on the phone */
     if (HODKEY && r !== "hod") checkHodLater();
