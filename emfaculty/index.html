@@ -3813,6 +3813,7 @@ function can(a){
     /* PG roster, as it always was: PGs request, the HOD approves */
     if (a === "leave" || a === "change") return UNLOCKED && !FAC;
     if (a === "setup") return HOD;
+    if (a === "absent") return HOD;              /* PG absences: HOD Sir marks them (Dr Vivek, 28 Nov 2026) */
     return false;
   }
   if (!UNLOCKED && !HOD) return false;
@@ -5304,7 +5305,7 @@ function renderRoster(){
     swapsOn(key).forEach(function(it){ tdE.appendChild(chipFor("swap", it)); });
     movesOn(key).forEach(function(it){ tdE.appendChild(chipFor("move", it)); });
     coversOn(key).forEach(function(it){ tdE.appendChild(chipFor("newcover", it)); });
-    addMenuInto(tdE, key, ["leave"].concat(hasTeams() ? ["absent"] : []).concat(["swap","move","newcover"]));
+    addMenuInto(tdE, key, ["leave"].concat(hasTeams() || HOD ? ["absent"] : []).concat(["swap","move","newcover"]));
     if (hasTeams()){ var pb = addBtn(key,"post"); if (pb.nodeType === 1 && /\baddbtn\b/.test(pb.className)) tdE.appendChild(pb); }
     tr.appendChild(tdE);
 
@@ -5770,7 +5771,7 @@ function absChip(it){
     };
     ch.appendChild(w);
   }
-  if (!wd && HOD && CADRE === "jr"){
+  if (!wd && HOD){
     var c = el("button",null, v.converted ? "back to absent" : "make it CL"); c.className = "formbtn";
     c.title = v.converted ? "Undo: count this day as absent again" : "Count this day as leave, charged to Dr " + title(v.resident) + "'s entitlement";
     c.onclick = function(ev){
@@ -5797,7 +5798,7 @@ function absChip(it){
 var ABSF = {month:"all", name:"", status:"all", group:"", date:"", view:"each"}, ABS_TICK = {};
 function absListAllowed(){ return HOD || ROLE === "office"; }   /* HOD Sir and the HOD office only (Dr Vivek, 28 Nov 2026); only HOD Sir changes */
 function cadreWord(){ return CADRE === "jr" ? "Junior Residents" : "Post Graduates"; }
-function absCanChange(){ return CADRE === "jr" && HOD; }
+function absCanChange(){ return HOD; }   /* both rosters: only HOD Sir changes an absence */
 function openAbsList(f){
   ABS_TICK = {};
   if (f && f.date){ ABSF.date = f.date; ABSF.month = f.date.slice(0,7); ABSF.status = "all"; ABSF.name = ""; ABSF.group = ""; ABSF.view = "each"; }
@@ -6350,7 +6351,7 @@ function renderCards(){
     swapsOn(key).forEach(function(it){ la.appendChild(chipFor("swap",it)); });
     movesOn(key).forEach(function(it){ la.appendChild(chipFor("move",it)); });
     coversOn(key).forEach(function(it){ la.appendChild(chipFor("newcover",it)); });
-    var opts = ["leave"].concat(hasTeams() ? ["absent"] : []).concat(["swap","move","newcover"])
+    var opts = ["leave"].concat(hasTeams() || HOD ? ["absent"] : []).concat(["swap","move","newcover"])
       .map(function(k){ return addBtn(key, k); }).filter(function(x){ return x.nodeType === 1; });
     if (academicCanEdit()){
       var ac = el("button","addbtn","+ Class / case"); ac.type = "button";
@@ -6992,7 +6993,8 @@ function leaveTaken(n, ly){
     var am = msOf(av.date);
     if (am<ly.start || am>ly.end) continue;
     if (fromMs!==null && am<fromMs) continue;
-    if (am>today) ahead++; else taken++;
+    var aw = leaveWeight(n, av.date, false);    /* PG: from the 30 days, a night as leave on a night */
+    if (am>today) ahead += aw; else taken += aw;
   }
   return {taken:taken, ahead:ahead, covered:covered, pending:pending};
 }
